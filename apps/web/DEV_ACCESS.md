@@ -15,7 +15,7 @@ SAUNA_ALLOWED_DEV_ORIGINS=dev.example.com npm run web:dev
 For local API proxying, Next.js rewrites `/api/sauna/*` to the backend configured by `SAUNA_BACKEND_INTERNAL_URL` or `SAUNA_API_INTERNAL_URL`.
 
 ```bash
-SAUNA_BACKEND_INTERNAL_URL=http://127.0.0.1:8080 npm run web:dev
+SAUNA_BACKEND_INTERNAL_URL=http://127.0.0.1:19588 npm run web:dev
 ```
 
 Production deployments should call the public API domain directly through:

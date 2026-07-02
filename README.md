@@ -39,7 +39,7 @@ A typical local setup uses:
 ```text
 PostgreSQL: 127.0.0.1:5432, database sauna
 DragonFlyDB: redis://127.0.0.1:16379/0
-Backend:    http://127.0.0.1:8080
+Backend:    http://127.0.0.1:19588
 Frontend:   http://127.0.0.1:3000
 ```
 
@@ -63,7 +63,7 @@ CORS_ALLOW_ORIGINS=http://localhost:3000,http://127.0.0.1:3000,https://sauna.wre
 Important frontend variables:
 
 ```text
-NEXT_PUBLIC_SAUNA_API_BASE_URL=http://127.0.0.1:8080/api/v1
+NEXT_PUBLIC_SAUNA_API_BASE_URL=http://127.0.0.1:19588/api/v1
 ```
 
 Do not commit real `.env` files or provider API keys.
@@ -90,7 +90,7 @@ From the repository root, after configuring `.env` or `.env.local`:
 npm run dev:start
 ```
 
-This starts only the Go backend on `:8080`. The frontend is expected to run on Vercel for the deployed app.
+This starts only the Go backend on `:19588`. The frontend is expected to run on Vercel for the deployed app.
 
 Stop the backend with:
 
@@ -118,7 +118,7 @@ npm run web:build
 Backend health check:
 
 ```bash
-curl http://127.0.0.1:8080/health
+curl http://127.0.0.1:19588/health
 ```
 
 ## Deployment notes
@@ -141,7 +141,7 @@ https://sauna.wrenzeal.top
 
 ### Backend behind Nginx
 
-The backend should run privately on the VPS, for example on `127.0.0.1:8080`, and be exposed through Nginx:
+The backend should run privately on the VPS, for example on `127.0.0.1:19588`, and be exposed through Nginx:
 
 ```text
 https://api.sauna.wrenzeal.top

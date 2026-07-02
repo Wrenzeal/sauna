@@ -29,7 +29,7 @@ The development defaults are already wired in code for a generic local database:
 ```text
 DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5432/sauna?sslmode=disable
 REDIS_URL=redis://127.0.0.1:16379/0
-HTTP_ADDR=:8080
+HTTP_ADDR=:19588
 ```
 
 Override any of them when your local ports or credentials are different. `scripts/start-dev.sh` automatically loads ignored `.env` and `.env.local` files before starting the backend:
@@ -43,7 +43,7 @@ Production still requires an explicit `DATABASE_URL` because the development def
 ## Health check
 
 ```bash
-curl http://127.0.0.1:8080/health
+curl http://127.0.0.1:19588/health
 ```
 
 ## Public agents

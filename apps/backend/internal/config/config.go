@@ -29,7 +29,7 @@ func Load() Config {
 	appEnv := env("APP_ENV", "development")
 	return Config{
 		AppEnv:                  appEnv,
-		HTTPAddr:                env("HTTP_ADDR", ":8080"),
+		HTTPAddr:                env("HTTP_ADDR", ":19588"),
 		DatabaseURL:             env("DATABASE_URL", defaultDatabaseURL(appEnv)),
 		RedisURL:                env("REDIS_URL", "redis://127.0.0.1:16379/0"),
 		CORSAllowOrigins:        listEnv("CORS_ALLOW_ORIGINS", defaultCORSAllowOrigins()),
