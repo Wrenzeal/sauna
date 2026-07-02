@@ -54,5 +54,6 @@ stop_process() {
   echo "$name stopped"
 }
 
-stop_process "web" "$WEB_PID_FILE"
+# Frontend now runs on Vercel. This cleanup keeps old tracked local web processes from staying alive after the script change.
+stop_process "legacy web" "$WEB_PID_FILE"
 stop_process "backend" "$BACKEND_PID_FILE"

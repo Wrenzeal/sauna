@@ -12,7 +12,13 @@ The current local Docker mapping used by this workspace is:
 
 ## Start backend
 
-From the repository root:
+From the repository root, use the backend-only runtime script:
+
+```bash
+npm run dev:start
+```
+
+For a direct foreground backend run, use:
 
 ```bash
 npm run backend:run
@@ -26,7 +32,7 @@ REDIS_URL=redis://127.0.0.1:16379/0
 HTTP_ADDR=:8080
 ```
 
-Override any of them when your local ports or credentials are different. From the repository root, `scripts/start-dev.sh` automatically loads ignored `.env` and `.env.local` files before starting the backend:
+Override any of them when your local ports or credentials are different. `scripts/start-dev.sh` automatically loads ignored `.env` and `.env.local` files before starting the backend:
 
 ```bash
 DATABASE_URL='postgres://postgres:<local-password>@127.0.0.1:5432/sauna?sslmode=disable' npm run backend:run

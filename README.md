@@ -90,23 +90,21 @@ From the repository root, after configuring `.env` or `.env.local`:
 npm run dev:start
 ```
 
-This starts:
+This starts only the Go backend on `:8080`. The frontend is expected to run on Vercel for the deployed app.
 
-- backend on `:8080`
-- frontend on `:3000`
-
-Stop both with:
+Stop the backend with:
 
 ```bash
 npm run dev:stop
 ```
 
-You can also run each side separately:
+For local UI development, run the frontend separately:
 
 ```bash
-npm run backend:run
 npm run web:dev
 ```
+
+The local frontend will proxy `/api/sauna/*` to the backend configured by `SAUNA_BACKEND_INTERNAL_URL`.
 
 ## Verification
 

@@ -11,17 +11,15 @@ for env_file in "$ROOT_DIR/.env" "$ROOT_DIR/.env.local"; do
     set +a
   fi
 done
+
 STATE_DIR="${SAUNA_DEV_STATE_DIR:-$ROOT_DIR/.runtime/sauna-dev}"
 LOG_DIR="$STATE_DIR/logs"
 BACKEND_PORT="${SAUNA_BACKEND_PORT:-8080}"
-WEB_PORT="${SAUNA_WEB_PORT:-3000}"
 BACKEND_BIND="${SAUNA_BACKEND_BIND:-:$BACKEND_PORT}"
 BACKEND_URL="${SAUNA_BACKEND_INTERNAL_URL:-http://127.0.0.1:$BACKEND_PORT}"
-WEB_URL="${SAUNA_WEB_URL:-http://127.0.0.1:$WEB_PORT}"
 BACKEND_PID_FILE="$STATE_DIR/backend.pid"
 WEB_PID_FILE="$STATE_DIR/web.pid"
 BACKEND_LOG="$LOG_DIR/backend.log"
-WEB_LOG="$LOG_DIR/web.log"
 
 mkdir -p "$LOG_DIR"
 
@@ -44,6 +42,25 @@ clear_stale_pid() {
   if [[ -n "$pid" ]] && ! is_alive "$pid"; then
     rm -f "$file"
   fi
+}
+
+stop_legacy_web() {
+  local pid
+  pid="$(read_pid "$WEB_PID_FILE")"
+  if is_alive "$pid"; then
+    echo "stopping legacy web process, pid $pid"
+    kill -TERM "-$pid" 2>/dev/null || kill -TERM "$pid" 2>/dev/null || true
+    for _ in $(seq 1 20); do
+      if ! is_alive "$pid"; then
+        break
+      fi
+      sleep 0.5
+    done
+    if is_alive "$pid"; then
+      kill -KILL "-$pid" 2>/dev/null || kill -KILL "$pid" 2>/dev/null || true
+    fi
+  fi
+  rm -f "$WEB_PID_FILE"
 }
 
 start_process() {
@@ -99,21 +116,20 @@ wait_for_url() {
   return 1
 }
 
+stop_legacy_web
+
 start_process "backend" "$BACKEND_PID_FILE" "$BACKEND_LOG" \
   bash -c 'cd "$1" && exec env HTTP_ADDR="$2" go run ./cmd/api' bash "$ROOT_DIR/apps/backend" "$BACKEND_BIND"
 wait_for_url "backend" "$BACKEND_URL/health" "$BACKEND_PID_FILE" "$BACKEND_LOG" 60
 
-start_process "web" "$WEB_PID_FILE" "$WEB_LOG" \
-  bash -c 'cd "$1" && exec env SAUNA_BACKEND_INTERNAL_URL="$2" npm run dev' bash "$ROOT_DIR/apps/web" "$BACKEND_URL"
-wait_for_url "web" "$WEB_URL" "$WEB_PID_FILE" "$WEB_LOG" 90
-
 cat <<INFO
 
-Sauna dev stack is running.
-- Web:     $WEB_URL
+Sauna backend is running.
 - Backend: $BACKEND_URL
 - Logs:    $LOG_DIR
 
-Stop with:
+Frontend is expected to run on Vercel or through npm run web:dev when local UI development is needed.
+
+Stop backend with:
   npm run dev:stop
 INFO
