@@ -37,6 +37,7 @@ var (
 	ErrInvalidInput           = errors.New("invalid_input")
 	ErrProviderInUse          = errors.New("provider_config_in_use")
 	ErrJobNotReady            = errors.New("distillation_job_not_ready")
+	ErrEmailDelivery          = errors.New("email_delivery_failed")
 )
 
 type User struct {

@@ -58,7 +58,24 @@ DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5432/sauna?sslmode=disable
 REDIS_URL=redis://127.0.0.1:16379/0
 SAUNA_SECRET_KEY=change-me-to-a-long-random-secret
 CORS_ALLOW_ORIGINS=http://localhost:3000,http://127.0.0.1:3000,https://sauna.wrenzeal.top
+AUTH_EMAIL_DRIVER=dev
 ```
+
+For production email-code login, configure SMTP on the backend/VPS:
+
+```text
+APP_ENV=production
+AUTH_EMAIL_DRIVER=smtp
+SMTP_HOST=smtp.example.com
+SMTP_PORT=587
+SMTP_USERNAME=your-smtp-user
+SMTP_PASSWORD=your-smtp-password
+SMTP_FROM=noreply@example.com
+SMTP_FROM_NAME=Sauna
+SMTP_SECURITY=auto
+```
+
+Development uses `AUTH_EMAIL_DRIVER=dev`, which returns/logs a development verification code. Production never returns `dev_code` and requires SMTP.
 
 Important frontend variables:
 
@@ -139,6 +156,8 @@ The production frontend domain is intended to be:
 https://sauna.wrenzeal.top
 ```
 
+Do not put backend secrets, SMTP credentials, database URLs, or LLM provider keys in Vercel frontend variables. Vercel only needs the public API base URL above.
+
 ### Backend behind Nginx
 
 The backend should run privately on the VPS, for example on `127.0.0.1:19588`, and be exposed through Nginx:
@@ -148,6 +167,8 @@ https://api.sauna.wrenzeal.top
 ```
 
 For SSE streaming, disable proxy buffering in the Nginx location that forwards to the Go API.
+
+The backend environment on the VPS should include the production database, DragonFlyDB, `SAUNA_SECRET_KEY`, CORS origins, and SMTP settings for real login emails.
 
 ## Advisor and nuwa-skill model
 

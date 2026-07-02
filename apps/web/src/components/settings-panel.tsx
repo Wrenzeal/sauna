@@ -141,6 +141,7 @@ export function SettingsPanel() {
     identity,
     providers,
     devCode,
+    authCodeSentEmail,
     authStatus,
     providerStatus,
     authError,
@@ -175,6 +176,8 @@ export function SettingsPanel() {
   const authBusy = authStatus === "loading";
   const selectedProvider = providerList.find((provider) => provider.id === selectedProviderId);
   const modelGroups = useMemo(() => groupModels(models), [models]);
+  const codeEmail = authCodeSentEmail ?? email;
+  const hasCodeSent = Boolean(authCodeSentEmail);
 
   useEffect(() => {
     void loadIdentity();
@@ -228,12 +231,14 @@ export function SettingsPanel() {
 
   async function submitEmail(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    await startEmail(email);
+    const result = await startEmail(email);
+    setEmail(result.email);
+    setCode("");
   }
 
   async function submitCode(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    await verifyEmail(email, code);
+    await verifyEmail(codeEmail, code);
     setCode("");
   }
 
@@ -338,13 +343,15 @@ export function SettingsPanel() {
                 />
               </label>
               <button className={primaryButtonClass} type="submit" disabled={authBusy || !email.trim()}>
-                发送验证码
+                {hasCodeSent ? "重新发送验证码" : "发送验证码"}
               </button>
             </form>
 
-            {devCode ? (
+            {hasCodeSent ? (
               <form className="grid gap-3" onSubmit={submitCode}>
-                <div className="rounded-[22px] bg-[#dfeadc] px-4 py-3 text-sm font-semibold text-[#44664d]">开发验证码 {devCode}</div>
+                <div className="rounded-[22px] bg-[#dfeadc] px-4 py-3 text-sm font-semibold text-[#44664d]">
+                  {devCode ? `开发验证码 ${devCode}` : `验证码已发送至 ${codeEmail}`}
+                </div>
                 <label className="grid gap-2 text-sm font-medium text-[#4e5660]">
                   验证码
                   <input

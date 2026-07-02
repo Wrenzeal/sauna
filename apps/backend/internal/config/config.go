@@ -22,6 +22,17 @@ type Config struct {
 	PlatformChatModel       string
 	EmailCodeTTL            time.Duration
 	AuthSessionTTL          time.Duration
+	AuthEmailDriver         string
+	AuthEmailLimitPerHour   int
+	AuthIPLimitPerHour      int
+	SMTPHost                string
+	SMTPPort                int
+	SMTPUsername            string
+	SMTPPassword            string
+	SMTPFrom                string
+	SMTPFromName            string
+	SMTPSecurity            string
+	SMTPTimeout             time.Duration
 	TrialLimitPerHour       int
 }
 
@@ -41,6 +52,17 @@ func Load() Config {
 		PlatformChatModel:       env("PLATFORM_CHAT_MODEL", ""),
 		EmailCodeTTL:            durationEnv("EMAIL_CODE_TTL", 10*time.Minute),
 		AuthSessionTTL:          durationEnv("AUTH_SESSION_TTL", 30*24*time.Hour),
+		AuthEmailDriver:         env("AUTH_EMAIL_DRIVER", defaultAuthEmailDriver(appEnv)),
+		AuthEmailLimitPerHour:   intEnv("AUTH_EMAIL_LIMIT_PER_HOUR", 5),
+		AuthIPLimitPerHour:      intEnv("AUTH_IP_LIMIT_PER_HOUR", 20),
+		SMTPHost:                env("SMTP_HOST", ""),
+		SMTPPort:                intEnv("SMTP_PORT", 587),
+		SMTPUsername:            env("SMTP_USERNAME", ""),
+		SMTPPassword:            env("SMTP_PASSWORD", ""),
+		SMTPFrom:                env("SMTP_FROM", ""),
+		SMTPFromName:            env("SMTP_FROM_NAME", "Sauna"),
+		SMTPSecurity:            env("SMTP_SECURITY", "auto"),
+		SMTPTimeout:             durationEnv("SMTP_TIMEOUT", 15*time.Second),
 		TrialLimitPerHour:       intEnv("TRIAL_LIMIT_PER_HOUR", 20),
 	}
 }
@@ -55,7 +77,33 @@ func (c Config) Validate() error {
 	if len(c.SecretKey) < 16 {
 		return errors.New("SAUNA_SECRET_KEY must be at least 16 characters")
 	}
+	driver := strings.ToLower(strings.TrimSpace(c.AuthEmailDriver))
+	switch driver {
+	case "dev", "log":
+		if c.AppEnv == "production" {
+			return errors.New("AUTH_EMAIL_DRIVER=dev is not allowed in production")
+		}
+	case "smtp":
+		if strings.TrimSpace(c.SMTPHost) == "" {
+			return errors.New("SMTP_HOST is required when AUTH_EMAIL_DRIVER=smtp")
+		}
+		if strings.TrimSpace(c.SMTPFrom) == "" {
+			return errors.New("SMTP_FROM is required when AUTH_EMAIL_DRIVER=smtp")
+		}
+		if c.SMTPPort <= 0 {
+			return errors.New("SMTP_PORT must be positive")
+		}
+	default:
+		return errors.New("AUTH_EMAIL_DRIVER must be dev or smtp")
+	}
 	return nil
+}
+
+func defaultAuthEmailDriver(appEnv string) string {
+	if appEnv == "production" {
+		return "smtp"
+	}
+	return "dev"
 }
 
 func defaultDatabaseURL(appEnv string) string {

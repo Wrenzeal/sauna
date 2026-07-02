@@ -15,11 +15,15 @@ import (
 )
 
 type AuthService struct {
-	repo       AuthRepository
-	codes      cache.EmailCodeCache
-	codeTTL    time.Duration
-	sessionTTL time.Duration
-	appEnv     string
+	repo                  AuthRepository
+	codes                 cache.EmailCodeCache
+	rate                  cache.RateLimiter
+	emailSender           EmailSender
+	codeTTL               time.Duration
+	sessionTTL            time.Duration
+	appEnv                string
+	authEmailLimitPerHour int
+	authIPLimitPerHour    int
 }
 
 type AuthStartResult struct {
@@ -34,14 +38,27 @@ type AuthVerifyResult struct {
 	ExpiresAt time.Time           `json:"expires_at"`
 }
 
-func NewAuthService(repo AuthRepository, codes cache.EmailCodeCache, codeTTL time.Duration, sessionTTL time.Duration, appEnv string) *AuthService {
-	return &AuthService{repo: repo, codes: codes, codeTTL: codeTTL, sessionTTL: sessionTTL, appEnv: appEnv}
+func NewAuthService(repo AuthRepository, codes cache.EmailCodeCache, rate cache.RateLimiter, emailSender EmailSender, codeTTL time.Duration, sessionTTL time.Duration, appEnv string, authEmailLimitPerHour int, authIPLimitPerHour int) *AuthService {
+	return &AuthService{
+		repo:                  repo,
+		codes:                 codes,
+		rate:                  rate,
+		emailSender:           emailSender,
+		codeTTL:               codeTTL,
+		sessionTTL:            sessionTTL,
+		appEnv:                appEnv,
+		authEmailLimitPerHour: authEmailLimitPerHour,
+		authIPLimitPerHour:    authIPLimitPerHour,
+	}
 }
 
-func (s *AuthService) StartEmail(ctx context.Context, email string) (AuthStartResult, error) {
+func (s *AuthService) StartEmail(ctx context.Context, email string, clientIP string) (AuthStartResult, error) {
 	email = normalizeEmail(email)
 	if email == "" || !strings.Contains(email, "@") {
 		return AuthStartResult{}, domain.ErrInvalidInput
+	}
+	if err := s.allowAuthStart(ctx, email, clientIP); err != nil {
+		return AuthStartResult{}, err
 	}
 	code, err := randomDigits(6)
 	if err != nil {
@@ -49,6 +66,16 @@ func (s *AuthService) StartEmail(ctx context.Context, email string) (AuthStartRe
 	}
 	if err := s.codes.PutEmailCode(ctx, email, code, s.codeTTL); err != nil {
 		return AuthStartResult{}, err
+	}
+	sender := s.emailSender
+	if sender == nil {
+		if s.appEnv == "production" {
+			return AuthStartResult{}, fmt.Errorf("%w: email sender is not configured", domain.ErrEmailDelivery)
+		}
+		sender = DevEmailSender{}
+	}
+	if err := sender.SendVerificationCode(ctx, email, code, s.codeTTL); err != nil {
+		return AuthStartResult{}, fmt.Errorf("%w: %v", domain.ErrEmailDelivery, err)
 	}
 	result := AuthStartResult{Email: email, ExpiresIn: int64(s.codeTTL.Seconds())}
 	if s.appEnv != "production" {
@@ -93,6 +120,32 @@ func (s *AuthService) Logout(ctx context.Context, token string) error {
 		return nil
 	}
 	return s.repo.RevokeAuthSession(ctx, HashToken(token))
+}
+
+func (s *AuthService) allowAuthStart(ctx context.Context, email string, clientIP string) error {
+	if s.rate == nil {
+		return nil
+	}
+	if s.authEmailLimitPerHour > 0 {
+		allowed, _, err := s.rate.AllowFixedWindow(ctx, "auth_email:"+email, s.authEmailLimitPerHour, time.Hour)
+		if err != nil {
+			return err
+		}
+		if !allowed {
+			return domain.ErrRateLimited
+		}
+	}
+	clientIP = strings.TrimSpace(clientIP)
+	if clientIP != "" && s.authIPLimitPerHour > 0 {
+		allowed, _, err := s.rate.AllowFixedWindow(ctx, "auth_ip:"+clientIP, s.authIPLimitPerHour, time.Hour)
+		if err != nil {
+			return err
+		}
+		if !allowed {
+			return domain.ErrRateLimited
+		}
+	}
+	return nil
 }
 
 func HashToken(token string) string {

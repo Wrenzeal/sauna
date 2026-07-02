@@ -30,6 +30,7 @@ The development defaults are already wired in code for a generic local database:
 DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5432/sauna?sslmode=disable
 REDIS_URL=redis://127.0.0.1:16379/0
 HTTP_ADDR=:19588
+AUTH_EMAIL_DRIVER=dev
 ```
 
 Override any of them when your local ports or credentials are different. `scripts/start-dev.sh` automatically loads ignored `.env` and `.env.local` files before starting the backend:
@@ -39,6 +40,26 @@ DATABASE_URL='postgres://postgres:<local-password>@127.0.0.1:5432/sauna?sslmode=
 ```
 
 Production still requires an explicit `DATABASE_URL` because the development default is disabled when `APP_ENV=production`.
+
+## Email-code login
+
+Local development defaults to `AUTH_EMAIL_DRIVER=dev`, so `/api/v1/auth/email/start` returns `dev_code` and also logs the code. For real deployed login, run the backend with SMTP:
+
+```text
+APP_ENV=production
+AUTH_EMAIL_DRIVER=smtp
+SMTP_HOST=smtp.example.com
+SMTP_PORT=587
+SMTP_USERNAME=your-smtp-user
+SMTP_PASSWORD=your-smtp-password
+SMTP_FROM=noreply@example.com
+SMTP_FROM_NAME=Sauna
+SMTP_SECURITY=auto
+AUTH_EMAIL_LIMIT_PER_HOUR=5
+AUTH_IP_LIMIT_PER_HOUR=20
+```
+
+Use `SMTP_SECURITY=auto` for normal setups: port `465` uses implicit TLS, other ports use STARTTLS. Keep SMTP credentials only on the backend server, never in Vercel frontend variables.
 
 ## Health check
 

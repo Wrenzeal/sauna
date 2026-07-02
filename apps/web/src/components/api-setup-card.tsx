@@ -24,6 +24,7 @@ export function ApiSetupCard() {
     identity,
     providers,
     devCode,
+    authCodeSentEmail,
     authStatus,
     providerStatus,
     authError,
@@ -43,15 +44,19 @@ export function ApiSetupCard() {
   const isLoggedIn = Boolean(token && identity);
   const authBusy = authStatus === "loading";
   const providerBusy = providerStatus === "loading";
+  const codeEmail = authCodeSentEmail ?? email;
+  const hasCodeSent = Boolean(authCodeSentEmail);
 
   async function submitEmail(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    await startEmail(email);
+    const result = await startEmail(email);
+    setEmail(result.email);
+    setCode("");
   }
 
   async function submitCode(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    await verifyEmail(email, code);
+    await verifyEmail(codeEmail, code);
     setCode("");
   }
 
@@ -90,12 +95,14 @@ export function ApiSetupCard() {
               required
             />
             <button className={buttonClass} type="submit" disabled={authBusy}>
-              发送验证码
+              {hasCodeSent ? "重新发送验证码" : "发送验证码"}
             </button>
           </form>
-          {devCode ? (
+          {hasCodeSent ? (
             <form className="grid gap-2" onSubmit={submitCode}>
-              <div className="rounded-[22px] bg-[#dfeadc] px-4 py-3 text-sm font-semibold text-[#44664d]">开发验证码 {devCode}</div>
+              <div className="rounded-[22px] bg-[#dfeadc] px-4 py-3 text-sm font-semibold text-[#44664d]">
+                {devCode ? `开发验证码 ${devCode}` : `验证码已发送至 ${codeEmail}`}
+              </div>
               <input
                 className={fieldClass}
                 value={code}

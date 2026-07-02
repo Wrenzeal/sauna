@@ -142,6 +142,7 @@ interface SaunaState {
   activeSession?: FocusSession;
   messagesBySession: Record<string, Message[]>;
   devCode?: string;
+  authCodeSentEmail?: string;
   apiStatus: LoadStatus;
   authStatus: ActionStatus;
   providerStatus: ActionStatus;
@@ -258,14 +259,14 @@ export const useSaunaStore = create<SaunaState>()(
           await get().loadDistillationJobs(token);
           await get().loadFocusSessions(token);
         } catch (error) {
-          set({ token: undefined, identity: undefined, providers: [], authStatus: "error", authError: humanizeApiError(error) });
+          set({ token: undefined, identity: undefined, providers: [], authCodeSentEmail: undefined, devCode: undefined, authStatus: "error", authError: humanizeApiError(error) });
         }
       },
       startEmail: async (email) => {
-        set({ authStatus: "loading", authError: undefined, devCode: undefined });
+        set({ authStatus: "loading", authError: undefined, devCode: undefined, authCodeSentEmail: undefined });
         try {
           const result = await createSaunaApiClient().startEmail(email);
-          set({ authStatus: "ready", devCode: result.dev_code });
+          set({ authStatus: "ready", devCode: result.dev_code, authCodeSentEmail: result.email });
           return result;
         } catch (error) {
           const message = humanizeApiError(error);
@@ -277,7 +278,7 @@ export const useSaunaStore = create<SaunaState>()(
         set({ authStatus: "loading", authError: undefined });
         try {
           const result = await createSaunaApiClient().verifyEmail(email, code);
-          set({ token: result.token, identity: result.identity, authStatus: "ready", devCode: undefined });
+          set({ token: result.token, identity: result.identity, authStatus: "ready", devCode: undefined, authCodeSentEmail: undefined });
           await get().loadProviders(result.token);
           await get().loadWorkspaceAgents(result.token);
           await get().loadDistillationJobs(result.token);
@@ -308,6 +309,8 @@ export const useSaunaStore = create<SaunaState>()(
           sessions: [],
           initialPromptsBySession: {},
           turnsInFlightBySession: {},
+          authCodeSentEmail: undefined,
+          devCode: undefined,
           authStatus: "idle",
           providerStatus: "idle",
         });

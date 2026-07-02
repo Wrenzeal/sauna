@@ -52,8 +52,21 @@ func main() {
 	repo := postgres.NewRepository(pool)
 	box := secretcrypto.NewSecretBox(cfg.SecretKey)
 	llmClient := llm.NewOpenAICompatibleClient()
+	emailSender, err := service.NewEmailSender(cfg.AuthEmailDriver, service.SMTPEmailConfig{
+		Host:     cfg.SMTPHost,
+		Port:     cfg.SMTPPort,
+		Username: cfg.SMTPUsername,
+		Password: cfg.SMTPPassword,
+		From:     cfg.SMTPFrom,
+		FromName: cfg.SMTPFromName,
+		Security: cfg.SMTPSecurity,
+		Timeout:  cfg.SMTPTimeout,
+	}, cfg.AppEnv)
+	if err != nil {
+		log.Fatalf("email sender: %v", err)
+	}
 	services := httpapi.Services{
-		Auth:     service.NewAuthService(repo, cacheStore, cfg.EmailCodeTTL, cfg.AuthSessionTTL, cfg.AppEnv),
+		Auth:     service.NewAuthService(repo, cacheStore, cacheStore, emailSender, cfg.EmailCodeTTL, cfg.AuthSessionTTL, cfg.AppEnv, cfg.AuthEmailLimitPerHour, cfg.AuthIPLimitPerHour),
 		Provider: service.NewProviderService(repo, box, llmClient),
 		Agents:   service.NewAgentService(repo),
 		Focus: service.NewFocusRoomService(repo, box, llmClient, cacheStore, cfg.TrialLimitPerHour, service.PlatformProvider{

@@ -154,7 +154,7 @@ func (s *Server) authStart(c *gin.Context) {
 		respondError(c, domain.ErrInvalidInput)
 		return
 	}
-	result, err := s.auth.StartEmail(c.Request.Context(), request.Email)
+	result, err := s.auth.StartEmail(c.Request.Context(), request.Email, c.ClientIP())
 	if err != nil {
 		respondError(c, err)
 		return
@@ -538,7 +538,9 @@ func respondError(c *gin.Context, err error) {
 	case errors.Is(err, domain.ErrProviderInUse):
 		status, code, message = http.StatusConflict, "provider_config_in_use", "Provider config is referenced by existing sessions."
 	case errors.Is(err, domain.ErrRateLimited):
-		status, code, message = http.StatusTooManyRequests, "rate_limited", "Trial limit exceeded."
+		status, code, message = http.StatusTooManyRequests, "rate_limited", "请求太频繁，请稍后再试。"
+	case errors.Is(err, domain.ErrEmailDelivery):
+		status, code, message = http.StatusBadGateway, "email_delivery_failed", "验证码邮件发送失败，请检查 SMTP 配置或稍后重试。"
 	}
 	c.JSON(status, gin.H{"error": code, "message": message})
 }
