@@ -1,0 +1,53 @@
+# Dependencies
+node_modules/
+apps/*/node_modules/
+
+# Next.js / frontend build output
+.next/
+apps/*/.next/
+out/
+dist/
+build/
+coverage/
+*.tsbuildinfo
+apps/*/*.tsbuildinfo
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+
+# Local runtime state
+.runtime/
+*.log
+*.pid
+*.sock
+
+# Local databases and caches
+*.sqlite
+*.sqlite-*
+*.db
+.cache/
+.tmp/
+tmp/
+
+# Agent / orchestration local state, may contain credentials or session history
+.codex/
+.omx/
+AGENTS.md
+
+# Local project memory, not public source
+TODO_LIST.md
+PROJECT_STATE.md
+CHANGE_LOG.md
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo

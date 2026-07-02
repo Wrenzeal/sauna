@@ -1,0 +1,31 @@
+{
+  "name": "@sauna/web",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --webpack --disable-source-maps -H 0.0.0.0 -p 3000",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "build": "next build"
+  },
+  "dependencies": {
+    "@phosphor-icons/react": "^2.1.10",
+    "@tailwindcss/postcss": "^4.3.1",
+    "motion": "^12.41.0",
+    "next": "^16.2.9",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1",
+    "tailwindcss": "^4.3.1",
+    "zustand": "^5.0.9"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.2",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
+    "eslint": "^9.39.2",
+    "eslint-config-next": "^16.2.9",
+    "typescript": "^5.9.3"
+  }
+}

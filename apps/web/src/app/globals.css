@@ -1,0 +1,82 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: light;
+  --sauna-bg: #f4f5f2;
+  --sauna-panel: #fbfbf8;
+  --sauna-panel-strong: #ffffff;
+  --sauna-line: rgb(27 31 35 / 0.09);
+  --sauna-line-strong: rgb(27 31 35 / 0.16);
+  --sauna-text: #171a1f;
+  --sauna-muted: #68707d;
+  --sauna-soft: #eef0eb;
+  --sauna-accent: #6f8f72;
+  --sauna-accent-strong: #44664d;
+  --sauna-warm: #e7dcc8;
+  --sauna-blue: #dfe8f5;
+  --sauna-radius-lg: 32px;
+  --sauna-radius-md: 22px;
+  --sauna-shadow: 0 24px 70px rgb(30 36 28 / 0.10);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--sauna-bg);
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  background:
+    radial-gradient(circle at 14% 12%, rgb(223 232 245 / 0.82), transparent 26rem),
+    radial-gradient(circle at 88% 8%, rgb(231 220 200 / 0.72), transparent 24rem),
+    linear-gradient(180deg, #fbfbf8 0%, #f3f5f0 48%, #eef1ea 100%);
+  color: var(--sauna-text);
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+  opacity: 0.42;
+  background-image: radial-gradient(rgb(30 36 28 / 0.10) 0.65px, transparent 0.65px);
+  background-size: 18px 18px;
+  mask-image: linear-gradient(to bottom, black, transparent 76%);
+}
+
+button,
+a,
+input,
+textarea {
+  font: inherit;
+}
+
+::selection {
+  background: rgb(111 143 114 / 0.24);
+  color: #171a1f;
+}
+
+.sauna-surface {
+  background: color-mix(in srgb, var(--sauna-panel) 92%, transparent);
+  border: 1px solid var(--sauna-line);
+  box-shadow: var(--sauna-shadow);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "name": "@sauna/backend",
+  "private": true,
+  "scripts": {
+    "dev": "go run ./cmd/api",
+    "test": "go test ./...",
+    "fmt": "gofmt -w ."
+  }
+}

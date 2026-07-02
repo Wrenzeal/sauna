@@ -1,0 +1,17 @@
+{
+  "name": "sauna",
+  "private": true,
+  "scripts": {
+    "web:dev": "npm --prefix apps/web run dev",
+    "web:lint": "npm --prefix apps/web run lint",
+    "web:typecheck": "npm --prefix apps/web run typecheck",
+    "web:build": "npm --prefix apps/web run build",
+    "backend:test": "npm --prefix apps/backend run test",
+    "backend:run": "npm --prefix apps/backend run dev",
+    "dev:start": "bash scripts/start-dev.sh",
+    "dev:stop": "bash scripts/stop-dev.sh"
+  },
+  "workspaces": [
+    "apps/web"
+  ]
+}
