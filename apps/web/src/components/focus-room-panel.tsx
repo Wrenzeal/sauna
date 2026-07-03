@@ -289,12 +289,20 @@ export function FocusRoomPanel({ sessionId, initialPrompt = "", draftAgentId = "
     resumeSession,
     sendTurn,
   } = useSaunaStore();
-  const isDraftSession = sessionId === "new";
+  const [sessionView, setSessionView] = useState(() => ({ routeSessionId: sessionId, currentSessionId: sessionId }));
   const [draft, setDraft] = useState(initialPrompt);
   const [editingSessionId, setEditingSessionId] = useState<string>();
   const [editingTitle, setEditingTitle] = useState("");
   const [pendingDeleteSessionId, setPendingDeleteSessionId] = useState<string>();
   const hydrated = useHydrated();
+  if (sessionView.routeSessionId !== sessionId) {
+    setSessionView({ routeSessionId: sessionId, currentSessionId: sessionId });
+  }
+  const currentSessionId = sessionView.routeSessionId === sessionId ? sessionView.currentSessionId : sessionId;
+  const isDraftSession = currentSessionId === "new";
+  const safeMessagesBySession = messagesBySession ?? {};
+  const messages = isDraftSession ? [] : safeMessagesBySession[currentSessionId] ?? [];
+  const hasLocalMessages = messages.length > 0;
 
   useEffect(() => {
     void loadPublicAgents();
@@ -305,27 +313,27 @@ export function FocusRoomPanel({ sessionId, initialPrompt = "", draftAgentId = "
     if (isDraftSession) {
       return;
     }
-    if (token) {
-      void resumeSession(sessionId);
+    if (activeSession?.id === currentSessionId && hasLocalMessages) {
       return;
     }
-    void loadMessages(sessionId);
-  }, [isDraftSession, loadMessages, resumeSession, sessionId, sessions.length, token]);
+    if (token) {
+      void resumeSession(currentSessionId);
+      return;
+    }
+    void loadMessages(currentSessionId);
+  }, [activeSession?.id, currentSessionId, hasLocalMessages, isDraftSession, loadMessages, resumeSession, sessions.length, token]);
 
-
-  const safeMessagesBySession = messagesBySession ?? {};
   const agent = useMemo(() => {
     const agentList = agents ?? [];
-    const activeAgentID = isDraftSession ? draftAgentId || selectedAgentId : activeSession?.id === sessionId ? activeSession.agent_id : selectedAgentId;
+    const activeAgentID = isDraftSession ? draftAgentId || selectedAgentId : activeSession?.id === currentSessionId ? activeSession.agent_id : selectedAgentId;
     return agentList.find((item) => item.id === activeAgentID) ?? agentList[0];
-  }, [activeSession, agents, draftAgentId, isDraftSession, selectedAgentId, sessionId]);
+  }, [activeSession, agents, currentSessionId, draftAgentId, isDraftSession, selectedAgentId]);
 
-  const messages = isDraftSession ? [] : safeMessagesBySession[sessionId] ?? [];
   const safeSessions = sessions ?? [];
   const historySessions = safeSessions.slice(0, 8);
-  const title = isDraftSession ? `${agent?.displayName ?? "智囊"} 的 VIP 桑拿房` : activeSession?.id === sessionId ? activeSession.title : "VIP 桑拿房";
+  const title = isDraftSession ? `${agent?.displayName ?? "智囊"} 的 VIP 桑拿房` : activeSession?.id === currentSessionId ? activeSession.title : "VIP 桑拿房";
   const busy = streamStatus === "loading" || streamStatus === "streaming";
-  const statusLabel = assistantStateLabel(streamStatus, messages, sessionId);
+  const statusLabel = assistantStateLabel(streamStatus, messages, currentSessionId);
   const statusTone = streamStatus === "error" || focusError ? "text-[#765f34] bg-[#eadfc8]" : busy ? "text-[#44664d] bg-[#dfeadc]" : "text-[#44664d] bg-white";
   const archiveStatus = focusError ? "本轮未完成，请检查模型配置。" : busy ? "正在流式接收，完成后自动保存。" : messages.length ? "对话已记录，可在大厅继续。" : "开始提问后，会自动保存会话。";
 
@@ -343,10 +351,11 @@ export function FocusRoomPanel({ sessionId, initialPrompt = "", draftAgentId = "
           throw new Error("请选择一个智囊。");
         }
         const nextSession = await startConsultation(agentID, content);
-        router.replace(`/focus-room/${nextSession.id}`);
+        setSessionView({ routeSessionId: sessionId, currentSessionId: nextSession.id });
+        window.history.replaceState(null, "", `/focus-room/${nextSession.id}`);
         return;
       }
-      await sendTurn(sessionId, content);
+      await sendTurn(currentSessionId, content);
     } catch {
       setDraft(content);
     }
@@ -378,16 +387,18 @@ export function FocusRoomPanel({ sessionId, initialPrompt = "", draftAgentId = "
     const targetSessionId = pendingDeleteSessionId;
     setPendingDeleteSessionId(undefined);
     await deleteFocusSession(targetSessionId);
-    if (targetSessionId === sessionId) {
+    if (targetSessionId === currentSessionId) {
+      setSessionView({ routeSessionId: "new", currentSessionId: "new" });
       router.replace("/focus-room/new");
     }
   }
 
   async function openFreshSession() {
-    const agentID = activeSession?.id === sessionId ? activeSession.agent_id : agent?.id;
+    const agentID = activeSession?.id === currentSessionId ? activeSession.agent_id : agent?.id;
     if (!agentID) {
       return;
     }
+    setSessionView({ routeSessionId: "new", currentSessionId: "new" });
     router.push(`/focus-room/new?agentId=${encodeURIComponent(agentID)}`);
   }
 
@@ -432,7 +443,7 @@ export function FocusRoomPanel({ sessionId, initialPrompt = "", draftAgentId = "
           {historySessions.length ? (
             <div className="mt-2 grid max-h-[330px] gap-2 overflow-y-auto pr-1">
               {historySessions.map((session) => {
-                const active = session.id === sessionId;
+                const active = session.id === currentSessionId;
                 return (
                   <div
                     key={session.id}
