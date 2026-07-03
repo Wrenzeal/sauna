@@ -34,11 +34,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const studioActive = isActivePath(pathname, "/studio");
 
   return (
-    <div className="min-h-[100dvh] text-[#171a1f]">
-      <aside className="fixed inset-y-3 left-3 z-50 hidden w-[86px] rounded-[30px] border border-black/[0.07] bg-white/78 p-3 shadow-[0_20px_60px_rgb(27_31_35_/_0.10)] backdrop-blur-2xl lg:flex lg:flex-col lg:items-center">
+    <div className="min-h-[100dvh] text-[var(--sauna-text)]">
+      <aside className="fixed inset-y-3 left-3 z-50 hidden w-[86px] rounded-[30px] border border-[#563a24]/[0.09] bg-[#fffdf7]/78 p-3 shadow-[0_20px_60px_rgb(86_58_36_/_0.10)] backdrop-blur-2xl lg:flex lg:flex-col lg:items-center">
         <Link
           href="/lobby"
-          className="grid size-14 place-items-center rounded-[22px] bg-[#171a1f] text-white shadow-[0_14px_34px_rgb(23_26_31_/_0.24)] transition duration-300 hover:scale-[1.03] hover:shadow-[0_18px_42px_rgb(23_26_31_/_0.28)] active:translate-y-px"
+          className="grid size-14 place-items-center rounded-[22px] bg-[var(--sauna-espresso)] text-[#fff8ec] shadow-[0_14px_34px_rgb(74_48_32_/_0.24)] transition duration-300 hover:scale-[1.03] hover:shadow-[0_18px_42px_rgb(74_48_32_/_0.28)] active:translate-y-px"
           aria-label="Sauna 桑拿房"
         >
           <Brain size={24} weight="duotone" />
@@ -58,17 +58,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 {active && (
                   <motion.span
                     layoutId="dock-active-rail"
-                    className="absolute -left-3 top-1/2 h-7 w-1 -translate-y-1/2 rounded-full bg-[#6f8f72] shadow-[0_0_18px_rgb(111_143_114_/_0.55)]"
+                    className="absolute -left-3 top-1/2 h-7 w-1 -translate-y-1/2 rounded-full bg-[#b77945] shadow-[0_0_18px_rgb(183_121_69_/_0.55)]"
                     transition={{ type: "spring", stiffness: 420, damping: 34 }}
                   />
                 )}
                 <Link
                   href={item.href}
                   className={[
-                    "group relative grid size-13 place-items-center overflow-hidden rounded-[20px] transition duration-300 active:translate-y-px focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#6f8f72]",
+                    "group relative grid size-13 place-items-center overflow-hidden rounded-[20px] transition duration-300 active:translate-y-px focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#b77945]",
                     active
-                      ? "bg-[#171a1f] text-white shadow-[0_14px_34px_rgb(23_26_31_/_0.20)]"
-                      : "text-[#69717b] hover:bg-[#eef0eb] hover:text-[#171a1f] hover:shadow-[0_10px_26px_rgb(27_31_35_/_0.07)]",
+                      ? "bg-[var(--sauna-espresso)] text-[#fff8ec] shadow-[0_14px_34px_rgb(74_48_32_/_0.20)]"
+                      : "text-[var(--sauna-muted)] hover:bg-[#efe2cf] hover:text-[var(--sauna-text)] hover:shadow-[0_10px_26px_rgb(86_58_36_/_0.07)]",
                   ].join(" ")}
                   title={item.label}
                   aria-label={item.label}
@@ -78,7 +78,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   <motion.span animate={active && !reduce ? { scale: [1, 1.08, 1] } : { scale: 1 }} transition={{ duration: 0.55, ease: "easeOut" }}>
                     <Icon size={22} weight="duotone" />
                   </motion.span>
-                  {active && <span className="absolute bottom-2 size-1.5 rounded-full bg-[#dfeadc]" />}
+                  {active && <span className="absolute bottom-2 size-1.5 rounded-full bg-[#f3dcc2]" />}
                 </Link>
               </motion.div>
             );
@@ -87,30 +87,30 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <Link
           href="/studio"
           className={[
-            "relative grid size-13 place-items-center overflow-hidden rounded-[20px] text-white transition duration-300 active:translate-y-px focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#6f8f72]",
+            "relative grid size-13 place-items-center overflow-hidden rounded-[20px] text-[#fff8ec] transition duration-300 active:translate-y-px focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#b77945]",
             studioActive
-              ? "bg-[#171a1f] shadow-[0_16px_34px_rgb(23_26_31_/_0.24)]"
-              : "bg-[#6f8f72] shadow-[0_16px_34px_rgb(68_102_77_/_0.22)] hover:bg-[#5d805f] hover:shadow-[0_18px_40px_rgb(68_102_77_/_0.28)]",
+              ? "bg-[var(--sauna-espresso)] shadow-[0_16px_34px_rgb(74_48_32_/_0.24)]"
+              : "bg-[#b77945] shadow-[0_16px_34px_rgb(122_71_40_/_0.22)] hover:bg-[#965f36] hover:shadow-[0_18px_40px_rgb(122_71_40_/_0.28)]",
           ].join(" ")}
           aria-label="开始蒸馏"
           aria-current={studioActive ? "page" : undefined}
         >
-          {studioActive && <motion.span layoutId="dock-studio-glow" className="absolute inset-1 rounded-[17px] bg-white/10" />}
+          {studioActive && <motion.span layoutId="dock-studio-glow" className="absolute inset-1 rounded-[17px] bg-[#fffdf7]/10" />}
           <Plus size={22} weight="bold" />
         </Link>
       </aside>
 
-      <header className="sticky top-0 z-40 border-b border-black/[0.06] bg-[#fbfbf8]/78 backdrop-blur-2xl lg:hidden">
+      <header className="sticky top-0 z-40 border-b border-[#563a24]/[0.08] bg-[#fff8ec]/78 backdrop-blur-2xl lg:hidden">
         <nav className="mx-auto flex h-16 max-w-[1400px] items-center justify-between px-4 sm:px-6">
-          <Link href="/lobby" className="flex items-center gap-3 whitespace-nowrap text-sm font-semibold tracking-tight text-[#171a1f]">
-            <span className="grid size-10 place-items-center rounded-[18px] bg-[#171a1f] text-white">
+          <Link href="/lobby" className="flex items-center gap-3 whitespace-nowrap text-sm font-semibold tracking-tight text-[var(--sauna-text)]">
+            <span className="grid size-10 place-items-center rounded-[18px] bg-[var(--sauna-espresso)] text-[#fff8ec]">
               <Brain size={19} weight="duotone" />
             </span>
             Sauna
           </Link>
           <Link
             href="/studio"
-            className="h-10 rounded-full bg-[#171a1f] px-5 text-sm font-semibold leading-10 text-white transition duration-300 hover:bg-[#2a2f36] active:translate-y-px"
+            className="h-10 rounded-full bg-[var(--sauna-espresso)] px-5 text-sm font-semibold leading-10 text-[#fff8ec] transition duration-300 hover:bg-[var(--sauna-espresso-2)] active:translate-y-px"
           >
             开始蒸馏
           </Link>
@@ -121,12 +121,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div className="mx-auto max-w-[1480px] px-4 py-4 sm:px-6 lg:px-6 lg:py-6">
           <div className="hidden items-center justify-between gap-4 pb-5 lg:flex">
             <div>
-              <p className="text-sm font-medium text-[#68707d]">Sauna 桑拿房</p>
-              <p className="mt-1 text-xl font-semibold tracking-[-0.03em] text-[#171a1f]">和你的智囊团一起蒸桑拿吧</p>
+              <p className="text-sm font-medium text-[var(--sauna-muted)]">Sauna 桑拿房</p>
+              <p className="mt-1 text-xl font-semibold tracking-[-0.03em] text-[var(--sauna-text)]">和你的智囊团一起蒸桑拿吧</p>
             </div>
-            <div className="flex h-12 min-w-[360px] items-center gap-3 rounded-full border border-black/[0.08] bg-white/72 px-4 shadow-[0_10px_34px_rgb(27_31_35_/_0.07)] backdrop-blur-xl transition duration-300 hover:bg-white/86 hover:shadow-[0_14px_40px_rgb(27_31_35_/_0.09)]">
-              <MagnifyingGlass size={18} className="text-[#7a828d]" />
-              <span className="text-sm text-[#8b929b]">搜索专家、会话或知识源</span>
+            <div className="flex h-12 min-w-[360px] items-center gap-3 rounded-full border border-[#563a24]/[0.10] bg-[#fffdf7]/72 px-4 shadow-[0_10px_34px_rgb(86_58_36_/_0.07)] backdrop-blur-xl transition duration-300 hover:bg-[#fffdf7]/86 hover:shadow-[0_14px_40px_rgb(86_58_36_/_0.09)]">
+              <MagnifyingGlass size={18} className="text-[var(--sauna-muted)]" />
+              <span className="text-sm text-[#a08c78]">搜索专家、会话或知识源</span>
             </div>
           </div>
           <PageTransition>{children}</PageTransition>

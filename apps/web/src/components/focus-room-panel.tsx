@@ -143,26 +143,26 @@ function RandomEmptyPrompt({ reduce = false }: { reduce?: boolean | null }) {
 
   return (
     <motion.div
-      className="relative m-auto grid min-h-[156px] w-full max-w-[380px] place-items-center overflow-hidden rounded-[34px] border border-white/72 bg-[#eef0eb] px-7 py-8 text-center shadow-[0_22px_70px_rgb(92_117_89_/_0.12)]"
+      className="relative m-auto grid min-h-[156px] w-full max-w-[380px] place-items-center overflow-hidden rounded-[34px] border border-[#fff8ec]/72 bg-[#efe2cf] px-7 py-8 text-center shadow-[0_22px_70px_rgb(122_71_40_/_0.12)]"
       initial={reduce ? false : { opacity: 0, y: 16, scale: 0.98 }}
       animate={reduce ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1 }}
       transition={{ duration: 0.46, ease: [0.16, 1, 0.3, 1] }}
     >
       <motion.span
-        className="pointer-events-none absolute inset-x-12 top-5 h-px bg-gradient-to-r from-transparent via-white/80 to-transparent"
+        className="pointer-events-none absolute inset-x-12 top-5 h-px bg-gradient-to-r from-transparent via-[#fffdf7]/80 to-transparent"
         initial={reduce ? false : { opacity: 0, x: -24 }}
         animate={reduce ? { opacity: 0.45 } : { opacity: 0.72, x: 0 }}
         transition={{ duration: 0.72, delay: 0.12, ease: [0.16, 1, 0.3, 1] }}
       />
       <motion.span
-        className="pointer-events-none absolute -bottom-10 left-1/2 size-28 -translate-x-1/2 rounded-full bg-[#dfeadc] blur-2xl"
+        className="pointer-events-none absolute -bottom-10 left-1/2 size-28 -translate-x-1/2 rounded-full bg-[#f3dcc2] blur-2xl"
         initial={reduce ? false : { opacity: 0, scale: 0.78 }}
         animate={reduce ? { opacity: 0.42 } : { opacity: 0.62, scale: 1.08 }}
         transition={{ duration: 0.78, delay: 0.08, ease: [0.16, 1, 0.3, 1] }}
       />
       <div className="relative flex flex-col items-center gap-4">
         <span
-          className="flex items-center gap-1.5 text-[#6f8f72]"
+          className="flex items-center gap-1.5 text-[#b77945]"
           aria-hidden="true"
         >
           {[0, 1, 2].map((dot) => (
@@ -184,7 +184,7 @@ function RandomEmptyPrompt({ reduce = false }: { reduce?: boolean | null }) {
           ))}
         </span>
         <motion.p
-          className="text-balance text-base font-semibold tracking-[-0.025em] text-[#3f4b42] sm:text-lg"
+          className="text-balance text-base font-semibold tracking-[-0.025em] text-[var(--sauna-muted-strong)] sm:text-lg"
           initial={reduce ? false : { opacity: 0, y: 10, filter: "blur(6px)" }}
           animate={
             reduce ? { opacity: 1 } : { opacity: 1, y: 0, filter: "blur(0px)" }
@@ -386,23 +386,23 @@ function PlanProgressCard({
   ).length;
   return (
     <motion.div
-      className="my-4 overflow-hidden rounded-[24px] border border-[#9dbf9b]/45 bg-white/78 shadow-[0_16px_42px_rgb(92_117_89_/_0.12)]"
+      className="my-4 overflow-hidden rounded-[24px] border border-[#d6ad82]/45 bg-[#fffdf7]/78 shadow-[0_16px_42px_rgb(122_71_40_/_0.12)]"
       initial={reduce ? false : { opacity: 0, y: 12, scale: 0.99 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ duration: 0.38, ease: [0.16, 1, 0.3, 1] }}
     >
-      <div className="relative overflow-hidden border-b border-black/[0.06] bg-[#f7f8f5] px-4 py-3">
+      <div className="relative overflow-hidden border-b border-[#563a24]/[0.08] bg-[#f8efe3] px-4 py-3">
         <motion.span
-          className="pointer-events-none absolute inset-y-0 left-0 w-24 bg-gradient-to-r from-transparent via-white/80 to-transparent"
+          className="pointer-events-none absolute inset-y-0 left-0 w-24 bg-gradient-to-r from-transparent via-[#fffdf7]/80 to-transparent"
           animate={reduce ? undefined : { x: ["-120%", "520%"] }}
           transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
         />
         <div className="relative flex items-center justify-between gap-4">
-          <span className="inline-flex items-center gap-2 text-sm font-semibold text-[#3f4b42]">
-            <Brain size={17} weight="duotone" className="text-[#6f8f72]" />
+          <span className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--sauna-muted-strong)]">
+            <Brain size={17} weight="duotone" className="text-[#b77945]" />
             正在处理
           </span>
-          <span className="rounded-full bg-[#dfeadc] px-2.5 py-1 text-[11px] font-semibold text-[#44664d]">
+          <span className="rounded-full bg-[#f3dcc2] px-2.5 py-1 text-[11px] font-semibold text-[#7a4728]">
             {activeCount}/{steps.length}
           </span>
         </div>
@@ -417,12 +417,12 @@ function PlanProgressCard({
               key={`${step.step}-${index}`}
               className={`grid grid-cols-[24px_minmax(0,1fr)_auto] items-center gap-3 rounded-[18px] px-3 py-2.5 text-sm ${
                 active
-                  ? "bg-[#dfeadc] text-[#3f4b42]"
+                  ? "bg-[#f3dcc2] text-[var(--sauna-muted-strong)]"
                   : failed
-                    ? "bg-[#eadfc8] text-[#765f34]"
+                    ? "bg-[#f2d6c8] text-[#8a4f32]"
                     : done
-                      ? "bg-[#eef0eb] text-[#44664d]"
-                      : "bg-[#f7f8f5] text-[#68707d]"
+                      ? "bg-[#efe2cf] text-[#7a4728]"
+                      : "bg-[#f8efe3] text-[var(--sauna-muted)]"
               }`}
               initial={reduce ? false : { opacity: 0, x: -8 }}
               animate={{ opacity: 1, x: 0 }}
@@ -432,11 +432,11 @@ function PlanProgressCard({
                 ease: "easeOut",
               }}
             >
-              <span className="grid size-6 place-items-center rounded-full bg-white/72">
+              <span className="grid size-6 place-items-center rounded-full bg-[#fffdf7]/72">
                 <PlanStatusIcon status={step.status} reduce={reduce} />
               </span>
               <span className="min-w-0 truncate font-medium">{step.step}</span>
-              <span className="rounded-full bg-white/58 px-2 py-0.5 text-[10px] font-semibold">
+              <span className="rounded-full bg-[#fffdf7]/58 px-2 py-0.5 text-[10px] font-semibold">
                 {statusCopy(step.status)}
               </span>
             </motion.li>
@@ -488,7 +488,7 @@ function RichAssistantMessage({
 
 function MarkdownMessage({ content }: { content: string }) {
   return (
-    <div className="sauna-markdown text-[15px] leading-7 text-[#2f343a]">
+    <div className="sauna-markdown text-[15px] leading-7 text-[var(--sauna-muted-strong)]">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
@@ -496,33 +496,33 @@ function MarkdownMessage({ content }: { content: string }) {
             <p className="my-3 first:mt-0 last:mb-0 text-pretty">{children}</p>
           ),
           h1: ({ children }) => (
-            <h1 className="mb-3 mt-5 text-2xl font-semibold tracking-[-0.05em] text-[#171a1f] first:mt-0">
+            <h1 className="mb-3 mt-5 text-2xl font-semibold tracking-[-0.05em] text-[var(--sauna-text)] first:mt-0">
               {children}
             </h1>
           ),
           h2: ({ children }) => (
-            <h2 className="mb-3 mt-5 text-xl font-semibold tracking-[-0.04em] text-[#171a1f] first:mt-0">
+            <h2 className="mb-3 mt-5 text-xl font-semibold tracking-[-0.04em] text-[var(--sauna-text)] first:mt-0">
               {children}
             </h2>
           ),
           h3: ({ children }) => (
-            <h3 className="mb-2 mt-4 text-lg font-semibold tracking-[-0.03em] text-[#171a1f] first:mt-0">
+            <h3 className="mb-2 mt-4 text-lg font-semibold tracking-[-0.03em] text-[var(--sauna-text)] first:mt-0">
               {children}
             </h3>
           ),
           ul: ({ children }) => (
-            <ul className="my-3 list-disc space-y-1.5 pl-5 marker:text-[#6f8f72]">
+            <ul className="my-3 list-disc space-y-1.5 pl-5 marker:text-[#b77945]">
               {children}
             </ul>
           ),
           ol: ({ children }) => (
-            <ol className="my-3 list-decimal space-y-1.5 pl-5 marker:font-semibold marker:text-[#6f8f72]">
+            <ol className="my-3 list-decimal space-y-1.5 pl-5 marker:font-semibold marker:text-[#b77945]">
               {children}
             </ol>
           ),
           li: ({ children }) => <li className="pl-1">{children}</li>,
           blockquote: ({ children }) => (
-            <blockquote className="my-4 rounded-[20px] border-l-4 border-[#9dbf9b] bg-white/58 px-4 py-3 text-[#4e5660]">
+            <blockquote className="my-4 rounded-[20px] border-l-4 border-[#d6ad82] bg-[#fffdf7]/58 px-4 py-3 text-[var(--sauna-muted-strong)]">
               {children}
             </blockquote>
           ),
@@ -530,44 +530,44 @@ function MarkdownMessage({ content }: { content: string }) {
             const isBlock = /language-/.test(className ?? "");
             if (!isBlock) {
               return (
-                <code className="rounded-md bg-white/78 px-1.5 py-0.5 font-mono text-[0.92em] text-[#44664d]">
+                <code className="rounded-md bg-[#fffdf7]/78 px-1.5 py-0.5 font-mono text-[0.92em] text-[#7a4728]">
                   {children}
                 </code>
               );
             }
             return (
               <code
-                className={`${className ?? ""} block overflow-x-auto whitespace-pre p-0 font-mono text-[13px] leading-6 text-[#eef0eb]`}
+                className={`${className ?? ""} block overflow-x-auto whitespace-pre p-0 font-mono text-[13px] leading-6 text-[#efe2cf]`}
               >
                 {children}
               </code>
             );
           },
           pre: ({ children }) => (
-            <pre className="my-4 overflow-x-auto rounded-[22px] bg-[#171a1f] p-4 shadow-[inset_0_1px_0_rgb(255_255_255_/_0.08)]">
+            <pre className="my-4 overflow-x-auto rounded-[22px] bg-[var(--sauna-espresso)] p-4 shadow-[inset_0_1px_0_rgb(255_255_255_/_0.08)]">
               {children}
             </pre>
           ),
           table: ({ children }) => (
-            <div className="my-4 overflow-x-auto rounded-[18px] border border-black/[0.08] bg-white/70">
+            <div className="my-4 overflow-x-auto rounded-[18px] border border-[#563a24]/[0.10] bg-[#fffdf7]/70">
               <table className="w-full min-w-[420px] border-collapse text-left text-sm">
                 {children}
               </table>
             </div>
           ),
           th: ({ children }) => (
-            <th className="border-b border-black/[0.08] px-3 py-2 font-semibold text-[#171a1f]">
+            <th className="border-b border-[#563a24]/[0.10] px-3 py-2 font-semibold text-[var(--sauna-text)]">
               {children}
             </th>
           ),
           td: ({ children }) => (
-            <td className="border-b border-black/[0.06] px-3 py-2 align-top text-[#4e5660]">
+            <td className="border-b border-[#563a24]/[0.08] px-3 py-2 align-top text-[var(--sauna-muted-strong)]">
               {children}
             </td>
           ),
           a: ({ children, href }) => (
             <a
-              className="font-semibold text-[#44664d] underline decoration-[#9dbf9b] underline-offset-4 transition hover:text-[#2f5539]"
+              className="font-semibold text-[#7a4728] underline decoration-[#d6ad82] underline-offset-4 transition hover:text-[#6f3f24]"
               href={href}
               target="_blank"
               rel="noreferrer"
@@ -597,17 +597,17 @@ function MessageBubble({
     !message.content.trim();
   return (
     <motion.article
-      className={`${isUser ? "ml-auto bg-[#171a1f] text-white shadow-[0_16px_40px_rgb(23_26_31_/_0.16)]" : "bg-[#eef0eb] text-[#2f343a] shadow-[0_14px_38px_rgb(92_117_89_/_0.10)]"} max-w-[78%] rounded-[28px] px-5 py-4`}
+      className={`${isUser ? "ml-auto bg-[var(--sauna-espresso)] text-[#fff8ec] shadow-[0_16px_40px_rgb(74_48_32_/_0.16)]" : "bg-[#efe2cf] text-[var(--sauna-muted-strong)] shadow-[0_14px_38px_rgb(122_71_40_/_0.10)]"} max-w-[78%] rounded-[28px] px-5 py-4`}
       initial={reduce ? false : { opacity: 0, x: isUser ? 20 : -20 }}
       animate={{ opacity: 1, x: 0 }}
     >
       {isUser ? (
-        <p className="whitespace-pre-wrap text-sm leading-7 text-white/92">
+        <p className="whitespace-pre-wrap text-sm leading-7 text-[#fff8ec]/92">
           {message.content}
         </p>
       ) : isWorking ? (
-        <div className="flex items-center gap-3 text-sm font-medium text-[#4e5660]">
-          <Brain size={18} className="text-[#44664d]" />
+        <div className="flex items-center gap-3 text-sm font-medium text-[var(--sauna-muted-strong)]">
+          <Brain size={18} className="text-[#7a4728]" />
           正在组织答案 <ThinkingDots reduce={reduce} />
         </div>
       ) : (
@@ -658,7 +658,7 @@ function ChatMessagesPanel({
 }) {
   return (
     <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden px-1 py-4 sm:px-3">
-      <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-[34px] border border-black/[0.06] bg-[#fbfbf8] shadow-[inset_0_1px_0_rgb(255_255_255_/_0.78)]">
+      <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-[34px] border border-[#563a24]/[0.08] bg-[#fff8ec] shadow-[inset_0_1px_0_rgb(255_255_255_/_0.78)]">
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-5 sm:px-6">
           {messages.length ? (
             <div className="flex min-h-full flex-col justify-end gap-4">
@@ -677,11 +677,11 @@ function ChatMessagesPanel({
                     message.status === "partial"),
               ) ? (
                 <motion.div
-                  className="flex w-fit max-w-[78%] items-center gap-3 rounded-[28px] bg-[#eef0eb] px-5 py-4 text-sm font-medium text-[#4e5660] shadow-[0_14px_38px_rgb(92_117_89_/_0.10)]"
+                  className="flex w-fit max-w-[78%] items-center gap-3 rounded-[28px] bg-[#efe2cf] px-5 py-4 text-sm font-medium text-[var(--sauna-muted-strong)] shadow-[0_14px_38px_rgb(122_71_40_/_0.10)]"
                   initial={reduce ? false : { opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                 >
-                  <Brain size={18} className="text-[#44664d]" />
+                  <Brain size={18} className="text-[#7a4728]" />
                   {statusLabel} <ThinkingDots reduce={reduce} />
                 </motion.div>
               ) : null}
@@ -694,7 +694,7 @@ function ChatMessagesPanel({
         </div>
 
         {focusError ? (
-          <div className="mx-4 mb-4 rounded-[24px] bg-[#eadfc8] px-5 py-4 text-sm leading-relaxed text-[#765f34] sm:mx-6">
+          <div className="mx-4 mb-4 rounded-[24px] bg-[#f2d6c8] px-5 py-4 text-sm leading-relaxed text-[#8a4f32] sm:mx-6">
             <span className="inline-flex items-center gap-2 font-semibold">
               <WarningCircle size={16} />
               调用失败
@@ -704,9 +704,9 @@ function ChatMessagesPanel({
         ) : null}
       </div>
 
-      <div className="mt-4 rounded-[24px] border border-[#3a2416]/[0.08] bg-[#fbfbf8] p-4 text-xs text-[#68707d]">
+      <div className="mt-4 rounded-[24px] border border-[#3a2416]/[0.08] bg-[#fff8ec] p-4 text-xs text-[var(--sauna-muted)]">
         <div className="flex items-center justify-between gap-3">
-          <span className="flex items-center gap-2 text-[#44664d]">
+          <span className="flex items-center gap-2 text-[#7a4728]">
             <CheckCircle size={15} weight="fill" />
             会话记录
           </span>
@@ -830,10 +830,10 @@ export function FocusRoomPanel({
   );
   const statusTone =
     streamStatus === "error" || focusError
-      ? "text-[#765f34] bg-[#eadfc8]"
+      ? "text-[#8a4f32] bg-[#f2d6c8]"
       : busy
-        ? "text-[#44664d] bg-[#dfeadc]"
-        : "text-[#44664d] bg-white";
+        ? "text-[#7a4728] bg-[#f3dcc2]"
+        : "text-[#7a4728] bg-[#fffdf7]";
   const archiveStatus = focusError
     ? "本轮未完成，请检查模型配置。"
     : busy
@@ -923,28 +923,28 @@ export function FocusRoomPanel({
         initial={reduce ? false : { opacity: 0, y: 18 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-        className="min-h-0 overflow-y-auto overscroll-contain rounded-[38px] border border-black/[0.08] bg-[#fbfbf8]/86 p-5 shadow-[0_26px_90px_rgb(28_34_24_/_0.10)] backdrop-blur-xl"
+        className="min-h-0 overflow-y-auto overscroll-contain rounded-[38px] border border-[#563a24]/[0.10] bg-[#fff8ec]/86 p-5 shadow-[0_26px_90px_rgb(84_54_32_/_0.10)] backdrop-blur-xl"
       >
-        <p className="text-sm font-medium text-[#68707d]">VIP 桑拿房</p>
+        <p className="text-sm font-medium text-[var(--sauna-muted)]">VIP 桑拿房</p>
         <motion.div
-          className="mt-7 grid size-24 place-items-center rounded-[30px] bg-[#dfeadc] text-4xl text-[#44664d]"
+          className="mt-7 grid size-24 place-items-center rounded-[30px] bg-[#f3dcc2] text-4xl text-[#7a4728]"
           animate={reduce ? undefined : { y: [0, -8, 0] }}
           transition={{ duration: 3.4, repeat: Infinity, ease: "easeInOut" }}
         >
           {agent?.avatarSeed ?? "🧠"}
         </motion.div>
-        <h1 className="mt-6 text-4xl font-semibold tracking-[-0.06em] text-[#171a1f]">
+        <h1 className="mt-6 text-4xl font-semibold tracking-[-0.06em] text-[var(--sauna-text)]">
           {agent?.displayName ?? "智囊"}
         </h1>
-        <p className="mt-2 text-[#68707d]">{agent?.role ?? "专注咨询"}</p>
+        <p className="mt-2 text-[var(--sauna-muted)]">{agent?.role ?? "专注咨询"}</p>
 
         <div className="mt-8 grid gap-3">
-          <div className="flex items-center gap-3 rounded-[24px] bg-[#eef0eb] p-4 text-sm text-[#4e5660]">
-            <ShieldCheck size={20} className="text-[#44664d]" />
+          <div className="flex items-center gap-3 rounded-[24px] bg-[#efe2cf] p-4 text-sm text-[var(--sauna-muted-strong)]">
+            <ShieldCheck size={20} className="text-[#7a4728]" />
             {token ? "已登录" : "需要登录"}
           </div>
-          <div className="flex items-center gap-3 rounded-[24px] bg-[#171a1f] p-4 text-sm text-white/76">
-            <Brain size={20} className="text-[#dfeadc]" />
+          <div className="flex items-center gap-3 rounded-[24px] bg-[var(--sauna-espresso)] p-4 text-sm text-[#fff8ec]/76">
+            <Brain size={20} className="text-[#f3dcc2]" />
             <span className="flex min-w-0 flex-1 items-center gap-2">
               {statusLabel}
               {busy ? <ThinkingDots reduce={reduce} /> : null}
@@ -952,10 +952,10 @@ export function FocusRoomPanel({
           </div>
         </div>
 
-        <div className="mt-5 rounded-[28px] bg-white/74 p-3 shadow-[0_16px_44px_rgb(28_34_24_/_0.07)]">
+        <div className="mt-5 rounded-[28px] bg-[#fffdf7]/74 p-3 shadow-[0_16px_44px_rgb(84_54_32_/_0.07)]">
           <div className="flex items-center justify-between gap-3 px-2 py-2">
-            <h2 className="text-sm font-semibold text-[#171a1f]">历史咨询</h2>
-            <ClockCounterClockwise size={17} className="text-[#6f8f72]" />
+            <h2 className="text-sm font-semibold text-[var(--sauna-text)]">历史咨询</h2>
+            <ClockCounterClockwise size={17} className="text-[#b77945]" />
           </div>
           {historySessions.length ? (
             <div className="mt-2 grid max-h-[330px] gap-2 overflow-y-auto pr-1">
@@ -964,12 +964,12 @@ export function FocusRoomPanel({
                 return (
                   <div
                     key={session.id}
-                    className={`grid grid-cols-[34px_minmax(0,1fr)_auto] gap-2 rounded-[20px] p-2 transition ${active ? "bg-[#dfeadc]" : "bg-[#f4f5f2] hover:bg-[#eef0eb]"}`}
+                    className={`grid grid-cols-[34px_minmax(0,1fr)_auto] gap-2 rounded-[20px] p-2 transition ${active ? "bg-[#f3dcc2]" : "bg-[#f2e4d2] hover:bg-[#efe2cf]"}`}
                   >
                     <button
                       type="button"
                       onClick={() => router.push(`/focus-room/${session.id}`)}
-                      className="grid size-8 place-items-center rounded-[13px] bg-white text-lg"
+                      className="grid size-8 place-items-center rounded-[13px] bg-[#fffdf7] text-lg"
                     >
                       {session.agentAvatarEmoji || "🧠"}
                     </button>
@@ -985,23 +985,23 @@ export function FocusRoomPanel({
                             onChange={(event) =>
                               setEditingTitle(event.target.value)
                             }
-                            className="min-w-0 flex-1 rounded-full bg-white px-3 py-1 text-xs font-semibold text-[#171a1f] outline-none ring-1 ring-black/[0.08] focus:ring-[#9dbf9b]"
+                            className="min-w-0 flex-1 rounded-full bg-[#fffdf7] px-3 py-1 text-xs font-semibold text-[var(--sauna-text)] outline-none ring-1 ring-[#563a24]/[0.10] focus:ring-[#d6ad82]"
                             autoFocus
                             maxLength={80}
                           />
                           <button
                             type="submit"
-                            className="rounded-full bg-[#171a1f] px-2 text-[10px] font-semibold text-white"
+                            className="rounded-full bg-[var(--sauna-espresso)] px-2 text-[10px] font-semibold text-[#fff8ec]"
                           >
                             保存
                           </button>
                         </form>
                       ) : (
                         <span className="flex items-center justify-between gap-2">
-                          <span className="truncate text-xs font-semibold text-[#171a1f]">
+                          <span className="truncate text-xs font-semibold text-[var(--sauna-text)]">
                             {session.title || session.agentDisplayName}
                           </span>
-                          <span className="shrink-0 text-[10px] text-[#87909a]">
+                          <span className="shrink-0 text-[10px] text-[#a08c78]">
                             {formatSessionTime(
                               session.lastActivityAt,
                               hydrated,
@@ -1009,7 +1009,7 @@ export function FocusRoomPanel({
                           </span>
                         </span>
                       )}
-                      <span className="mt-0.5 line-clamp-1 block text-[11px] text-[#68707d]">
+                      <span className="mt-0.5 line-clamp-1 block text-[11px] text-[var(--sauna-muted)]">
                         {session.lastMessagePreview ||
                           `${session.agentDisplayName || "智囊"} 的会话`}
                       </span>
@@ -1018,7 +1018,7 @@ export function FocusRoomPanel({
                       <button
                         type="button"
                         onClick={() => beginRename(session)}
-                        className="grid size-7 place-items-center rounded-full bg-white text-[#68707d] transition hover:text-[#171a1f]"
+                        className="grid size-7 place-items-center rounded-full bg-[#fffdf7] text-[var(--sauna-muted)] transition hover:text-[var(--sauna-text)]"
                         aria-label="重命名会话"
                       >
                         <PencilSimple size={13} />
@@ -1026,7 +1026,7 @@ export function FocusRoomPanel({
                       <button
                         type="button"
                         onClick={() => setPendingDeleteSessionId(session.id)}
-                        className="grid size-7 place-items-center rounded-full bg-white text-[#9a4f4f] transition hover:bg-[#eadfc8]"
+                        className="grid size-7 place-items-center rounded-full bg-[#fffdf7] text-[#a75b3f] transition hover:bg-[#f2d6c8]"
                         aria-label="删除会话"
                       >
                         <Trash size={13} />
@@ -1037,7 +1037,7 @@ export function FocusRoomPanel({
               })}
             </div>
           ) : (
-            <p className="mt-2 rounded-[20px] bg-[#f4f5f2] p-3 text-xs leading-relaxed text-[#68707d]">
+            <p className="mt-2 rounded-[20px] bg-[#f2e4d2] p-3 text-xs leading-relaxed text-[var(--sauna-muted)]">
               会话会自动保存在这里。
             </p>
           )}
@@ -1045,7 +1045,7 @@ export function FocusRoomPanel({
             type="button"
             onClick={() => void openFreshSession()}
             disabled={!token || busy}
-            className="mt-3 inline-flex h-10 w-full items-center justify-center gap-2 rounded-full bg-[#6f8f72] text-sm font-semibold text-white transition hover:bg-[#5d805f] active:translate-y-px disabled:cursor-not-allowed disabled:bg-[#b7bbb4]"
+            className="mt-3 inline-flex h-10 w-full items-center justify-center gap-2 rounded-full bg-[#b77945] text-sm font-semibold text-[#fff8ec] transition hover:bg-[#965f36] active:translate-y-px disabled:cursor-not-allowed disabled:bg-[#c8b6a0]"
           >
             新开咨询 <ArrowRight size={15} />
           </button>
@@ -1054,7 +1054,7 @@ export function FocusRoomPanel({
 
       {pendingDeleteSessionId ? (
         <div
-          className="fixed inset-0 z-50 grid place-items-center bg-[#171a1f]/28 px-4 backdrop-blur-sm"
+          className="fixed inset-0 z-50 grid place-items-center bg-[#2f2017]/28 px-4 backdrop-blur-sm"
           role="dialog"
           aria-modal="true"
           aria-label="删除会话确认"
@@ -1062,26 +1062,26 @@ export function FocusRoomPanel({
           <motion.div
             initial={reduce ? false : { opacity: 0, y: 14, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            className="w-full max-w-sm rounded-[30px] bg-white p-6 shadow-[0_30px_90px_rgb(23_26_31_/_0.20)]"
+            className="w-full max-w-sm rounded-[30px] bg-[#fffdf7] p-6 shadow-[0_30px_90px_rgb(74_48_32_/_0.20)]"
           >
-            <h2 className="text-xl font-semibold tracking-[-0.04em] text-[#171a1f]">
+            <h2 className="text-xl font-semibold tracking-[-0.04em] text-[var(--sauna-text)]">
               删除这条咨询？
             </h2>
-            <p className="mt-3 text-sm leading-relaxed text-[#68707d]">
+            <p className="mt-3 text-sm leading-relaxed text-[var(--sauna-muted)]">
               删除后会清理这条会话的消息和事件记录，无法恢复。
             </p>
             <div className="mt-6 flex justify-end gap-2">
               <button
                 type="button"
                 onClick={() => setPendingDeleteSessionId(undefined)}
-                className="h-10 rounded-full bg-[#f4f5f2] px-4 text-sm font-semibold text-[#4e5660] transition hover:bg-[#eef0eb]"
+                className="h-10 rounded-full bg-[#f2e4d2] px-4 text-sm font-semibold text-[var(--sauna-muted-strong)] transition hover:bg-[#efe2cf]"
               >
                 取消
               </button>
               <button
                 type="button"
                 onClick={() => void confirmDeleteSession()}
-                className="h-10 rounded-full bg-[#9a4f4f] px-4 text-sm font-semibold text-white transition hover:bg-[#844444]"
+                className="h-10 rounded-full bg-[#a75b3f] px-4 text-sm font-semibold text-[#fff8ec] transition hover:bg-[#8f4830]"
               >
                 删除
               </button>
@@ -1093,14 +1093,14 @@ export function FocusRoomPanel({
         initial={reduce ? false : { opacity: 0, y: 18 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.05, ease: [0.16, 1, 0.3, 1] }}
-        className="relative flex min-h-0 flex-col overflow-hidden rounded-[38px] border border-black/[0.08] bg-white/88 p-4 shadow-[0_26px_90px_rgb(28_34_24_/_0.10)] backdrop-blur-xl sm:p-5"
+        className="relative flex min-h-0 flex-col overflow-hidden rounded-[38px] border border-[#563a24]/[0.10] bg-[#fffdf7]/88 p-4 shadow-[0_26px_90px_rgb(84_54_32_/_0.10)] backdrop-blur-xl sm:p-5"
       >
-        <div className="relative flex items-center justify-between gap-4 rounded-[30px] bg-[#f4f5f2] p-5">
+        <div className="relative flex items-center justify-between gap-4 rounded-[30px] bg-[#f2e4d2] p-5">
           <div>
-            <h2 className="text-2xl font-semibold tracking-[-0.045em] text-[#171a1f]">
+            <h2 className="text-2xl font-semibold tracking-[-0.045em] text-[var(--sauna-text)]">
               {title}
             </h2>
-            <p className="mt-1 text-sm text-[#68707d]">1v1 咨询</p>
+            <p className="mt-1 text-sm text-[var(--sauna-muted)]">1v1 咨询</p>
           </div>
           <span
             className={`hidden items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold sm:inline-flex ${statusTone}`}
@@ -1125,12 +1125,12 @@ export function FocusRoomPanel({
 
         <form
           onSubmit={submitMessage}
-          className="relative flex items-center gap-3 rounded-full border border-black/[0.08] bg-[#f7f8f5] p-2 transition focus-within:border-[#9dbf9b] focus-within:bg-white"
+          className="relative flex items-center gap-3 rounded-full border border-[#563a24]/[0.10] bg-[#f8efe3] p-2 transition focus-within:border-[#d6ad82] focus-within:bg-[#fffdf7]"
         >
           <input
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
-            className="min-w-0 flex-1 bg-transparent px-4 text-sm text-[#171a1f] outline-none placeholder:text-[#87909a]"
+            className="min-w-0 flex-1 bg-transparent px-4 text-sm text-[var(--sauna-text)] outline-none placeholder:text-[#a08c78]"
             placeholder={
               token ? (busy ? "智囊正在工作" : "输入问题") : "请先在大厅登录"
             }
@@ -1139,7 +1139,7 @@ export function FocusRoomPanel({
           <button
             type="submit"
             disabled={!token || busy || !draft.trim()}
-            className="grid size-11 place-items-center rounded-full bg-[#6f8f72] text-white transition hover:bg-[#5d805f] active:translate-y-px disabled:cursor-not-allowed disabled:bg-[#b7bbb4]"
+            className="grid size-11 place-items-center rounded-full bg-[#b77945] text-[#fff8ec] transition hover:bg-[#965f36] active:translate-y-px disabled:cursor-not-allowed disabled:bg-[#c8b6a0]"
             aria-label={busy ? "正在发送" : "发送"}
           >
             <SubmitGlyph busy={busy} reduce={reduce} />

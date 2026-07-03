@@ -19,11 +19,11 @@ import { getSaunaApiBaseUrl, humanizeApiError } from "@/lib/sauna-api";
 import { useSaunaStore } from "@/store/sauna-store";
 import type { FetchedModel, ProviderConfig, ProviderTestChatResult } from "@/types/sauna";
 
-const fieldClass = "h-11 w-full rounded-[16px] border border-black/[0.08] bg-[#f7f8f5] px-4 text-sm text-[#171a1f] outline-none transition placeholder:text-[#9aa1a9] focus:border-[#6f8f72] focus:bg-white";
-const selectClass = "min-h-11 w-full rounded-[16px] border border-black/[0.08] bg-[#f7f8f5] px-4 py-3 text-sm text-[#171a1f] outline-none transition focus:border-[#6f8f72] focus:bg-white";
-const primaryButtonClass = "inline-flex h-11 items-center justify-center gap-2 rounded-full bg-[#171a1f] px-5 text-sm font-semibold text-white transition hover:bg-[#2a2f36] active:translate-y-px disabled:cursor-not-allowed disabled:bg-[#b7bbb4]";
-const secondaryButtonClass = "inline-flex h-11 items-center justify-center gap-2 rounded-full border border-black/[0.08] bg-white px-5 text-sm font-semibold text-[#171a1f] transition hover:bg-[#eef0eb] active:translate-y-px disabled:cursor-not-allowed disabled:text-[#9aa1a9]";
-const dangerButtonClass = "inline-flex h-11 items-center justify-center gap-2 rounded-full bg-[#eadfc8] px-5 text-sm font-semibold text-[#765f34] transition hover:bg-[#e3d2b3] active:translate-y-px disabled:cursor-not-allowed disabled:opacity-60";
+const fieldClass = "h-11 w-full rounded-[16px] border border-[#563a24]/[0.10] bg-[#f8efe3] px-4 text-sm text-[var(--sauna-text)] outline-none transition placeholder:text-[#a08c78] focus:border-[#b77945] focus:bg-[#fffdf7]";
+const selectClass = "min-h-11 w-full rounded-[16px] border border-[#563a24]/[0.10] bg-[#f8efe3] px-4 py-3 text-sm text-[var(--sauna-text)] outline-none transition focus:border-[#b77945] focus:bg-[#fffdf7]";
+const primaryButtonClass = "inline-flex h-11 items-center justify-center gap-2 rounded-full bg-[var(--sauna-espresso)] px-5 text-sm font-semibold text-[#fff8ec] transition hover:bg-[var(--sauna-espresso-2)] active:translate-y-px disabled:cursor-not-allowed disabled:bg-[#c8b6a0]";
+const secondaryButtonClass = "inline-flex h-11 items-center justify-center gap-2 rounded-full border border-[#563a24]/[0.10] bg-[#fffdf7] px-5 text-sm font-semibold text-[var(--sauna-text)] transition hover:bg-[#efe2cf] active:translate-y-px disabled:cursor-not-allowed disabled:text-[#a08c78]";
+const dangerButtonClass = "inline-flex h-11 items-center justify-center gap-2 rounded-full bg-[#f2d6c8] px-5 text-sm font-semibold text-[#8a4f32] transition hover:bg-[#e9c6ad] active:translate-y-px disabled:cursor-not-allowed disabled:opacity-60";
 
 const providerPresets = [
   {
@@ -320,17 +320,17 @@ export function SettingsPanel() {
           initial={reduce ? false : { opacity: 0, y: 18 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-          className="w-full max-w-[520px] rounded-[38px] border border-black/[0.08] bg-white/86 p-6 shadow-[0_26px_90px_rgb(28_34_24_/_0.10)] backdrop-blur-xl"
+          className="w-full max-w-[520px] rounded-[38px] border border-[#563a24]/[0.10] bg-[#fffdf7]/86 p-6 shadow-[0_26px_90px_rgb(84_54_32_/_0.10)] backdrop-blur-xl"
         >
-          <div className="grid size-16 place-items-center rounded-[24px] bg-[#171a1f] text-white">
+          <div className="grid size-16 place-items-center rounded-[24px] bg-[var(--sauna-espresso)] text-[#fff8ec]">
             <UserCircle size={28} weight="duotone" />
           </div>
-          <h1 className="mt-6 text-4xl font-semibold tracking-[-0.06em] text-[#171a1f]">先登录。</h1>
-          <p className="mt-3 max-w-[34ch] text-sm leading-relaxed text-[#68707d]">登录后保存你的 Base URL、Key 和默认模型。</p>
+          <h1 className="mt-6 text-4xl font-semibold tracking-[-0.06em] text-[var(--sauna-text)]">先登录。</h1>
+          <p className="mt-3 max-w-[34ch] text-sm leading-relaxed text-[var(--sauna-muted)]">登录后保存你的 Base URL、Key 和默认模型。</p>
 
           <div className="mt-6 grid gap-3">
             <form className="grid gap-3" onSubmit={submitEmail}>
-              <label className="grid gap-2 text-sm font-medium text-[#4e5660]">
+              <label className="grid gap-2 text-sm font-medium text-[var(--sauna-muted-strong)]">
                 邮箱
                 <input
                   className={fieldClass}
@@ -349,10 +349,10 @@ export function SettingsPanel() {
 
             {hasCodeSent ? (
               <form className="grid gap-3" onSubmit={submitCode}>
-                <div className="rounded-[22px] bg-[#dfeadc] px-4 py-3 text-sm font-semibold text-[#44664d]">
+                <div className="rounded-[22px] bg-[#f3dcc2] px-4 py-3 text-sm font-semibold text-[#7a4728]">
                   {devCode ? `开发验证码 ${devCode}` : `验证码已发送至 ${codeEmail}`}
                 </div>
-                <label className="grid gap-2 text-sm font-medium text-[#4e5660]">
+                <label className="grid gap-2 text-sm font-medium text-[var(--sauna-muted-strong)]">
                   验证码
                   <input
                     className={fieldClass}
@@ -368,7 +368,7 @@ export function SettingsPanel() {
                 </button>
               </form>
             ) : null}
-            {authError ? <p className="text-sm leading-relaxed text-[#9a4f4f]">{authError}</p> : null}
+            {authError ? <p className="text-sm leading-relaxed text-[#a75b3f]">{authError}</p> : null}
           </div>
         </motion.div>
       </section>
@@ -381,31 +381,31 @@ export function SettingsPanel() {
         initial={reduce ? false : { opacity: 0, y: 18 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
-        className="relative overflow-hidden rounded-[38px] border border-black/[0.08] bg-[#fbfbf8]/86 p-5 shadow-[0_26px_90px_rgb(28_34_24_/_0.10)] backdrop-blur-xl sm:p-6"
+        className="relative overflow-hidden rounded-[38px] border border-[#563a24]/[0.10] bg-[#fff8ec]/86 p-5 shadow-[0_26px_90px_rgb(84_54_32_/_0.10)] backdrop-blur-xl sm:p-6"
       >
         <motion.div
-          className="pointer-events-none absolute right-[8%] top-[10%] size-48 rounded-full bg-[#dfeadc]/70 blur-2xl"
+          className="pointer-events-none absolute right-[8%] top-[10%] size-48 rounded-full bg-[#f3dcc2]/70 blur-2xl"
           animate={reduce ? undefined : { scale: [1, 1.12, 1], opacity: [0.48, 0.78, 0.48] }}
           transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
         />
         <div className="relative flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <p className="text-sm font-medium text-[#68707d]">设置</p>
-            <h1 className="mt-3 max-w-[9ch] text-5xl font-semibold leading-[0.98] tracking-[-0.07em] text-[#171a1f] sm:text-6xl">模型中枢。</h1>
-            <p className="mt-5 max-w-none whitespace-nowrap text-sm leading-relaxed text-[#4e5660]">把供应商、Key 和模型集中管理。保存后，大厅会使用真实调用。</p>
+            <p className="text-sm font-medium text-[var(--sauna-muted)]">设置</p>
+            <h1 className="mt-3 max-w-[9ch] text-5xl font-semibold leading-[0.98] tracking-[-0.07em] text-[var(--sauna-text)] sm:text-6xl">模型中枢。</h1>
+            <p className="mt-5 max-w-none whitespace-nowrap text-sm leading-relaxed text-[var(--sauna-muted-strong)]">把供应商、Key 和模型集中管理。保存后，大厅会使用真实调用。</p>
           </div>
-          <div className="rounded-[28px] bg-white p-4 shadow-[0_16px_44px_rgb(28_34_24_/_0.08)]">
-            <p className="text-xs font-medium text-[#68707d]">API Proxy</p>
-            <p className="mt-2 break-all text-sm font-semibold text-[#171a1f]">{getSaunaApiBaseUrl()}</p>
+          <div className="rounded-[28px] bg-[#fffdf7] p-4 shadow-[0_16px_44px_rgb(84_54_32_/_0.08)]">
+            <p className="text-xs font-medium text-[var(--sauna-muted)]">API Proxy</p>
+            <p className="mt-2 break-all text-sm font-semibold text-[var(--sauna-text)]">{getSaunaApiBaseUrl()}</p>
           </div>
         </div>
 
         <div className="relative mt-8 grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
           {providerList.length === 0 ? (
-            <div className="md:col-span-2 2xl:col-span-3 rounded-[32px] border border-dashed border-black/[0.12] bg-white/72 p-8 text-center">
-              <PlugsConnected size={30} className="mx-auto text-[#6f8f72]" />
-              <h2 className="mt-4 text-2xl font-semibold tracking-[-0.05em] text-[#171a1f]">还没有模型配置</h2>
-              <p className="mt-2 text-sm text-[#68707d]">选择一个预设，填入 Key 后保存。</p>
+            <div className="md:col-span-2 2xl:col-span-3 rounded-[32px] border border-dashed border-[#563a24]/[0.14] bg-[#fffdf7]/72 p-8 text-center">
+              <PlugsConnected size={30} className="mx-auto text-[#b77945]" />
+              <h2 className="mt-4 text-2xl font-semibold tracking-[-0.05em] text-[var(--sauna-text)]">还没有模型配置</h2>
+              <p className="mt-2 text-sm text-[var(--sauna-muted)]">选择一个预设，填入 Key 后保存。</p>
             </div>
           ) : (
             providerList.map((provider) => (
@@ -413,19 +413,19 @@ export function SettingsPanel() {
                 key={provider.id}
                 type="button"
                 onClick={() => editProvider(provider)}
-                className={`group rounded-[32px] border p-5 text-left shadow-[0_18px_52px_rgb(28_34_24_/_0.08)] transition hover:-translate-y-1 active:translate-y-px ${selectedProviderId === provider.id ? "border-[#6f8f72] bg-[#edf3ea]" : "border-black/[0.08] bg-white/86"}`}
+                className={`group rounded-[32px] border p-5 text-left shadow-[0_18px_52px_rgb(84_54_32_/_0.08)] transition hover:-translate-y-1 active:translate-y-px ${selectedProviderId === provider.id ? "border-[#b77945] bg-[#f5e8d7]" : "border-[#563a24]/[0.10] bg-[#fffdf7]/86"}`}
               >
                 <div className="flex items-start justify-between gap-4">
-                  <div className="grid size-13 place-items-center rounded-[20px] bg-[#171a1f] text-white">
+                  <div className="grid size-13 place-items-center rounded-[20px] bg-[var(--sauna-espresso)] text-[#fff8ec]">
                     <Key size={22} weight="duotone" />
                   </div>
-                  <span className={`rounded-full px-3 py-1 text-xs font-semibold ${provider.is_default ? "bg-[#dfeadc] text-[#44664d]" : "bg-[#f4f5f2] text-[#68707d]"}`}>
+                  <span className={`rounded-full px-3 py-1 text-xs font-semibold ${provider.is_default ? "bg-[#f3dcc2] text-[#7a4728]" : "bg-[#f2e4d2] text-[var(--sauna-muted)]"}`}>
                     {provider.is_default ? "默认" : provider.status}
                   </span>
                 </div>
-                <h2 className="mt-5 truncate text-2xl font-semibold tracking-[-0.05em] text-[#171a1f]">{provider.provider_name}</h2>
-                <p className="mt-2 truncate text-sm text-[#68707d]">{provider.chat_model}</p>
-                <div className="mt-5 grid gap-2 text-xs text-[#68707d]">
+                <h2 className="mt-5 truncate text-2xl font-semibold tracking-[-0.05em] text-[var(--sauna-text)]">{provider.provider_name}</h2>
+                <p className="mt-2 truncate text-sm text-[var(--sauna-muted)]">{provider.chat_model}</p>
+                <div className="mt-5 grid gap-2 text-xs text-[var(--sauna-muted)]">
                   <span className="truncate">{provider.base_url}</span>
                   <span>{provider.masked_api_key}</span>
                   <span>测试 {formatTime(provider.last_tested_at)}</span>
@@ -440,26 +440,26 @@ export function SettingsPanel() {
         initial={reduce ? false : { opacity: 0, y: 18 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.55, delay: 0.06, ease: [0.16, 1, 0.3, 1] }}
-        className="rounded-[38px] border border-black/[0.08] bg-white/86 p-5 shadow-[0_26px_90px_rgb(28_34_24_/_0.10)] backdrop-blur-xl"
+        className="rounded-[38px] border border-[#563a24]/[0.10] bg-[#fffdf7]/86 p-5 shadow-[0_26px_90px_rgb(84_54_32_/_0.10)] backdrop-blur-xl"
       >
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h2 className="text-2xl font-semibold tracking-[-0.05em] text-[#171a1f]">{selectedProvider ? "编辑接入" : "新增接入"}</h2>
-            <p className="mt-1 text-sm text-[#68707d]">OpenAI 兼容协议优先。</p>
+            <h2 className="text-2xl font-semibold tracking-[-0.05em] text-[var(--sauna-text)]">{selectedProvider ? "编辑接入" : "新增接入"}</h2>
+            <p className="mt-1 text-sm text-[var(--sauna-muted)]">OpenAI 兼容协议优先。</p>
           </div>
           <button
             type="button"
             onClick={() => void logout()}
-            className="grid size-11 place-items-center rounded-full bg-[#f4f5f2] text-[#68707d] transition hover:text-[#171a1f] active:translate-y-px"
+            className="grid size-11 place-items-center rounded-full bg-[#f2e4d2] text-[var(--sauna-muted)] transition hover:text-[var(--sauna-text)] active:translate-y-px"
             aria-label="退出登录"
           >
             <SignOut size={18} />
           </button>
         </div>
 
-        <div className="mt-4 rounded-[24px] bg-[#f4f5f2] p-3 text-sm text-[#4e5660]">
-          <p className="font-semibold text-[#171a1f]">{identity?.user.email}</p>
-          <p className="mt-1 text-xs text-[#68707d]">{identity?.workspace.name}</p>
+        <div className="mt-4 rounded-[24px] bg-[#f2e4d2] p-3 text-sm text-[var(--sauna-muted-strong)]">
+          <p className="font-semibold text-[var(--sauna-text)]">{identity?.user.email}</p>
+          <p className="mt-1 text-xs text-[var(--sauna-muted)]">{identity?.workspace.name}</p>
         </div>
 
         <div className="mt-5 grid grid-cols-2 gap-2">
@@ -468,24 +468,24 @@ export function SettingsPanel() {
               key={preset.id}
               type="button"
               onClick={() => applyPreset(preset.id)}
-              className={`rounded-[20px] px-4 py-3 text-left transition active:translate-y-px ${selectedPresetId === preset.id ? "bg-[#171a1f] text-white" : "bg-[#f4f5f2] text-[#171a1f] hover:bg-[#eef0eb]"}`}
+              className={`rounded-[20px] px-4 py-3 text-left transition active:translate-y-px ${selectedPresetId === preset.id ? "bg-[var(--sauna-espresso)] text-[#fff8ec]" : "bg-[#f2e4d2] text-[var(--sauna-text)] hover:bg-[#efe2cf]"}`}
             >
               <span className="block text-sm font-semibold">{preset.name}</span>
-              <span className={`mt-1 block text-xs ${selectedPresetId === preset.id ? "text-white/64" : "text-[#68707d]"}`}>{preset.note}</span>
+              <span className={`mt-1 block text-xs ${selectedPresetId === preset.id ? "text-[#fff8ec]/64" : "text-[var(--sauna-muted)]"}`}>{preset.note}</span>
             </button>
           ))}
         </div>
 
         <form className="mt-5 grid gap-4" onSubmit={saveProvider}>
-          <label className="grid gap-2 text-sm font-medium text-[#4e5660]">
+          <label className="grid gap-2 text-sm font-medium text-[var(--sauna-muted-strong)]">
             供应商名称
             <input className={fieldClass} value={draft.provider_name} onChange={(event) => updateDraft("provider_name", event.target.value)} placeholder="OpenAI Compatible" required />
           </label>
-          <label className="grid gap-2 text-sm font-medium text-[#4e5660]">
+          <label className="grid gap-2 text-sm font-medium text-[var(--sauna-muted-strong)]">
             Base URL
             <input className={fieldClass} value={draft.base_url} onChange={(event) => updateDraft("base_url", event.target.value)} placeholder="https://api.openai.com/v1" required />
           </label>
-          <label className="grid gap-2 text-sm font-medium text-[#4e5660]">
+          <label className="grid gap-2 text-sm font-medium text-[var(--sauna-muted-strong)]">
             API Key
             <input
               className={fieldClass}
@@ -497,12 +497,12 @@ export function SettingsPanel() {
               required={!selectedProvider}
             />
           </label>
-          <label className="grid gap-2 text-sm font-medium text-[#4e5660]">
+          <label className="grid gap-2 text-sm font-medium text-[var(--sauna-muted-strong)]">
             对话模型
             <input className={fieldClass} value={draft.chat_model} onChange={(event) => updateDraft("chat_model", event.target.value)} placeholder="gpt-4.1-mini" required />
           </label>
           {modelGroups.length ? (
-            <label className="grid gap-2 text-sm font-medium text-[#4e5660]">
+            <label className="grid gap-2 text-sm font-medium text-[var(--sauna-muted-strong)]">
               选择已获取模型
               <select className={selectClass} value={draft.chat_model} onChange={(event) => updateDraft("chat_model", event.target.value)}>
                 {modelGroups.map(([owner, items]) => (
@@ -515,12 +515,12 @@ export function SettingsPanel() {
               </select>
             </label>
           ) : null}
-          <label className="grid gap-2 text-sm font-medium text-[#4e5660]">
+          <label className="grid gap-2 text-sm font-medium text-[var(--sauna-muted-strong)]">
             向量模型
             <input className={fieldClass} value={draft.embedding_model} onChange={(event) => updateDraft("embedding_model", event.target.value)} placeholder="text-embedding-3-small" />
           </label>
-          <label className="flex items-center gap-3 rounded-[20px] bg-[#f7f8f5] p-3 text-sm font-medium text-[#4e5660]">
-            <input className="size-4 accent-[#6f8f72]" type="checkbox" checked={draft.is_default} onChange={(event) => updateDraft("is_default", event.target.checked)} />
+          <label className="flex items-center gap-3 rounded-[20px] bg-[#f8efe3] p-3 text-sm font-medium text-[var(--sauna-muted-strong)]">
+            <input className="size-4 accent-[#b77945]" type="checkbox" checked={draft.is_default} onChange={(event) => updateDraft("is_default", event.target.checked)} />
             设为默认调用模型
           </label>
 
@@ -561,16 +561,16 @@ export function SettingsPanel() {
         </div>
 
         {testResult ? (
-          <div className="mt-4 rounded-[24px] bg-[#171a1f] p-4 text-white">
-            <p className="flex items-center gap-2 text-sm font-semibold"><CheckCircle size={17} weight="fill" className="text-[#dfeadc]" />模型已响应</p>
-            <p className="mt-3 text-sm leading-relaxed text-white/78">{testResult.content || "ok"}</p>
-            <p className="mt-3 text-xs text-white/54">{testResult.latency_ms} ms</p>
+          <div className="mt-4 rounded-[24px] bg-[var(--sauna-espresso)] p-4 text-[#fff8ec]">
+            <p className="flex items-center gap-2 text-sm font-semibold"><CheckCircle size={17} weight="fill" className="text-[#f3dcc2]" />模型已响应</p>
+            <p className="mt-3 text-sm leading-relaxed text-[#fff8ec]/78">{testResult.content || "ok"}</p>
+            <p className="mt-3 text-xs text-[#fff8ec]/54">{testResult.latency_ms} ms</p>
           </div>
         ) : null}
 
-        {localMessage ? <p className="mt-4 rounded-[20px] bg-[#dfeadc] px-4 py-3 text-sm font-semibold text-[#44664d]">{localMessage}</p> : null}
+        {localMessage ? <p className="mt-4 rounded-[20px] bg-[#f3dcc2] px-4 py-3 text-sm font-semibold text-[#7a4728]">{localMessage}</p> : null}
         {(localError || providerError) ? (
-          <div className="mt-4 flex gap-3 rounded-[20px] bg-[#eadfc8] px-4 py-3 text-sm leading-relaxed text-[#765f34]">
+          <div className="mt-4 flex gap-3 rounded-[20px] bg-[#f2d6c8] px-4 py-3 text-sm leading-relaxed text-[#8a4f32]">
             <WarningCircle size={18} className="shrink-0" />
             <span>{localError || providerError}</span>
           </div>

@@ -2,21 +2,29 @@
 
 :root {
   color-scheme: light;
-  --sauna-bg: #f4f5f2;
-  --sauna-panel: #fbfbf8;
-  --sauna-panel-strong: #ffffff;
-  --sauna-line: rgb(27 31 35 / 0.09);
-  --sauna-line-strong: rgb(27 31 35 / 0.16);
-  --sauna-text: #171a1f;
-  --sauna-muted: #68707d;
-  --sauna-soft: #eef0eb;
-  --sauna-accent: #6f8f72;
-  --sauna-accent-strong: #44664d;
-  --sauna-warm: #e7dcc8;
-  --sauna-blue: #dfe8f5;
+  --sauna-bg: #f5ede0;
+  --sauna-panel: #fff8ec;
+  --sauna-panel-strong: #fffdf7;
+  --sauna-line: rgb(86 58 36 / 0.10);
+  --sauna-line-strong: rgb(86 58 36 / 0.18);
+  --sauna-text: #2b1d14;
+  --sauna-muted: #7a6a5c;
+  --sauna-muted-strong: #5f4c3e;
+  --sauna-soft: #efe2cf;
+  --sauna-soft-strong: #e6d2b8;
+  --sauna-accent: #b77945;
+  --sauna-accent-strong: #7a4728;
+  --sauna-accent-soft: #f3dcc2;
+  --sauna-warm: #e7c99f;
+  --sauna-steam: #f8efe3;
+  --sauna-espresso: #2f2017;
+  --sauna-espresso-2: #4a3020;
+  --sauna-success: #8a6b3f;
+  --sauna-danger: #a75b3f;
+  --sauna-danger-soft: #f2d6c8;
   --sauna-radius-lg: 32px;
   --sauna-radius-md: 22px;
-  --sauna-shadow: 0 24px 70px rgb(30 36 28 / 0.10);
+  --sauna-shadow: 0 24px 70px rgb(84 54 32 / 0.12);
 }
 
 * {
@@ -32,9 +40,10 @@ body {
   margin: 0;
   min-height: 100dvh;
   background:
-    radial-gradient(circle at 14% 12%, rgb(223 232 245 / 0.82), transparent 26rem),
-    radial-gradient(circle at 88% 8%, rgb(231 220 200 / 0.72), transparent 24rem),
-    linear-gradient(180deg, #fbfbf8 0%, #f3f5f0 48%, #eef1ea 100%);
+    radial-gradient(circle at 12% 10%, rgb(231 201 159 / 0.54), transparent 27rem),
+    radial-gradient(circle at 88% 8%, rgb(183 121 69 / 0.16), transparent 24rem),
+    radial-gradient(circle at 64% 94%, rgb(122 71 40 / 0.10), transparent 30rem),
+    linear-gradient(180deg, #fff8ec 0%, #f7ecdd 52%, #efe0cd 100%);
   color: var(--sauna-text);
 }
 
@@ -45,7 +54,7 @@ body::before {
   z-index: 60;
   pointer-events: none;
   opacity: 0.42;
-  background-image: radial-gradient(rgb(30 36 28 / 0.10) 0.65px, transparent 0.65px);
+  background-image: radial-gradient(rgb(86 58 36 / 0.10) 0.65px, transparent 0.65px);
   background-size: 18px 18px;
   mask-image: linear-gradient(to bottom, black, transparent 76%);
 }
@@ -58,8 +67,8 @@ textarea {
 }
 
 ::selection {
-  background: rgb(111 143 114 / 0.24);
-  color: #171a1f;
+  background: rgb(183 121 69 / 0.26);
+  color: var(--sauna-text);
 }
 
 .sauna-surface {
