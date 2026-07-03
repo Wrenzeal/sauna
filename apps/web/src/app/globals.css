@@ -45,6 +45,28 @@
   --sauna-radius-lg: 32px;
   --sauna-radius-md: 22px;
   --sauna-shadow: 0 24px 70px rgb(12 88 83 / 0.12);
+
+  /* Sauna UX - Steam effects */
+  --sauna-steam-light: rgba(255, 255, 255, 0.4);
+  --sauna-steam-medium: rgba(255, 255, 255, 0.55);
+  --sauna-steam-dense: rgba(255, 255, 255, 0.7);
+
+  /* Sauna UX - Temperature colors */
+  --sauna-temp-cold: #b8e6de;
+  --sauna-temp-warm: #5cd4c1;
+  --sauna-temp-hot: #15b8a6;
+  --sauna-temp-vhot: #0d9285;
+
+  /* Sauna UX - Workstation glow */
+  --sauna-glow-idle: rgba(21, 184, 166, 0.2);
+  --sauna-glow-thinking: rgba(21, 184, 166, 0.4);
+  --sauna-glow-active: rgba(21, 184, 166, 0.6);
+  --sauna-glow-pulse: rgba(21, 184, 166, 0.8);
+
+  /* Sauna UX - Distillation tank */
+  --sauna-tank-glass: rgba(255, 255, 255, 0.12);
+  --sauna-tank-liquid: rgba(99, 230, 215, 0.3);
+  --sauna-tank-bubble: rgba(255, 255, 255, 0.6);
 }
 
 :root[data-theme="night"] {
@@ -90,6 +112,17 @@
   --sauna-stand-to: #0e272c;
   --sauna-shadow-soft: rgb(0 8 10 / 0.34);
   --sauna-shadow: 0 26px 80px rgb(0 8 10 / 0.45);
+
+  /* Sauna UX - Night theme overrides */
+  --sauna-steam-light: rgba(99, 230, 215, 0.15);
+  --sauna-steam-medium: rgba(99, 230, 215, 0.25);
+  --sauna-steam-dense: rgba(99, 230, 215, 0.4);
+  --sauna-glow-idle: rgba(99, 230, 215, 0.18);
+  --sauna-glow-thinking: rgba(99, 230, 215, 0.35);
+  --sauna-glow-active: rgba(99, 230, 215, 0.5);
+  --sauna-glow-pulse: rgba(99, 230, 215, 0.7);
+  --sauna-tank-glass: rgba(99, 230, 215, 0.08);
+  --sauna-tank-liquid: rgba(99, 230, 215, 0.2);
 }
 
 * {

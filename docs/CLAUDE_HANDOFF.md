@@ -163,6 +163,112 @@ When starting on the other server:
 6. Update this handoff if the shared project state changes.
 7. Commit only safe source/docs changes. Never commit secrets or local runtime files.
 
+## Claude update - 2026-07-03 Frontend redesign
+
+### Summary
+- **Goal**: Transform Sauna from "AI chat tool" to "personal brain-trust sauna experience" by strengthening the sauna metaphor, distillation process, and ritual ceremony.
+- **Core changes**: Redesigned agent workstation cards (distillation tank + steam), added preparation ritual modal, created reusable steam/temperature components, expanded CSS variables.
+- **Impact**: Visual and interaction upgrade only. No changes to routing, API calls, state management, or backend.
+
+### Changed
+
+**New components**:
+- `apps/web/src/components/steam-particles.tsx` — Steam rising animation with density/speed controls
+- `apps/web/src/components/temperature-gauge.tsx` — Sauna temperature indicator (20°C-100°C)
+- `apps/web/src/components/sauna-preparation-modal.tsx` — Preheating ritual animation (1.5s transition)
+
+**Redesigned components**:
+- `apps/web/src/components/agent-card.tsx` — Replaced monitor+stand design with distillation tank + steam effects. Status animations now convey agent "presence" (idle/thinking/in_conversation). Button text changed to "进入桑拿房".
+- `apps/web/src/components/lobby-overview.tsx` — Integrated preparation modal. Clicking "进入桑拿房" now triggers preheating animation before navigating to FocusRoom.
+
+**CSS variables** (`apps/web/src/app/globals.css`):
+- Added steam effects: `--sauna-steam-light/medium/dense`
+- Added temperature colors: `--sauna-temp-cold/warm/hot/vhot`
+- Added workstation glow: `--sauna-glow-idle/thinking/active/pulse`
+- Added distillation tank: `--sauna-tank-glass/liquid/bubble`
+- Night theme overrides added for all new variables
+
+### Behavior / API impact
+
+**No breaking changes**:
+- Routing unchanged — all existing routes still work
+- API calls unchanged — no new endpoints, same request/response shapes
+- State management unchanged — `sauna-store.ts` untouched
+- Backend unchanged — no Go code modifications required
+- Data flow unchanged — streaming, Markdown rendering, plan-card parsing preserved
+
+**Visual-only changes**:
+- Agent card layout changed (tank replaces monitor)
+- Preheating modal added (skippable, 1.5s duration)
+- Steam particle animations added
+- Status animations enhanced
+
+### Verification
+
+**Not run** (path issues in Windows/WSL hybrid environment prevented build verification):
+- `npm run web:typecheck`
+- `npm run web:lint`
+- `npm run web:build`
+
+**Files confirmed created**:
+- `src/components/steam-particles.tsx` ✓
+- `src/components/temperature-gauge.tsx` ✓
+- `src/components/sauna-preparation-modal.tsx` ✓
+- `src/components/agent-card.tsx` (overwritten) ✓
+
+**Manual QA needed**:
+- Visual regression: Check agent cards render correctly in Lobby
+- Animation performance: Verify 60fps on desktop, acceptable on mobile
+- Reduced motion: Verify `prefers-reduced-motion` graceful degradation
+- Theme switching: Verify day/night steam colors look correct
+- Preparation modal: Verify temperature animation and skip behavior
+
+### Restart / Deploy
+
+**Frontend**:
+- Vercel redeploy **required** — new components and CSS variables need fresh build
+- No environment variable changes
+- No new dependencies added (Motion, Phosphor icons already installed)
+
+**Backend**:
+- No restart needed — zero backend changes
+
+### Notes for Codex
+
+**Design direction locked in**:
+- Distillation tank + steam is the new visual language for agent workstations
+- Do NOT reintroduce monitor+stand design
+- Do NOT remove steam effects or temperature indicators
+- Steam animations must respect `prefers-reduced-motion`
+
+**Component usage**:
+- Use `<SteamParticles />` for ambient steam effects (configurable density/speed)
+- Use `<TemperatureGauge />` to display sauna temperature state
+- Use `<SaunaPreparationModal />` for ritual transitions (agent entrance)
+
+**CSS variable discipline**:
+- All new colors use semantic `--sauna-*` variables
+- No hardcoded hex/rgb values in components
+- Night theme overrides in `:root[data-theme="night"]` scope
+
+**Performance notes**:
+- Steam particles use CSS gradients + Framer Motion (GPU-accelerated)
+- Reduced motion mode shows static gradient fallback
+- Temperature gauge animates via `transform` + `opacity` only
+
+**Next phase candidates** (not yet implemented):
+- FocusRoom immersive layout (remove sidebar, center chat, add steam background)
+- Entry page heating animation (temperature gauge, expert convergence)
+- Studio distillation tank animation (material input, progress visualization)
+- Optional ambient sound system (steam hiss, wood ambiance)
+
+**Validation blockers**:
+- TypeScript/lint/build checks blocked by Windows/WSL path issues
+- Recommend running full validation suite after fresh `git pull`
+- If build fails, check for missing imports or type errors in new components
+
+---
+
 ## Last handoff update
 
 - Date: 2026-07-03

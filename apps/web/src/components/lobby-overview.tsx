@@ -18,7 +18,9 @@ import {
 } from "@phosphor-icons/react";
 import { AgentCard } from "@/components/agent-card";
 import { ApiSetupCard } from "@/components/api-setup-card";
+import { SaunaPreparationModal } from "@/components/sauna-preparation-modal";
 import { useSaunaStore } from "@/store/sauna-store";
+import type { AgentProfile } from "@/types/sauna";
 
 const subscribeHydration = () => () => {};
 
@@ -73,6 +75,7 @@ export function LobbyOverview() {
   } = useSaunaStore();
   const [question, setQuestion] = useState("");
   const [openingAgentId, setOpeningAgentId] = useState<string>();
+  const [preheatAgent, setPreheatAgent] = useState<AgentProfile | null>(null);
   const [editingSessionId, setEditingSessionId] = useState<string>();
   const [editingTitle, setEditingTitle] = useState("");
   const [pendingDeleteSessionId, setPendingDeleteSessionId] = useState<string>();
@@ -95,22 +98,37 @@ export function LobbyOverview() {
     if (!agentId) {
       return;
     }
+    const agent = safeAgents.find((a) => a.id === agentId);
+    if (!agent) {
+      return;
+    }
+
     setSelectedAgentId(agentId);
     setOpeningAgentId(agentId);
+
     try {
       if (token && safeProviders.length === 0) {
         await loadProviders();
       }
+
+      // Show preparation modal
+      setPreheatAgent(agent);
+
       const promptText = prompt?.trim() ?? "";
       const params = new URLSearchParams({ agentId });
       if (promptText) {
         params.set("prompt", promptText);
       }
       setQuestion("");
-      router.push(`/focus-room/new?${params.toString()}`);
+
+      // Wait for modal to complete, then navigate
+      setTimeout(() => {
+        router.push(`/focus-room/new?${params.toString()}`);
+        setPreheatAgent(null);
+        setOpeningAgentId(undefined);
+      }, 2000);
     } catch {
-      // Store exposes the user-facing error in the setup area.
-    } finally {
+      setPreheatAgent(null);
       setOpeningAgentId(undefined);
     }
   }
@@ -150,7 +168,23 @@ export function LobbyOverview() {
 
 
   return (
-    <section className="grid min-h-[calc(100dvh-7rem)] gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
+    <>
+      {preheatAgent && (
+        <SaunaPreparationModal
+          agent={preheatAgent}
+          onComplete={() => {
+            const promptText = question.trim();
+            const params = new URLSearchParams({ agentId: preheatAgent.id });
+            if (promptText) {
+              params.set("prompt", promptText);
+            }
+            router.push(`/focus-room/new?${params.toString()}`);
+            setPreheatAgent(null);
+            setOpeningAgentId(undefined);
+          }}
+        />
+      )}
+      <section className="grid min-h-[calc(100dvh-7rem)] gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
       <motion.div
         initial={reduce ? false : { opacity: 0, y: 18 }}
         animate={{ opacity: 1, y: 0 }}
@@ -391,5 +425,6 @@ export function LobbyOverview() {
         </Link>
       </motion.aside>
     </section>
+    </>
   );
 }
