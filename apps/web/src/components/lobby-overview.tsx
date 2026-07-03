@@ -155,23 +155,23 @@ export function LobbyOverview() {
         initial={reduce ? false : { opacity: 0, y: 18 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
-        className="relative overflow-hidden rounded-[38px] border border-[#563a24]/[0.08] bg-[#fff8ec]/86 p-4 shadow-[0_26px_90px_rgb(84_54_32_/_0.08)] backdrop-blur-xl sm:p-6"
+        className="relative overflow-hidden rounded-[38px] border border-[color:var(--sauna-line)] bg-[var(--sauna-panel)] p-4 shadow-[var(--sauna-shadow)] backdrop-blur-xl sm:p-6"
       >
         <motion.div
-          className="pointer-events-none absolute left-[8%] top-[8%] size-48 rounded-full bg-[#f8efe3]/70 blur-2xl"
+          className="pointer-events-none absolute left-[8%] top-[8%] size-48 rounded-full bg-[var(--sauna-steam)] blur-2xl"
           animate={reduce ? undefined : { x: [0, 24, 0], y: [0, 18, 0], opacity: [0.55, 0.9, 0.55] }}
           transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
         />
         <motion.div
-          className="pointer-events-none absolute bottom-[8%] right-[8%] size-56 rounded-full bg-[#f3dcc2]/70 blur-2xl"
+          className="pointer-events-none absolute bottom-[8%] right-[8%] size-56 rounded-full bg-[var(--sauna-accent-soft)] blur-2xl"
           animate={reduce ? undefined : { x: [0, -18, 0], y: [0, -22, 0], opacity: [0.48, 0.82, 0.48] }}
           transition={{ duration: 9, repeat: Infinity, ease: "easeInOut" }}
         />
 
         <div className="relative">
           <div className="grid gap-5">
-            <div className="relative overflow-hidden rounded-[34px] bg-[#efe2cf]/88 p-6 shadow-[inset_0_1px_0_rgb(255_255_255_/_0.58)] sm:p-8">
-              <div className="pointer-events-none absolute right-6 top-6 hidden h-28 w-52 rounded-full bg-[#fffdf7]/48 blur-2xl sm:block" />
+            <div className="relative overflow-hidden rounded-[34px] bg-[var(--sauna-soft)] p-6 shadow-[inset_0_1px_0_rgb(255_255_255_/_0.58)] sm:p-8">
+              <div className="pointer-events-none absolute right-6 top-6 hidden h-28 w-52 rounded-full bg-[var(--sauna-panel-strong)] blur-2xl sm:block" />
               <div className="relative grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(320px,0.58fr)] lg:items-end">
                 <div>
                   <p className="text-sm font-medium text-[var(--sauna-muted)]">智囊大厅</p>
@@ -183,22 +183,22 @@ export function LobbyOverview() {
                   </p>
                 </div>
 
-                <form onSubmit={submitQuestion} className="rounded-[28px] border border-[#563a24]/[0.10] bg-[#fffdf7] p-3 shadow-[0_18px_45px_rgb(84_54_32_/_0.08)]">
+                <form onSubmit={submitQuestion} className="rounded-[28px] border border-[color:var(--sauna-line)] bg-[var(--sauna-panel-strong)] p-3 shadow-[var(--sauna-shadow)]">
                   <div className="mb-3 flex items-center justify-between gap-3 px-2 text-xs text-[var(--sauna-muted)]">
                     <span>当前对象</span>
-                    <span className="font-semibold text-[#7a4728]">{safeAgents.find((agent) => agent.id === activeAgentId)?.displayName ?? "选择工位"}</span>
+                    <span className="font-semibold text-[var(--sauna-accent-strong)]">{safeAgents.find((agent) => agent.id === activeAgentId)?.displayName ?? "选择工位"}</span>
                   </div>
-                  <div className="flex items-center gap-3 rounded-[22px] bg-[#f8efe3] px-4 py-3">
+                  <div className="flex items-center gap-3 rounded-[22px] bg-[var(--sauna-steam)] px-4 py-3">
                     <input
                       value={question}
                       onChange={(event) => setQuestion(event.target.value)}
-                      className="min-w-0 flex-1 bg-transparent text-sm text-[var(--sauna-text)] outline-none placeholder:text-[#a08c78]"
+                      className="min-w-0 flex-1 bg-transparent text-sm text-[var(--sauna-text)] outline-none placeholder:text-[var(--sauna-muted)]"
                       placeholder={token && providerReady ? "输入一个具体问题" : "先登录并完成设置"}
                     />
                     <button
                       type="submit"
                       disabled={sessionStatus === "loading" || !activeAgentId || !question.trim()}
-                      className="grid size-10 place-items-center rounded-full bg-[var(--sauna-espresso)] text-[#fff8ec] transition hover:scale-[1.02] active:translate-y-px disabled:cursor-not-allowed disabled:bg-[#baa48b]"
+                      className="grid size-10 place-items-center rounded-full bg-[var(--sauna-primary)] text-[var(--sauna-primary-contrast)] transition hover:scale-[1.02] active:translate-y-px disabled:cursor-not-allowed disabled:bg-[var(--sauna-soft-strong)]"
                       aria-label="进入咨询"
                     >
                       <PaperPlaneTilt size={18} weight="fill" />
@@ -208,17 +208,17 @@ export function LobbyOverview() {
               </div>
             </div>
 
-            <div className="relative overflow-hidden rounded-[34px] bg-[#f8efe3]/72 px-3 pb-7 pt-5 sm:px-5">
+            <div className="relative overflow-hidden rounded-[34px] bg-[var(--sauna-steam)] px-3 pb-7 pt-5 sm:px-5">
               <div className="mb-5 flex flex-wrap items-end justify-between gap-3 px-1">
                 <div>
                   <h2 className="text-2xl font-semibold tracking-[-0.045em] text-[var(--sauna-text)]">专家工位</h2>
                   <p className="mt-1 text-sm text-[var(--sauna-muted)]">选择一位专家开始咨询。</p>
                 </div>
-                <Link href="/studio" className="inline-flex h-10 items-center gap-2 rounded-full bg-[var(--sauna-espresso)] px-4 text-sm font-semibold text-[#fff8ec] shadow-[0_10px_28px_rgb(84_54_32_/_0.10)] transition hover:-translate-y-0.5 active:translate-y-px">
+                <Link href="/studio" className="inline-flex h-10 items-center gap-2 rounded-full bg-[var(--sauna-primary)] px-4 text-sm font-semibold text-[var(--sauna-primary-contrast)] shadow-[var(--sauna-shadow)] transition hover:-translate-y-0.5 active:translate-y-px">
                   <Plus size={16} weight="bold" /> 新增工位
                 </Link>
               </div>
-              <div className="pointer-events-none absolute inset-x-4 top-24 hidden h-[58%] rounded-[46%] bg-[#eadcc8]/55 blur-3xl md:block" />
+              <div className="pointer-events-none absolute inset-x-4 top-24 hidden h-[58%] rounded-[46%] bg-[var(--sauna-soft-strong)] blur-3xl md:block" />
               <motion.div
                 className="relative grid auto-rows-[380px] grid-cols-1 gap-x-3 gap-y-8 md:grid-cols-2 xl:grid-cols-3"
                 initial={reduce ? false : "hidden"}
@@ -243,9 +243,9 @@ export function LobbyOverview() {
                     </motion.div>
                   ))
                 ) : (
-                  <div className="grid min-h-[420px] place-items-center rounded-[34px] border border-[#563a24]/[0.10] bg-[#fffdf7]/78 p-8 text-center shadow-[0_18px_52px_rgb(84_54_32_/_0.08)] md:col-span-2 2xl:col-span-3">
+                  <div className="grid min-h-[420px] place-items-center rounded-[34px] border border-[color:var(--sauna-line)] bg-[var(--sauna-panel-strong)] p-8 text-center shadow-[var(--sauna-shadow)] md:col-span-2 2xl:col-span-3">
                     <div>
-                      <WarningCircle size={30} className="mx-auto text-[#8a4f32]" />
+                      <WarningCircle size={30} className="mx-auto text-[var(--sauna-danger-strong)]" />
                       <h2 className="mt-4 text-2xl font-semibold tracking-[-0.05em] text-[var(--sauna-text)]">
                         {apiUnavailable ? "后端暂不可用" : "暂无智囊"}
                       </h2>
@@ -262,17 +262,17 @@ export function LobbyOverview() {
       </motion.div>
 
       {pendingDeleteSessionId ? (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-[#2f2017]/28 px-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="删除会话确认">
+        <div className="fixed inset-0 z-50 grid place-items-center bg-[var(--sauna-scrim)] px-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="删除会话确认">
           <motion.div
             initial={reduce ? false : { opacity: 0, y: 14, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            className="w-full max-w-sm rounded-[30px] bg-[#fffdf7] p-6 shadow-[0_30px_90px_rgb(74_48_32_/_0.20)]"
+            className="w-full max-w-sm rounded-[30px] bg-[var(--sauna-panel-strong)] p-6 shadow-[var(--sauna-shadow)]"
           >
             <h2 className="text-xl font-semibold tracking-[-0.04em] text-[var(--sauna-text)]">删除这条咨询？</h2>
             <p className="mt-3 text-sm leading-relaxed text-[var(--sauna-muted)]">删除后会清理这条会话的消息和事件记录，无法恢复。</p>
             <div className="mt-6 flex justify-end gap-2">
-              <button type="button" onClick={() => setPendingDeleteSessionId(undefined)} className="h-10 rounded-full bg-[#f2e4d2] px-4 text-sm font-semibold text-[var(--sauna-muted-strong)] transition hover:bg-[#efe2cf]">取消</button>
-              <button type="button" onClick={() => void confirmDeleteSession()} className="h-10 rounded-full bg-[#a75b3f] px-4 text-sm font-semibold text-[#fff8ec] transition hover:bg-[#8f4830]">删除</button>
+              <button type="button" onClick={() => setPendingDeleteSessionId(undefined)} className="h-10 rounded-full bg-[var(--sauna-soft-strong)] px-4 text-sm font-semibold text-[var(--sauna-muted-strong)] transition hover:bg-[var(--sauna-soft)]">取消</button>
+              <button type="button" onClick={() => void confirmDeleteSession()} className="h-10 rounded-full bg-[var(--sauna-danger)] px-4 text-sm font-semibold text-[var(--sauna-primary-contrast)] transition hover:bg-[var(--sauna-danger-strong)]">删除</button>
             </div>
           </motion.div>
         </div>
@@ -286,16 +286,16 @@ export function LobbyOverview() {
         <ApiSetupCard />
 
         {focusError ? (
-          <div className="flex gap-3 rounded-[28px] border border-[#563a24]/[0.10] bg-[#f2d6c8]/90 p-4 text-sm leading-relaxed text-[#8a4f32] shadow-[0_18px_50px_rgb(84_54_32_/_0.08)]">
+          <div className="flex gap-3 rounded-[28px] border border-[color:var(--sauna-line)] bg-[var(--sauna-danger-soft)] p-4 text-sm leading-relaxed text-[var(--sauna-danger-strong)] shadow-[var(--sauna-shadow)]">
             <WarningCircle size={19} className="shrink-0" />
             <span>{focusError}</span>
           </div>
         ) : null}
 
-        <div className="rounded-[34px] border border-[#563a24]/[0.10] bg-[#fffdf7]/82 p-5 shadow-[0_20px_60px_rgb(84_54_32_/_0.08)] backdrop-blur-xl">
+        <div className="rounded-[34px] border border-[color:var(--sauna-line)] bg-[var(--sauna-panel-strong)] p-5 shadow-[var(--sauna-shadow)] backdrop-blur-xl">
           <div className="flex items-center justify-between gap-4">
             <h2 className="text-xl font-semibold tracking-[-0.04em] text-[var(--sauna-text)]">今日桌面</h2>
-            <Pulse size={24} className="text-[#b77945]" />
+            <Pulse size={24} className="text-[var(--sauna-accent)]" />
           </div>
           <div className="mt-5 grid grid-cols-3 gap-2">
             {[
@@ -303,7 +303,7 @@ export function LobbyOverview() {
               [safeSessions.length, "会话"],
               [safeProviders.length, "接入"],
             ].map(([value, label]) => (
-              <div key={label} className="rounded-[22px] bg-[#f2e4d2] p-3">
+              <div key={label} className="rounded-[22px] bg-[var(--sauna-soft-strong)] p-3">
                 <p className="text-xl font-semibold tracking-[-0.04em] text-[var(--sauna-text)]">{value}</p>
                 <p className="mt-1 text-xs text-[var(--sauna-muted)]">{label}</p>
               </div>
@@ -311,10 +311,10 @@ export function LobbyOverview() {
           </div>
         </div>
 
-        <div className="rounded-[34px] border border-[#563a24]/[0.10] bg-[#fffdf7]/82 p-5 shadow-[0_20px_60px_rgb(84_54_32_/_0.08)] backdrop-blur-xl">
+        <div className="rounded-[34px] border border-[color:var(--sauna-line)] bg-[var(--sauna-panel-strong)] p-5 shadow-[var(--sauna-shadow)] backdrop-blur-xl">
           <div className="flex items-center justify-between gap-4">
             <h2 className="text-xl font-semibold tracking-[-0.04em] text-[var(--sauna-text)]">最近会话</h2>
-            <ClockCounterClockwise size={23} className="text-[#b77945]" />
+            <ClockCounterClockwise size={23} className="text-[var(--sauna-accent)]" />
           </div>
           {token ? (
             recentSessions.length ? (
@@ -322,9 +322,9 @@ export function LobbyOverview() {
                 {recentSessions.map((session) => (
                   <div
                     key={session.id}
-                    className="group grid grid-cols-[42px_minmax(0,1fr)_auto] gap-3 rounded-[24px] bg-[#f2e4d2] p-3 text-left transition hover:-translate-y-0.5 hover:bg-[#efe2cf]"
+                    className="group grid grid-cols-[42px_minmax(0,1fr)_auto] gap-3 rounded-[24px] bg-[var(--sauna-soft-strong)] p-3 text-left transition hover:-translate-y-0.5 hover:bg-[var(--sauna-soft)]"
                   >
-                    <button type="button" onClick={() => router.push(`/focus-room/${session.id}`)} className="grid size-10 place-items-center rounded-[16px] bg-[#fffdf7] text-xl shadow-[0_8px_20px_rgb(84_54_32_/_0.06)]">
+                    <button type="button" onClick={() => router.push(`/focus-room/${session.id}`)} className="grid size-10 place-items-center rounded-[16px] bg-[var(--sauna-panel-strong)] text-xl shadow-[var(--sauna-shadow)]">
                       {session.agentAvatarEmoji || "🧠"}
                     </button>
                     <div className="min-w-0">
@@ -333,17 +333,17 @@ export function LobbyOverview() {
                           <input
                             value={editingTitle}
                             onChange={(event) => setEditingTitle(event.target.value)}
-                            className="min-w-0 flex-1 rounded-full bg-[#fffdf7] px-3 py-1 text-xs font-semibold text-[var(--sauna-text)] outline-none ring-1 ring-[#563a24]/[0.10] focus:ring-[#d6ad82]"
+                            className="min-w-0 flex-1 rounded-full bg-[var(--sauna-panel-strong)] px-3 py-1 text-xs font-semibold text-[var(--sauna-text)] outline-none ring-1 ring-[var(--sauna-line-strong)] focus:ring-[var(--sauna-accent)]"
                             autoFocus
                             maxLength={80}
                           />
-                          <button type="submit" className="rounded-full bg-[var(--sauna-espresso)] px-2 text-[10px] font-semibold text-[#fff8ec]">保存</button>
+                          <button type="submit" className="rounded-full bg-[var(--sauna-primary)] px-2 text-[10px] font-semibold text-[var(--sauna-primary-contrast)]">保存</button>
                         </form>
                       ) : (
                         <button type="button" onClick={() => router.push(`/focus-room/${session.id}`)} className="block w-full text-left">
                           <span className="flex items-center justify-between gap-2">
                             <span className="truncate text-sm font-semibold text-[var(--sauna-text)]">{session.title || session.agentDisplayName}</span>
-                            <span className="shrink-0 text-[11px] text-[#a08c78]">{formatSessionTime(session.lastActivityAt, hydrated)}</span>
+                            <span className="shrink-0 text-[11px] text-[var(--sauna-muted)]">{formatSessionTime(session.lastActivityAt, hydrated)}</span>
                           </span>
                         </button>
                       )}
@@ -352,10 +352,10 @@ export function LobbyOverview() {
                       </span>
                     </div>
                     <span className="flex items-center gap-1 self-start">
-                      <button type="button" onClick={() => beginRename(session)} className="grid size-8 place-items-center rounded-full bg-[#fffdf7] text-[var(--sauna-muted)] transition hover:text-[var(--sauna-text)]" aria-label="重命名会话">
+                      <button type="button" onClick={() => beginRename(session)} className="grid size-8 place-items-center rounded-full bg-[var(--sauna-panel-strong)] text-[var(--sauna-muted)] transition hover:text-[var(--sauna-text)]" aria-label="重命名会话">
                         <PencilSimple size={14} />
                       </button>
-                      <button type="button" onClick={() => setPendingDeleteSessionId(session.id)} className="grid size-8 place-items-center rounded-full bg-[#fffdf7] text-[#a75b3f] transition hover:bg-[#f2d6c8]" aria-label="删除会话">
+                      <button type="button" onClick={() => setPendingDeleteSessionId(session.id)} className="grid size-8 place-items-center rounded-full bg-[var(--sauna-panel-strong)] text-[var(--sauna-danger)] transition hover:bg-[var(--sauna-danger-soft)]" aria-label="删除会话">
                         <Trash size={14} />
                       </button>
                     </span>
@@ -363,29 +363,29 @@ export function LobbyOverview() {
                 ))}
               </div>
             ) : (
-              <div className="mt-4 rounded-[24px] bg-[#f2e4d2] p-4 text-sm leading-relaxed text-[var(--sauna-muted)]">
+              <div className="mt-4 rounded-[24px] bg-[var(--sauna-soft-strong)] p-4 text-sm leading-relaxed text-[var(--sauna-muted)]">
                 还没有会话。进入任意工位后会自动记录在这里。
               </div>
             )
           ) : (
-            <div className="mt-4 rounded-[24px] bg-[#f2e4d2] p-4 text-sm leading-relaxed text-[var(--sauna-muted)]">
+            <div className="mt-4 rounded-[24px] bg-[var(--sauna-soft-strong)] p-4 text-sm leading-relaxed text-[var(--sauna-muted)]">
               登录后可查看并继续历史会话。
             </div>
           )}
         </div>
 
-        <Link href="/settings" className="group rounded-[34px] border border-[#563a24]/[0.10] bg-[#fffdf7]/84 p-5 shadow-[0_20px_60px_rgb(84_54_32_/_0.08)] transition hover:-translate-y-1 active:translate-y-px">
-          <GearSix size={24} className="text-[#b77945]" />
+        <Link href="/settings" className="group rounded-[34px] border border-[color:var(--sauna-line)] bg-[var(--sauna-panel-strong)] p-5 shadow-[var(--sauna-shadow)] transition hover:-translate-y-1 active:translate-y-px">
+          <GearSix size={24} className="text-[var(--sauna-accent)]" />
           <h2 className="mt-5 text-2xl font-semibold tracking-[-0.045em] text-[var(--sauna-text)]">模型设置</h2>
           <span className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-[var(--sauna-muted)]">
             接入 provider <ArrowRight size={15} className="transition group-hover:translate-x-0.5" />
           </span>
         </Link>
 
-        <Link href="/studio" className="group rounded-[34px] border border-[#563a24]/[0.10] bg-[var(--sauna-espresso)] p-5 text-[#fff8ec] shadow-[0_20px_60px_rgb(74_48_32_/_0.16)] transition hover:-translate-y-1 active:translate-y-px">
-          <FileText size={24} className="text-[#f3dcc2]" />
+        <Link href="/studio" className="group rounded-[34px] border border-[color:var(--sauna-line)] bg-[var(--sauna-primary)] p-5 text-[var(--sauna-primary-contrast)] shadow-[var(--sauna-shadow)] transition hover:-translate-y-1 active:translate-y-px">
+          <FileText size={24} className="text-[var(--sauna-primary-contrast)]" />
           <h2 className="mt-5 text-2xl font-semibold tracking-[-0.045em]">创建专家</h2>
-          <span className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-[#fff8ec]/76">
+          <span className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-[var(--sauna-primary-contrast-muted)]">
             去蒸馏 <ArrowRight size={15} className="transition group-hover:translate-x-0.5" />
           </span>
         </Link>

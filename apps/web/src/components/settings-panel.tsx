@@ -19,11 +19,11 @@ import { getSaunaApiBaseUrl, humanizeApiError } from "@/lib/sauna-api";
 import { useSaunaStore } from "@/store/sauna-store";
 import type { FetchedModel, ProviderConfig, ProviderTestChatResult } from "@/types/sauna";
 
-const fieldClass = "h-11 w-full rounded-[16px] border border-[#563a24]/[0.10] bg-[#f8efe3] px-4 text-sm text-[var(--sauna-text)] outline-none transition placeholder:text-[#a08c78] focus:border-[#b77945] focus:bg-[#fffdf7]";
-const selectClass = "min-h-11 w-full rounded-[16px] border border-[#563a24]/[0.10] bg-[#f8efe3] px-4 py-3 text-sm text-[var(--sauna-text)] outline-none transition focus:border-[#b77945] focus:bg-[#fffdf7]";
-const primaryButtonClass = "inline-flex h-11 items-center justify-center gap-2 rounded-full bg-[var(--sauna-espresso)] px-5 text-sm font-semibold text-[#fff8ec] transition hover:bg-[var(--sauna-espresso-2)] active:translate-y-px disabled:cursor-not-allowed disabled:bg-[#c8b6a0]";
-const secondaryButtonClass = "inline-flex h-11 items-center justify-center gap-2 rounded-full border border-[#563a24]/[0.10] bg-[#fffdf7] px-5 text-sm font-semibold text-[var(--sauna-text)] transition hover:bg-[#efe2cf] active:translate-y-px disabled:cursor-not-allowed disabled:text-[#a08c78]";
-const dangerButtonClass = "inline-flex h-11 items-center justify-center gap-2 rounded-full bg-[#f2d6c8] px-5 text-sm font-semibold text-[#8a4f32] transition hover:bg-[#e9c6ad] active:translate-y-px disabled:cursor-not-allowed disabled:opacity-60";
+const fieldClass = "h-11 w-full rounded-[16px] border border-[color:var(--sauna-line)] bg-[var(--sauna-steam)] px-4 text-sm text-[var(--sauna-text)] outline-none transition placeholder:text-[var(--sauna-muted)] focus:border-[var(--sauna-accent)] focus:bg-[var(--sauna-panel-strong)]";
+const selectClass = "min-h-11 w-full rounded-[16px] border border-[color:var(--sauna-line)] bg-[var(--sauna-steam)] px-4 py-3 text-sm text-[var(--sauna-text)] outline-none transition focus:border-[var(--sauna-accent)] focus:bg-[var(--sauna-panel-strong)]";
+const primaryButtonClass = "inline-flex h-11 items-center justify-center gap-2 rounded-full bg-[var(--sauna-primary)] px-5 text-sm font-semibold text-[var(--sauna-primary-contrast)] transition hover:bg-[var(--sauna-primary-hover)] active:translate-y-px disabled:cursor-not-allowed disabled:bg-[var(--sauna-soft-strong)]";
+const secondaryButtonClass = "inline-flex h-11 items-center justify-center gap-2 rounded-full border border-[color:var(--sauna-line)] bg-[var(--sauna-panel-strong)] px-5 text-sm font-semibold text-[var(--sauna-text)] transition hover:bg-[var(--sauna-soft)] active:translate-y-px disabled:cursor-not-allowed disabled:text-[var(--sauna-muted)]";
+const dangerButtonClass = "inline-flex h-11 items-center justify-center gap-2 rounded-full bg-[var(--sauna-danger-soft)] px-5 text-sm font-semibold text-[var(--sauna-danger-strong)] transition hover:bg-[var(--sauna-danger-soft)] active:translate-y-px disabled:cursor-not-allowed disabled:opacity-60";
 
 const providerPresets = [
   {
@@ -320,9 +320,9 @@ export function SettingsPanel() {
           initial={reduce ? false : { opacity: 0, y: 18 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-          className="w-full max-w-[520px] rounded-[38px] border border-[#563a24]/[0.10] bg-[#fffdf7]/86 p-6 shadow-[0_26px_90px_rgb(84_54_32_/_0.10)] backdrop-blur-xl"
+          className="w-full max-w-[520px] rounded-[38px] border border-[color:var(--sauna-line)] bg-[var(--sauna-panel-strong)] p-6 shadow-[var(--sauna-shadow)] backdrop-blur-xl"
         >
-          <div className="grid size-16 place-items-center rounded-[24px] bg-[var(--sauna-espresso)] text-[#fff8ec]">
+          <div className="grid size-16 place-items-center rounded-[24px] bg-[var(--sauna-primary)] text-[var(--sauna-primary-contrast)]">
             <UserCircle size={28} weight="duotone" />
           </div>
           <h1 className="mt-6 text-4xl font-semibold tracking-[-0.06em] text-[var(--sauna-text)]">先登录。</h1>
@@ -349,7 +349,7 @@ export function SettingsPanel() {
 
             {hasCodeSent ? (
               <form className="grid gap-3" onSubmit={submitCode}>
-                <div className="rounded-[22px] bg-[#f3dcc2] px-4 py-3 text-sm font-semibold text-[#7a4728]">
+                <div className="rounded-[22px] bg-[var(--sauna-accent-soft)] px-4 py-3 text-sm font-semibold text-[var(--sauna-accent-strong)]">
                   {devCode ? `开发验证码 ${devCode}` : `验证码已发送至 ${codeEmail}`}
                 </div>
                 <label className="grid gap-2 text-sm font-medium text-[var(--sauna-muted-strong)]">
@@ -368,7 +368,7 @@ export function SettingsPanel() {
                 </button>
               </form>
             ) : null}
-            {authError ? <p className="text-sm leading-relaxed text-[#a75b3f]">{authError}</p> : null}
+            {authError ? <p className="text-sm leading-relaxed text-[var(--sauna-danger)]">{authError}</p> : null}
           </div>
         </motion.div>
       </section>
@@ -381,10 +381,10 @@ export function SettingsPanel() {
         initial={reduce ? false : { opacity: 0, y: 18 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
-        className="relative overflow-hidden rounded-[38px] border border-[#563a24]/[0.10] bg-[#fff8ec]/86 p-5 shadow-[0_26px_90px_rgb(84_54_32_/_0.10)] backdrop-blur-xl sm:p-6"
+        className="relative overflow-hidden rounded-[38px] border border-[color:var(--sauna-line)] bg-[var(--sauna-panel)] p-5 shadow-[var(--sauna-shadow)] backdrop-blur-xl sm:p-6"
       >
         <motion.div
-          className="pointer-events-none absolute right-[8%] top-[10%] size-48 rounded-full bg-[#f3dcc2]/70 blur-2xl"
+          className="pointer-events-none absolute right-[8%] top-[10%] size-48 rounded-full bg-[var(--sauna-accent-soft)] blur-2xl"
           animate={reduce ? undefined : { scale: [1, 1.12, 1], opacity: [0.48, 0.78, 0.48] }}
           transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
         />
@@ -394,7 +394,7 @@ export function SettingsPanel() {
             <h1 className="mt-3 max-w-[9ch] text-5xl font-semibold leading-[0.98] tracking-[-0.07em] text-[var(--sauna-text)] sm:text-6xl">模型中枢。</h1>
             <p className="mt-5 max-w-none whitespace-nowrap text-sm leading-relaxed text-[var(--sauna-muted-strong)]">把供应商、Key 和模型集中管理。保存后，大厅会使用真实调用。</p>
           </div>
-          <div className="rounded-[28px] bg-[#fffdf7] p-4 shadow-[0_16px_44px_rgb(84_54_32_/_0.08)]">
+          <div className="rounded-[28px] bg-[var(--sauna-panel-strong)] p-4 shadow-[var(--sauna-shadow)]">
             <p className="text-xs font-medium text-[var(--sauna-muted)]">API Proxy</p>
             <p className="mt-2 break-all text-sm font-semibold text-[var(--sauna-text)]">{getSaunaApiBaseUrl()}</p>
           </div>
@@ -402,8 +402,8 @@ export function SettingsPanel() {
 
         <div className="relative mt-8 grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
           {providerList.length === 0 ? (
-            <div className="md:col-span-2 2xl:col-span-3 rounded-[32px] border border-dashed border-[#563a24]/[0.14] bg-[#fffdf7]/72 p-8 text-center">
-              <PlugsConnected size={30} className="mx-auto text-[#b77945]" />
+            <div className="md:col-span-2 2xl:col-span-3 rounded-[32px] border border-dashed border-[color:var(--sauna-line)] bg-[var(--sauna-panel-strong)] p-8 text-center">
+              <PlugsConnected size={30} className="mx-auto text-[var(--sauna-accent)]" />
               <h2 className="mt-4 text-2xl font-semibold tracking-[-0.05em] text-[var(--sauna-text)]">还没有模型配置</h2>
               <p className="mt-2 text-sm text-[var(--sauna-muted)]">选择一个预设，填入 Key 后保存。</p>
             </div>
@@ -413,13 +413,13 @@ export function SettingsPanel() {
                 key={provider.id}
                 type="button"
                 onClick={() => editProvider(provider)}
-                className={`group rounded-[32px] border p-5 text-left shadow-[0_18px_52px_rgb(84_54_32_/_0.08)] transition hover:-translate-y-1 active:translate-y-px ${selectedProviderId === provider.id ? "border-[#b77945] bg-[#f5e8d7]" : "border-[#563a24]/[0.10] bg-[#fffdf7]/86"}`}
+                className={`group rounded-[32px] border p-5 text-left shadow-[var(--sauna-shadow)] transition hover:-translate-y-1 active:translate-y-px ${selectedProviderId === provider.id ? "border-[color:var(--sauna-accent)] bg-[var(--sauna-accent-soft)]" : "border-[color:var(--sauna-line)] bg-[var(--sauna-panel-strong)]"}`}
               >
                 <div className="flex items-start justify-between gap-4">
-                  <div className="grid size-13 place-items-center rounded-[20px] bg-[var(--sauna-espresso)] text-[#fff8ec]">
+                  <div className="grid size-13 place-items-center rounded-[20px] bg-[var(--sauna-primary)] text-[var(--sauna-primary-contrast)]">
                     <Key size={22} weight="duotone" />
                   </div>
-                  <span className={`rounded-full px-3 py-1 text-xs font-semibold ${provider.is_default ? "bg-[#f3dcc2] text-[#7a4728]" : "bg-[#f2e4d2] text-[var(--sauna-muted)]"}`}>
+                  <span className={`rounded-full px-3 py-1 text-xs font-semibold ${provider.is_default ? "bg-[var(--sauna-accent-soft)] text-[var(--sauna-accent-strong)]" : "bg-[var(--sauna-soft-strong)] text-[var(--sauna-muted)]"}`}>
                     {provider.is_default ? "默认" : provider.status}
                   </span>
                 </div>
@@ -440,7 +440,7 @@ export function SettingsPanel() {
         initial={reduce ? false : { opacity: 0, y: 18 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.55, delay: 0.06, ease: [0.16, 1, 0.3, 1] }}
-        className="rounded-[38px] border border-[#563a24]/[0.10] bg-[#fffdf7]/86 p-5 shadow-[0_26px_90px_rgb(84_54_32_/_0.10)] backdrop-blur-xl"
+        className="rounded-[38px] border border-[color:var(--sauna-line)] bg-[var(--sauna-panel-strong)] p-5 shadow-[var(--sauna-shadow)] backdrop-blur-xl"
       >
         <div className="flex items-start justify-between gap-4">
           <div>
@@ -450,14 +450,14 @@ export function SettingsPanel() {
           <button
             type="button"
             onClick={() => void logout()}
-            className="grid size-11 place-items-center rounded-full bg-[#f2e4d2] text-[var(--sauna-muted)] transition hover:text-[var(--sauna-text)] active:translate-y-px"
+            className="grid size-11 place-items-center rounded-full bg-[var(--sauna-soft-strong)] text-[var(--sauna-muted)] transition hover:text-[var(--sauna-text)] active:translate-y-px"
             aria-label="退出登录"
           >
             <SignOut size={18} />
           </button>
         </div>
 
-        <div className="mt-4 rounded-[24px] bg-[#f2e4d2] p-3 text-sm text-[var(--sauna-muted-strong)]">
+        <div className="mt-4 rounded-[24px] bg-[var(--sauna-soft-strong)] p-3 text-sm text-[var(--sauna-muted-strong)]">
           <p className="font-semibold text-[var(--sauna-text)]">{identity?.user.email}</p>
           <p className="mt-1 text-xs text-[var(--sauna-muted)]">{identity?.workspace.name}</p>
         </div>
@@ -468,10 +468,10 @@ export function SettingsPanel() {
               key={preset.id}
               type="button"
               onClick={() => applyPreset(preset.id)}
-              className={`rounded-[20px] px-4 py-3 text-left transition active:translate-y-px ${selectedPresetId === preset.id ? "bg-[var(--sauna-espresso)] text-[#fff8ec]" : "bg-[#f2e4d2] text-[var(--sauna-text)] hover:bg-[#efe2cf]"}`}
+              className={`rounded-[20px] px-4 py-3 text-left transition active:translate-y-px ${selectedPresetId === preset.id ? "bg-[var(--sauna-primary)] text-[var(--sauna-primary-contrast)]" : "bg-[var(--sauna-soft-strong)] text-[var(--sauna-text)] hover:bg-[var(--sauna-soft)]"}`}
             >
               <span className="block text-sm font-semibold">{preset.name}</span>
-              <span className={`mt-1 block text-xs ${selectedPresetId === preset.id ? "text-[#fff8ec]/64" : "text-[var(--sauna-muted)]"}`}>{preset.note}</span>
+              <span className={`mt-1 block text-xs ${selectedPresetId === preset.id ? "text-[var(--sauna-primary-contrast-muted)]" : "text-[var(--sauna-muted)]"}`}>{preset.note}</span>
             </button>
           ))}
         </div>
@@ -519,8 +519,8 @@ export function SettingsPanel() {
             向量模型
             <input className={fieldClass} value={draft.embedding_model} onChange={(event) => updateDraft("embedding_model", event.target.value)} placeholder="text-embedding-3-small" />
           </label>
-          <label className="flex items-center gap-3 rounded-[20px] bg-[#f8efe3] p-3 text-sm font-medium text-[var(--sauna-muted-strong)]">
-            <input className="size-4 accent-[#b77945]" type="checkbox" checked={draft.is_default} onChange={(event) => updateDraft("is_default", event.target.checked)} />
+          <label className="flex items-center gap-3 rounded-[20px] bg-[var(--sauna-steam)] p-3 text-sm font-medium text-[var(--sauna-muted-strong)]">
+            <input className="size-4 accent-[var(--sauna-accent)]" type="checkbox" checked={draft.is_default} onChange={(event) => updateDraft("is_default", event.target.checked)} />
             设为默认调用模型
           </label>
 
@@ -561,16 +561,16 @@ export function SettingsPanel() {
         </div>
 
         {testResult ? (
-          <div className="mt-4 rounded-[24px] bg-[var(--sauna-espresso)] p-4 text-[#fff8ec]">
-            <p className="flex items-center gap-2 text-sm font-semibold"><CheckCircle size={17} weight="fill" className="text-[#f3dcc2]" />模型已响应</p>
-            <p className="mt-3 text-sm leading-relaxed text-[#fff8ec]/78">{testResult.content || "ok"}</p>
-            <p className="mt-3 text-xs text-[#fff8ec]/54">{testResult.latency_ms} ms</p>
+          <div className="mt-4 rounded-[24px] bg-[var(--sauna-primary)] p-4 text-[var(--sauna-primary-contrast)]">
+            <p className="flex items-center gap-2 text-sm font-semibold"><CheckCircle size={17} weight="fill" className="text-[var(--sauna-primary-contrast)]" />模型已响应</p>
+            <p className="mt-3 text-sm leading-relaxed text-[var(--sauna-primary-contrast-muted)]">{testResult.content || "ok"}</p>
+            <p className="mt-3 text-xs text-[var(--sauna-primary-contrast-muted)]">{testResult.latency_ms} ms</p>
           </div>
         ) : null}
 
-        {localMessage ? <p className="mt-4 rounded-[20px] bg-[#f3dcc2] px-4 py-3 text-sm font-semibold text-[#7a4728]">{localMessage}</p> : null}
+        {localMessage ? <p className="mt-4 rounded-[20px] bg-[var(--sauna-accent-soft)] px-4 py-3 text-sm font-semibold text-[var(--sauna-accent-strong)]">{localMessage}</p> : null}
         {(localError || providerError) ? (
-          <div className="mt-4 flex gap-3 rounded-[20px] bg-[#f2d6c8] px-4 py-3 text-sm leading-relaxed text-[#8a4f32]">
+          <div className="mt-4 flex gap-3 rounded-[20px] bg-[var(--sauna-danger-soft)] px-4 py-3 text-sm leading-relaxed text-[var(--sauna-danger-strong)]">
             <WarningCircle size={18} className="shrink-0" />
             <span>{localError || providerError}</span>
           </div>

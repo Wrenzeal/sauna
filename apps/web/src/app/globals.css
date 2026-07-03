@@ -2,29 +2,94 @@
 
 :root {
   color-scheme: light;
-  --sauna-bg: #f5ede0;
-  --sauna-panel: #fff8ec;
-  --sauna-panel-strong: #fffdf7;
-  --sauna-line: rgb(86 58 36 / 0.10);
-  --sauna-line-strong: rgb(86 58 36 / 0.18);
-  --sauna-text: #2b1d14;
-  --sauna-muted: #7a6a5c;
-  --sauna-muted-strong: #5f4c3e;
-  --sauna-soft: #efe2cf;
-  --sauna-soft-strong: #e6d2b8;
-  --sauna-accent: #b77945;
-  --sauna-accent-strong: #7a4728;
-  --sauna-accent-soft: #f3dcc2;
-  --sauna-warm: #e7c99f;
-  --sauna-steam: #f8efe3;
-  --sauna-espresso: #2f2017;
-  --sauna-espresso-2: #4a3020;
-  --sauna-success: #8a6b3f;
-  --sauna-danger: #a75b3f;
-  --sauna-danger-soft: #f2d6c8;
+  --sauna-bg: #edf9f5;
+  --sauna-panel: #f7fffb;
+  --sauna-panel-strong: #ffffff;
+  --sauna-line: rgb(18 92 87 / 0.12);
+  --sauna-line-strong: rgb(18 92 87 / 0.20);
+  --sauna-inner-line: rgb(255 255 255 / 0.72);
+  --sauna-text: #12312f;
+  --sauna-muted: #66817d;
+  --sauna-muted-strong: #3e625f;
+  --sauna-soft: #def4ee;
+  --sauna-soft-strong: #c8ebe3;
+  --sauna-accent: #15b8a6;
+  --sauna-accent-hover: #0d9285;
+  --sauna-accent-strong: #075f58;
+  --sauna-accent-soft: #c9f4eb;
+  --sauna-accent-shadow: rgb(21 184 166 / 0.26);
+  --sauna-steam: #f0fbff;
+  --sauna-primary: #0d3138;
+  --sauna-primary-hover: #164c54;
+  --sauna-primary-contrast: #f8fffb;
+  --sauna-primary-contrast-muted: rgb(248 255 251 / 0.72);
+  --sauna-success: #2f987c;
+  --sauna-danger: #c25d59;
+  --sauna-danger-strong: #8c3937;
+  --sauna-danger-soft: #f8ddd9;
+  --sauna-scrim: rgb(6 26 28 / 0.30);
+  --sauna-glow-1: rgb(116 229 207 / 0.44);
+  --sauna-glow-2: rgb(151 211 255 / 0.28);
+  --sauna-glow-3: rgb(52 196 180 / 0.18);
+  --sauna-noise: rgb(18 92 87 / 0.10);
+  --sauna-code-bg: #0d2a31;
+  --sauna-code-text: #d9fff6;
+  --sauna-screen-from: #0c3038;
+  --sauna-screen-mid: #104651;
+  --sauna-screen-to: #11756d;
+  --sauna-screen-glass: rgb(4 22 26 / 0.54);
+  --sauna-monitor-frame: #d8f1eb;
+  --sauna-stand-from: #d1eee7;
+  --sauna-stand-to: #a8d8d1;
+  --sauna-shadow-soft: rgb(12 88 83 / 0.10);
   --sauna-radius-lg: 32px;
   --sauna-radius-md: 22px;
-  --sauna-shadow: 0 24px 70px rgb(84 54 32 / 0.12);
+  --sauna-shadow: 0 24px 70px rgb(12 88 83 / 0.12);
+}
+
+:root[data-theme="night"] {
+  color-scheme: dark;
+  --sauna-bg: #061516;
+  --sauna-panel: #0c2023;
+  --sauna-panel-strong: #102b30;
+  --sauna-line: rgb(146 232 222 / 0.15);
+  --sauna-line-strong: rgb(146 232 222 / 0.26);
+  --sauna-inner-line: rgb(229 255 249 / 0.12);
+  --sauna-text: #e9fff8;
+  --sauna-muted: #8fb8b4;
+  --sauna-muted-strong: #bddbd7;
+  --sauna-soft: #102e33;
+  --sauna-soft-strong: #173f45;
+  --sauna-accent: #63e6d7;
+  --sauna-accent-hover: #8ff1e6;
+  --sauna-accent-strong: #bbfbf3;
+  --sauna-accent-soft: #16454a;
+  --sauna-accent-shadow: rgb(99 230 215 / 0.30);
+  --sauna-steam: #0a1b1e;
+  --sauna-primary: #63e6d7;
+  --sauna-primary-hover: #8ff1e6;
+  --sauna-primary-contrast: #062123;
+  --sauna-primary-contrast-muted: rgb(6 33 35 / 0.72);
+  --sauna-success: #79d8bd;
+  --sauna-danger: #ff9a91;
+  --sauna-danger-strong: #ffd2cc;
+  --sauna-danger-soft: #3d1f22;
+  --sauna-scrim: rgb(0 9 10 / 0.60);
+  --sauna-glow-1: rgb(99 230 215 / 0.22);
+  --sauna-glow-2: rgb(97 172 255 / 0.18);
+  --sauna-glow-3: rgb(13 146 133 / 0.18);
+  --sauna-noise: rgb(210 255 248 / 0.08);
+  --sauna-code-bg: #041215;
+  --sauna-code-text: #d9fff6;
+  --sauna-screen-from: #031215;
+  --sauna-screen-mid: #08262b;
+  --sauna-screen-to: #0f4950;
+  --sauna-screen-glass: rgb(1 10 12 / 0.58);
+  --sauna-monitor-frame: #234a50;
+  --sauna-stand-from: #1a3c42;
+  --sauna-stand-to: #0e272c;
+  --sauna-shadow-soft: rgb(0 8 10 / 0.34);
+  --sauna-shadow: 0 26px 80px rgb(0 8 10 / 0.45);
 }
 
 * {
@@ -40,11 +105,14 @@ body {
   margin: 0;
   min-height: 100dvh;
   background:
-    radial-gradient(circle at 12% 10%, rgb(231 201 159 / 0.54), transparent 27rem),
-    radial-gradient(circle at 88% 8%, rgb(183 121 69 / 0.16), transparent 24rem),
-    radial-gradient(circle at 64% 94%, rgb(122 71 40 / 0.10), transparent 30rem),
-    linear-gradient(180deg, #fff8ec 0%, #f7ecdd 52%, #efe0cd 100%);
+    radial-gradient(circle at 12% 10%, var(--sauna-glow-1), transparent 27rem),
+    radial-gradient(circle at 86% 7%, var(--sauna-glow-2), transparent 25rem),
+    radial-gradient(circle at 64% 94%, var(--sauna-glow-3), transparent 32rem),
+    linear-gradient(180deg, var(--sauna-panel-strong) 0%, var(--sauna-bg) 50%, var(--sauna-soft) 100%);
   color: var(--sauna-text);
+  transition:
+    background 620ms cubic-bezier(0.16, 1, 0.3, 1),
+    color 420ms ease;
 }
 
 body::before {
@@ -53,8 +121,8 @@ body::before {
   inset: 0;
   z-index: 60;
   pointer-events: none;
-  opacity: 0.42;
-  background-image: radial-gradient(rgb(86 58 36 / 0.10) 0.65px, transparent 0.65px);
+  opacity: 0.38;
+  background-image: radial-gradient(var(--sauna-noise) 0.65px, transparent 0.65px);
   background-size: 18px 18px;
   mask-image: linear-gradient(to bottom, black, transparent 76%);
 }
@@ -67,7 +135,7 @@ textarea {
 }
 
 ::selection {
-  background: rgb(183 121 69 / 0.26);
+  background: color-mix(in srgb, var(--sauna-accent) 28%, transparent);
   color: var(--sauna-text);
 }
 
@@ -75,6 +143,34 @@ textarea {
   background: color-mix(in srgb, var(--sauna-panel) 92%, transparent);
   border: 1px solid var(--sauna-line);
   box-shadow: var(--sauna-shadow);
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 760ms;
+  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+::view-transition-new(root) {
+  animation-name: sauna-theme-reveal;
+  clip-path: circle(0 at var(--sauna-theme-x, 50%) var(--sauna-theme-y, 50%));
+}
+
+::view-transition-old(root) {
+  animation-name: sauna-theme-fade;
+}
+
+@keyframes sauna-theme-reveal {
+  to {
+    clip-path: circle(150vmax at var(--sauna-theme-x, 50%) var(--sauna-theme-y, 50%));
+  }
+}
+
+@keyframes sauna-theme-fade {
+  to {
+    opacity: 0.24;
+    filter: blur(8px) saturate(0.82);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

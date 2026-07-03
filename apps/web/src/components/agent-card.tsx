@@ -17,40 +17,40 @@ const statusText: Record<AgentProfile["status"], string> = {
 
 const toneClass: Record<string, { glow: string; accent: string; text: string; soft: string; wash: string }> = {
   emerald: {
-    glow: "bg-[#f3dcc2]",
-    accent: "bg-[#b77945]",
-    text: "text-[#7a4728]",
-    soft: "bg-[#f5e8d7]",
-    wash: "from-[#2f2017] via-[#3b2618] to-[#5a3824]",
+    glow: "bg-[var(--sauna-accent-soft)]",
+    accent: "bg-[var(--sauna-accent)]",
+    text: "text-[var(--sauna-accent-strong)]",
+    soft: "bg-[var(--sauna-accent-soft)]",
+    wash: "from-[var(--sauna-screen-from)] via-[var(--sauna-screen-mid)] to-[var(--sauna-screen-to)]",
   },
   cyan: {
-    glow: "bg-[#f3dcc2]",
-    accent: "bg-[#b77945]",
-    text: "text-[#7a4728]",
-    soft: "bg-[#f5e8d7]",
-    wash: "from-[#2f2017] via-[#3b2618] to-[#5a3824]",
+    glow: "bg-[var(--sauna-accent-soft)]",
+    accent: "bg-[var(--sauna-accent)]",
+    text: "text-[var(--sauna-accent-strong)]",
+    soft: "bg-[var(--sauna-accent-soft)]",
+    wash: "from-[var(--sauna-screen-from)] via-[var(--sauna-screen-mid)] to-[var(--sauna-screen-to)]",
   },
   amber: {
-    glow: "bg-[#f3dcc2]",
-    accent: "bg-[#b77945]",
-    text: "text-[#7a4728]",
-    soft: "bg-[#f5e8d7]",
-    wash: "from-[#2f2017] via-[#3b2618] to-[#5a3824]",
+    glow: "bg-[var(--sauna-accent-soft)]",
+    accent: "bg-[var(--sauna-accent)]",
+    text: "text-[var(--sauna-accent-strong)]",
+    soft: "bg-[var(--sauna-accent-soft)]",
+    wash: "from-[var(--sauna-screen-from)] via-[var(--sauna-screen-mid)] to-[var(--sauna-screen-to)]",
   },
   rose: {
-    glow: "bg-[#f3dcc2]",
-    accent: "bg-[#b77945]",
-    text: "text-[#7a4728]",
-    soft: "bg-[#f5e8d7]",
-    wash: "from-[#2f2017] via-[#3b2618] to-[#5a3824]",
+    glow: "bg-[var(--sauna-accent-soft)]",
+    accent: "bg-[var(--sauna-accent)]",
+    text: "text-[var(--sauna-accent-strong)]",
+    soft: "bg-[var(--sauna-accent-soft)]",
+    wash: "from-[var(--sauna-screen-from)] via-[var(--sauna-screen-mid)] to-[var(--sauna-screen-to)]",
   },
 };
 
 const statusClass: Record<AgentProfile["status"], string> = {
-  idle: "text-[#7a4728]",
-  thinking: "text-[#7b5a3e]",
-  in_conversation: "text-[#7a4728]",
-  offline: "text-[#9a876f]",
+  idle: "text-[var(--sauna-accent-strong)]",
+  thinking: "text-[var(--sauna-muted-strong)]",
+  in_conversation: "text-[var(--sauna-accent-strong)]",
+  offline: "text-[var(--sauna-muted)]",
 };
 
 function delayFromId(id: string) {
@@ -88,7 +88,7 @@ export function AgentCard({
         transition={loop}
       />
       <motion.div
-        className="pointer-events-none absolute bottom-[86px] left-1/2 h-14 w-[66%] -translate-x-1/2 rounded-full bg-[#6d4a34]/12 blur-xl"
+        className="pointer-events-none absolute bottom-[86px] left-1/2 h-14 w-[66%] -translate-x-1/2 rounded-full bg-[var(--sauna-accent-soft)] opacity-70 blur-xl"
         animate={reduce ? undefined : { opacity: selected ? [0.36, 0.58, 0.36] : [0.24, 0.42, 0.24], scaleX: selected ? [0.9, 1.04, 0.9] : [0.84, 0.96, 0.84] }}
         transition={loop}
       />
@@ -96,7 +96,7 @@ export function AgentCard({
       <button
         type="button"
         onClick={() => onSelect?.(agent.id)}
-        className="relative block h-[286px] w-full rounded-[32px] text-left outline-none focus-visible:ring-2 focus-visible:ring-[#b77945]/45 focus-visible:ring-offset-2 focus-visible:ring-offset-[#f8efe3] active:translate-y-px"
+        className="relative block h-[286px] w-full rounded-[32px] text-left outline-none focus-visible:ring-2 focus-visible:ring-[var(--sauna-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--sauna-bg)] active:translate-y-px"
         aria-label={`选择${agent.displayName}`}
       >
         <motion.div
@@ -105,14 +105,14 @@ export function AgentCard({
           transition={loop}
         >
           <motion.div
-            className={`absolute left-1/2 top-7 z-30 h-[176px] w-[86%] max-w-[336px] -translate-x-1/2 overflow-hidden rounded-[30px] border-[8px] border-[#eadcc8] bg-gradient-to-br ${tone.wash} shadow-[0_20px_52px_rgb(84_54_32_/_0.14),inset_0_1px_0_rgb(255_255_255_/_0.16)]`}
+            className={`absolute left-1/2 top-7 z-30 h-[176px] w-[86%] max-w-[336px] -translate-x-1/2 overflow-hidden rounded-[30px] border-[8px] border-[color:var(--sauna-monitor-frame)] bg-gradient-to-br ${tone.wash} shadow-[var(--sauna-shadow)]`}
             whileHover={reduce ? undefined : { y: -2 }}
           >
-            <div className="absolute inset-[10px] rounded-[20px] bg-[#21140d]/54 shadow-[inset_0_1px_0_rgb(255_255_255_/_0.12)]" />
-            <span className="absolute left-7 right-7 top-7 h-px bg-[#fffdf7]/24" />
-            <span className="absolute left-7 right-14 top-11 h-px bg-[#fffdf7]/10" />
+            <div className="absolute inset-[10px] rounded-[20px] bg-[var(--sauna-screen-glass)] shadow-[inset_0_1px_0_rgb(255_255_255_/_0.12)]" />
+            <span className="absolute left-7 right-7 top-7 h-px bg-[var(--sauna-panel-strong)]" />
+            <span className="absolute left-7 right-14 top-11 h-px bg-[var(--sauna-panel-strong)]" />
             <motion.span
-              className="absolute -left-36 top-0 h-full w-36 skew-x-[-18deg] bg-gradient-to-r from-transparent via-[#fffdf7]/12 to-transparent"
+              className="absolute -left-36 top-0 h-full w-36 skew-x-[-18deg] bg-gradient-to-r from-transparent via-[var(--sauna-panel-strong)] to-transparent"
               animate={reduce ? undefined : { x: [0, 470] }}
               transition={{ duration: selected ? 2.8 : 4.4, repeat: Infinity, ease: "easeInOut", delay: delay + 0.25 }}
             />
@@ -122,8 +122,8 @@ export function AgentCard({
                 transition={{ duration: 4.8, repeat: Infinity, ease: "easeInOut", delay }}
                 className="min-w-0"
               >
-                <h2 className="truncate text-4xl font-semibold leading-none tracking-[-0.075em] text-[#fff8ec] sm:text-[42px]" title={agent.displayName}>{agent.displayName}</h2>
-                <p className="mx-auto mt-3 max-w-[24ch] truncate text-sm font-medium text-[#fff8ec]/56" title={agent.role}>{agent.role}</p>
+                <h2 className="truncate text-4xl font-semibold leading-none tracking-[-0.075em] text-[var(--sauna-primary-contrast)] sm:text-[42px]" title={agent.displayName}>{agent.displayName}</h2>
+                <p className="mx-auto mt-3 max-w-[24ch] truncate text-sm font-medium text-[var(--sauna-primary-contrast-muted)]" title={agent.role}>{agent.role}</p>
               </motion.div>
             </div>
             <motion.span
@@ -133,23 +133,23 @@ export function AgentCard({
             />
           </motion.div>
 
-          <div className="absolute left-1/2 top-[202px] z-20 h-[42px] w-[42px] -translate-x-1/2 rounded-b-[15px] bg-gradient-to-b from-[#e2cfb7] to-[#c9b49a] shadow-[inset_0_1px_0_rgb(255_255_255_/_0.76)]" />
-          <div className="absolute left-1/2 top-[232px] z-30 h-[16px] w-[34%] max-w-[128px] -translate-x-1/2 rounded-[14px] border border-[#563a24]/[0.08] bg-[#eadcc8] shadow-[inset_0_1px_0_rgb(255_255_255_/_0.8),0_10px_18px_rgb(84_54_32_/_0.06)]" />
+          <div className="absolute left-1/2 top-[202px] z-20 h-[42px] w-[42px] -translate-x-1/2 rounded-b-[15px] bg-gradient-to-b from-[var(--sauna-stand-from)] to-[var(--sauna-stand-to)] shadow-[inset_0_1px_0_rgb(255_255_255_/_0.76)]" />
+          <div className="absolute left-1/2 top-[232px] z-30 h-[16px] w-[34%] max-w-[128px] -translate-x-1/2 rounded-[14px] border border-[color:var(--sauna-line)] bg-[var(--sauna-soft-strong)] shadow-[var(--sauna-shadow)]" />
         </motion.div>
 
-        <div className={`absolute left-6 top-[214px] z-40 inline-flex items-center gap-1.5 rounded-full bg-[#fffdf7]/86 px-3 py-1 text-xs font-medium shadow-[0_8px_18px_rgb(84_54_32_/_0.08)] ${statusClass[agent.status]}`}>
+        <div className={`absolute left-6 top-[214px] z-40 inline-flex items-center gap-1.5 rounded-full bg-[var(--sauna-panel-strong)] px-3 py-1 text-xs font-medium shadow-[var(--sauna-shadow)] ${statusClass[agent.status]}`}>
           <DotsThreeCircle size={14} weight="duotone" />
           {statusText[agent.status]}
         </div>
       </button>
 
       <div className="relative z-50 -mt-8 px-3 text-center">
-        <div className="relative mx-auto grid w-full max-w-[318px] grid-cols-[minmax(0,1fr)_auto] items-center gap-3 overflow-hidden rounded-[28px] border border-[#fff8ec]/72 bg-[#fffdf7]/78 p-2 shadow-[0_18px_42px_rgb(84_54_32_/_0.09),inset_0_1px_0_rgb(255_255_255_/_0.9)] backdrop-blur-xl">
+        <div className="relative mx-auto grid w-full max-w-[318px] grid-cols-[minmax(0,1fr)_auto] items-center gap-3 overflow-hidden rounded-[28px] border border-[color:var(--sauna-inner-line)] bg-[var(--sauna-panel-strong)] p-2 shadow-[var(--sauna-shadow)] backdrop-blur-xl">
           <div className={`pointer-events-none absolute left-1/2 top-0 h-px w-[62%] -translate-x-1/2 ${tone.accent}`} />
           <button
             type="button"
             onClick={() => onSelect?.(agent.id)}
-            className={`inline-flex min-w-0 items-center justify-center gap-2 rounded-full px-3 py-2 text-xs transition active:translate-y-px ${selected ? `${tone.text} ${tone.soft} font-semibold shadow-[0_8px_16px_rgb(84_54_32_/_0.06)]` : "text-[var(--sauna-muted)] hover:bg-[#f2e4d2] hover:text-[var(--sauna-text)]"}`}
+            className={`inline-flex min-w-0 items-center justify-center gap-2 rounded-full px-3 py-2 text-xs transition active:translate-y-px ${selected ? `${tone.text} ${tone.soft} font-semibold shadow-[var(--sauna-shadow)]` : "text-[var(--sauna-muted)] hover:bg-[var(--sauna-soft-strong)] hover:text-[var(--sauna-text)]"}`}
           >
             <Clock size={14} />
             <span className="truncate">{selected ? "当前对象" : agent.lastActivity}</span>
@@ -158,7 +158,7 @@ export function AgentCard({
             type="button"
             onClick={() => onOpen?.(agent.id)}
             disabled={opening}
-            className="inline-flex h-10 items-center gap-2 whitespace-nowrap rounded-full bg-[var(--sauna-espresso)] px-4 text-sm font-semibold text-[#fff8ec] shadow-[0_10px_22px_rgb(74_48_32_/_0.16)] transition hover:bg-[var(--sauna-espresso-2)] active:translate-y-px disabled:cursor-not-allowed disabled:bg-[#baa48b]"
+            className="inline-flex h-10 items-center gap-2 whitespace-nowrap rounded-full bg-[var(--sauna-primary)] px-4 text-sm font-semibold text-[var(--sauna-primary-contrast)] shadow-[var(--sauna-shadow)] transition hover:bg-[var(--sauna-primary-hover)] active:translate-y-px disabled:cursor-not-allowed disabled:bg-[var(--sauna-soft-strong)]"
           >
             {opening ? "开启中" : "咨询"}
             <ArrowRight size={15} className="transition group-hover:translate-x-0.5" />

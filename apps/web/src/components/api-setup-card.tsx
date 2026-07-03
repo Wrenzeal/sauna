@@ -14,8 +14,8 @@ import {
 } from "@phosphor-icons/react";
 import { useSaunaStore } from "@/store/sauna-store";
 
-const fieldClass = "h-11 rounded-full border border-[#563a24]/[0.10] bg-[#f8efe3] px-4 text-sm text-[var(--sauna-text)] outline-none transition placeholder:text-[#a08c78] focus:border-[#b77945] focus:bg-[#fffdf7]";
-const buttonClass = "inline-flex h-11 items-center justify-center gap-2 rounded-full bg-[var(--sauna-espresso)] px-5 text-sm font-semibold text-[#fff8ec] transition hover:bg-[var(--sauna-espresso-2)] active:translate-y-px disabled:cursor-not-allowed disabled:bg-[#c8b6a0]";
+const fieldClass = "h-11 rounded-full border border-[color:var(--sauna-line)] bg-[var(--sauna-steam)] px-4 text-sm text-[var(--sauna-text)] outline-none transition placeholder:text-[var(--sauna-muted)] focus:border-[var(--sauna-accent)] focus:bg-[var(--sauna-panel-strong)]";
+const buttonClass = "inline-flex h-11 items-center justify-center gap-2 rounded-full bg-[var(--sauna-primary)] px-5 text-sm font-semibold text-[var(--sauna-primary-contrast)] transition hover:bg-[var(--sauna-primary-hover)] active:translate-y-px disabled:cursor-not-allowed disabled:bg-[var(--sauna-soft-strong)]";
 
 export function ApiSetupCard() {
   const reduce = useReducedMotion();
@@ -65,18 +65,18 @@ export function ApiSetupCard() {
       initial={reduce ? false : { opacity: 0, y: 14 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-      className="rounded-[34px] border border-[#563a24]/[0.10] bg-[#fffdf7]/84 p-5 shadow-[0_20px_60px_rgb(84_54_32_/_0.08)] backdrop-blur-xl"
+      className="rounded-[34px] border border-[color:var(--sauna-line)] bg-[var(--sauna-panel-strong)] p-5 shadow-[var(--sauna-shadow)] backdrop-blur-xl"
     >
       <div className="flex items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-semibold tracking-[-0.04em] text-[var(--sauna-text)]">登录</h2>
           <p className="mt-1 text-xs text-[var(--sauna-muted)]">登录后保存你的设置和咨询记录。</p>
         </div>
-        {isLoggedIn ? <CheckCircle size={24} weight="fill" className="text-[#b77945]" /> : <UserCircle size={24} className="text-[var(--sauna-muted)]" />}
+        {isLoggedIn ? <CheckCircle size={24} weight="fill" className="text-[var(--sauna-accent)]" /> : <UserCircle size={24} className="text-[var(--sauna-muted)]" />}
       </div>
 
       {apiError ? (
-        <div className="mt-4 flex gap-3 rounded-[22px] bg-[#f2d6c8] p-3 text-xs leading-relaxed text-[#8a4f32]">
+        <div className="mt-4 flex gap-3 rounded-[22px] bg-[var(--sauna-danger-soft)] p-3 text-xs leading-relaxed text-[var(--sauna-danger-strong)]">
           <WarningCircle size={17} className="shrink-0" />
           <span>{apiError}</span>
         </div>
@@ -100,7 +100,7 @@ export function ApiSetupCard() {
           </form>
           {hasCodeSent ? (
             <form className="grid gap-2" onSubmit={submitCode}>
-              <div className="rounded-[22px] bg-[#f3dcc2] px-4 py-3 text-sm font-semibold text-[#7a4728]">
+              <div className="rounded-[22px] bg-[var(--sauna-accent-soft)] px-4 py-3 text-sm font-semibold text-[var(--sauna-accent-strong)]">
                 {devCode ? `开发验证码 ${devCode}` : `验证码已发送至 ${codeEmail}`}
               </div>
               <input
@@ -116,11 +116,11 @@ export function ApiSetupCard() {
               </button>
             </form>
           ) : null}
-          {authError ? <p className="text-xs leading-relaxed text-[#a75b3f]">{authError}</p> : null}
+          {authError ? <p className="text-xs leading-relaxed text-[var(--sauna-danger)]">{authError}</p> : null}
         </div>
       ) : (
         <div className="mt-5 grid gap-4">
-          <div className="flex items-center justify-between gap-3 rounded-[24px] bg-[#f2e4d2] p-3">
+          <div className="flex items-center justify-between gap-3 rounded-[24px] bg-[var(--sauna-soft-strong)] p-3">
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold text-[var(--sauna-text)]">{identity?.user.email}</p>
               <p className="mt-1 text-xs text-[var(--sauna-muted)]">{identity?.workspace.name}</p>
@@ -128,7 +128,7 @@ export function ApiSetupCard() {
             <button
               type="button"
               onClick={() => void logout()}
-              className="grid size-10 shrink-0 place-items-center rounded-full bg-[#fffdf7] text-[var(--sauna-muted)] transition hover:text-[var(--sauna-text)] active:translate-y-px"
+              className="grid size-10 shrink-0 place-items-center rounded-full bg-[var(--sauna-panel-strong)] text-[var(--sauna-muted)] transition hover:text-[var(--sauna-text)] active:translate-y-px"
               aria-label="退出登录"
             >
               <SignOut size={18} />
@@ -136,25 +136,25 @@ export function ApiSetupCard() {
           </div>
 
           {defaultProvider ? (
-            <div className="rounded-[24px] bg-[var(--sauna-espresso)] p-4 text-[#fff8ec]">
+            <div className="rounded-[24px] bg-[var(--sauna-primary)] p-4 text-[var(--sauna-primary-contrast)]">
               <div className="flex items-center gap-2 text-sm font-semibold">
-                <Key size={17} weight="duotone" className="text-[#f3dcc2]" />
+                <Key size={17} weight="duotone" className="text-[var(--sauna-primary-contrast)]" />
                 {defaultProvider.provider_name}
               </div>
-              <p className="mt-2 text-xs text-[#fff8ec]/68">{defaultProvider.chat_model}</p>
-              <p className="mt-1 text-xs text-[#fff8ec]/54">{defaultProvider.masked_api_key}</p>
+              <p className="mt-2 text-xs text-[var(--sauna-primary-contrast-muted)]">{defaultProvider.chat_model}</p>
+              <p className="mt-1 text-xs text-[var(--sauna-primary-contrast-muted)]">{defaultProvider.masked_api_key}</p>
             </div>
           ) : (
-            <div className="rounded-[24px] bg-[#f2e4d2] p-4">
+            <div className="rounded-[24px] bg-[var(--sauna-soft-strong)] p-4">
               <div className="flex items-center gap-2 text-sm font-semibold text-[var(--sauna-text)]">
-                <GearSix size={17} weight="duotone" className="text-[#b77945]" />
+                <GearSix size={17} weight="duotone" className="text-[var(--sauna-accent)]" />
                 需要配置模型
               </div>
               <p className="mt-2 text-xs leading-relaxed text-[var(--sauna-muted)]">到设置页填入 Base URL、Key 和模型名。</p>
-              {providerError ? <p className="text-xs leading-relaxed text-[#a75b3f]">{providerError}</p> : null}
+              {providerError ? <p className="text-xs leading-relaxed text-[var(--sauna-danger)]">{providerError}</p> : null}
             </div>
           )}
-          <Link href="/settings" className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-[#b77945] px-5 text-sm font-semibold text-[#fff8ec] transition hover:bg-[#965f36] active:translate-y-px">
+          <Link href="/settings" className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-[var(--sauna-accent)] px-5 text-sm font-semibold text-[var(--sauna-primary-contrast)] transition hover:bg-[var(--sauna-accent-hover)] active:translate-y-px">
             模型设置 <ArrowRight size={15} />
           </Link>
         </div>
