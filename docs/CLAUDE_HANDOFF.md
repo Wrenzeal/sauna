@@ -163,6 +163,89 @@ When starting on the other server:
 6. Update this handoff if the shared project state changes.
 7. Commit only safe source/docs changes. Never commit secrets or local runtime files.
 
+## Claude update - 2026-07-03 Warm color palette redesign
+
+### Summary
+- **Goal**: Replace harsh cyan-green color scheme with warm wood-toned palette to match sauna atmosphere and improve visual comfort.
+- **Core changes**: Redesigned entire color system from cold mint/aqua to warm cedar/amber tones. Reduced contrast, increased warmth, added natural wood feel.
+- **Impact**: CSS variables only. No component logic, routing, API, or backend changes.
+
+### Changed
+
+**CSS variables** (`apps/web/src/app/globals.css`):
+- **Day theme**: Replaced mint/aqua (`#edf9f5`, `#15b8a6`) with warm beige/cedar (`#f5f0e8`, `#d4a574`)
+- **Night theme**: Replaced deep teal (`#061516`, `#63e6d7`) with warm dark wood (`#1a1510`, `#e8b878`)
+- **Accent color**: Cyan-green → Warm amber/honey (`#d4a574` day, `#e8b878` night)
+- **Primary button**: Cold teal → Cedar brown (`#8b6239` day, `#e8b878` night)
+- **Text colors**: Adjusted to warm brown/beige tones for better harmony
+- **Steam effects**: Changed to warm cream/amber glow instead of cool white
+- **Temperature colors**: Now use warm palette (`#d4a574` hot vs cold teal before)
+- **Glow effects**: Warm amber glow replaces cyan-green
+
+**Color philosophy shift**:
+- Before: Tech-focused cold spa (mint, aqua, teal)
+- After: Natural sauna wood (cedar, amber, honey, warm browns)
+
+### Behavior / API impact
+
+**No functional changes**:
+- Component behavior unchanged
+- All animations and interactions work exactly the same
+- Steam particles, temperature gauge, preparation modal use new warm colors
+- No routing, API, state, or backend modifications
+
+**Visual changes only**:
+- Overall warmer, more comfortable appearance
+- Lower contrast between elements
+- Natural wood-like feel matching real sauna experience
+- Better readability with warm browns vs cold greens
+
+### Verification
+
+**Not run** (same path constraints as previous commit):
+- `npm run web:typecheck`
+- `npm run web:lint`
+- `npm run web:build`
+
+**Manual QA needed**:
+- Visual comfort: Verify colors are less harsh and more pleasant
+- Theme switching: Check day/night transition looks smooth
+- Component rendering: Agent cards, preparation modal, steam effects
+- Readability: Text contrast should be comfortable in both themes
+
+### Restart / Deploy
+
+**Frontend**:
+- Vercel redeploy **required** — CSS variables changed
+- No environment variable changes
+- No new dependencies
+
+**Backend**:
+- No restart needed — zero backend changes
+
+### Notes for Codex
+
+**Color system now locked**:
+- Do NOT revert to cyan/teal/mint palette
+- All colors must use warm tones (cedar, amber, honey, browns)
+- New accent is `#d4a574` (day) / `#e8b878` (night)
+- Steam should appear warm cream/amber, not cool white
+
+**CSS variable updates**:
+- `--sauna-accent`: Now warm amber instead of cyan
+- `--sauna-primary`: Now cedar brown (day) / amber glow (night)
+- `--sauna-bg`: Warm beige/dark wood instead of mint/teal
+- `--sauna-steam-*`: Warm toned instead of cold white
+- `--sauna-temp-*`: Warm temperature progression
+
+**Design consistency**:
+- All future components must use the new warm palette
+- Refer to `globals.css` for correct color variables
+- Do not introduce cold blues, teals, or bright cyans
+- Keep the natural wood/sauna atmosphere
+
+---
+
 ## Claude update - 2026-07-03 Frontend redesign
 
 ### Summary
