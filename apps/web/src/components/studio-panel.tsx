@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
-import { ArrowClockwise, ArrowRight, CheckCircle, Flask, Sparkle, WarningCircle } from "@phosphor-icons/react";
+import { ArrowClockwise, ArrowRight, CheckCircle, Sparkle, WarningCircle } from "@phosphor-icons/react";
 import { useSaunaStore } from "@/store/sauna-store";
 
 const statusText: Record<string, string> = {
@@ -67,14 +67,14 @@ export function StudioPanel() {
     <section className="grid min-h-[calc(100dvh-7rem)] gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
       <div className="relative overflow-hidden rounded-[38px] border border-[color:var(--sauna-line)] bg-[var(--sauna-panel)] p-4 shadow-[var(--sauna-shadow)] backdrop-blur-xl sm:p-6">
         <motion.div
-          className="pointer-events-none absolute right-[8%] top-[8%] size-56 rounded-full bg-[var(--sauna-accent-soft)] blur-3xl"
-          animate={reduce ? undefined : { x: [0, -18, 0], y: [0, 18, 0], opacity: [0.5, 0.9, 0.5] }}
-          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+          className="pointer-events-none absolute right-[10%] top-[10%] size-64 rounded-full bg-[color-mix(in_srgb,var(--sauna-accent-soft)_62%,transparent)] blur-3xl"
+          animate={reduce ? undefined : { opacity: [0.36, 0.62, 0.36], scale: [1, 1.04, 1] }}
+          transition={{ duration: 16, repeat: Infinity, ease: "easeInOut" }}
         />
         <div className="relative grid gap-5 xl:grid-cols-[0.82fr_1.18fr]">
-          <div className="flex min-h-[560px] flex-col justify-between rounded-[32px] bg-[var(--sauna-soft)] p-6 sm:p-8">
+          <div className="flex min-h-[560px] flex-col justify-between rounded-[32px] border border-[color:var(--sauna-inner-line)] bg-[var(--sauna-soft)] p-6 sm:p-8">
             <div>
-              <p className="text-sm font-medium text-[var(--sauna-muted)]">蒸馏车间</p>
+              <p className="text-sm font-medium text-[var(--sauna-muted)]">管理工作室</p>
               <h1 className="mt-4 max-w-[9ch] text-5xl font-semibold leading-[0.98] tracking-[-0.07em] text-[var(--sauna-text)] sm:text-6xl">
                 用 nuwa 生成 Skill。
               </h1>
@@ -90,15 +90,15 @@ export function StudioPanel() {
               ].map(([title, copy], index) => (
                 <motion.div
                   key={title}
-                  className="flex items-center justify-between rounded-[24px] bg-[var(--sauna-panel-strong)] p-4 shadow-[var(--sauna-shadow)]"
-                  animate={reduce ? undefined : { y: [0, index % 2 ? 6 : -6, 0] }}
-                  transition={{ duration: 3.2 + index * 0.35, repeat: Infinity, ease: "easeInOut" }}
+                  className="flex items-center justify-between rounded-[24px] border border-[color:var(--sauna-line)] bg-[var(--sauna-panel)] p-4"
+                  animate={reduce ? undefined : { opacity: [0.88, 1, 0.88] }}
+                  transition={{ duration: 9 + index, repeat: Infinity, ease: "easeInOut" }}
                 >
                   <div>
                     <p className="text-sm font-semibold text-[var(--sauna-text)]">{title}</p>
                     <p className="mt-1 text-xs text-[var(--sauna-muted)]">{copy}</p>
                   </div>
-                  <Sparkle size={18} className="text-[var(--sauna-accent)]" />
+                  <Sparkle size={18} className="text-[var(--sauna-accent-strong)]" />
                 </motion.div>
               ))}
             </div>
@@ -113,15 +113,15 @@ export function StudioPanel() {
           >
             <div className="flex items-center justify-between gap-4 border-b border-[color:var(--sauna-line)] pb-5">
               <div className="flex items-center gap-3">
-                <div className="grid size-12 place-items-center rounded-[20px] bg-[var(--sauna-accent-soft)] text-[var(--sauna-accent-strong)]">
-                  <Flask size={21} weight="duotone" />
+                <div className="grid size-12 place-items-center rounded-[20px] border border-[color:var(--sauna-line)] bg-[var(--sauna-soft)] text-[var(--sauna-accent-strong)]">
+                  <Sparkle size={21} weight="duotone" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-semibold tracking-[-0.035em] text-[var(--sauna-text)]">Nuwa Distillation</h2>
+                  <h2 className="text-xl font-semibold tracking-[-0.035em] text-[var(--sauna-text)]">Nuwa Skill</h2>
                   <p className="mt-1 text-xs text-[var(--sauna-muted)]">异步生成 Agent Skill</p>
                 </div>
               </div>
-              <span className="rounded-full bg-[var(--sauna-soft)] px-3 py-1 text-xs font-medium text-[var(--sauna-muted)]">Job</span>
+              <span className="rounded-full border border-[color:var(--sauna-line)] bg-[var(--sauna-soft)] px-3 py-1 text-xs font-medium text-[var(--sauna-muted)]">Job</span>
             </div>
 
             <div className="mt-6 grid gap-4">
@@ -131,17 +131,17 @@ export function StudioPanel() {
                   value={targetName}
                   onChange={(event) => setTargetName(event.target.value)}
                   placeholder="例如：张小龙、段永平、彼得蒂尔"
-                  className="h-13 rounded-[20px] border border-[color:var(--sauna-line)] bg-[var(--sauna-steam)] px-4 text-sm text-[var(--sauna-text)] outline-none transition focus:border-[var(--sauna-accent)] focus:bg-[var(--sauna-panel-strong)]"
+                  className="h-13 rounded-[20px] border border-[color:var(--sauna-line)] bg-[var(--sauna-soft)] px-4 text-sm text-[var(--sauna-text)] outline-none transition focus:border-[var(--sauna-accent)] focus:bg-[var(--sauna-panel-strong)]"
                 />
               </label>
               <label className="grid gap-2">
-                <span className="text-sm font-medium text-[var(--sauna-muted-strong)]">蒸馏目标</span>
+                <span className="text-sm font-medium text-[var(--sauna-muted-strong)]">生成目标</span>
                 <textarea
                   value={inputBrief}
                   onChange={(event) => setInputBrief(event.target.value)}
                   placeholder="你希望学习他的哪类判断：产品、投资、组织、表达、人生选择..."
                   rows={5}
-                  className="resize-none rounded-[22px] border border-[color:var(--sauna-line)] bg-[var(--sauna-steam)] px-4 py-3 text-sm leading-6 text-[var(--sauna-text)] outline-none transition focus:border-[var(--sauna-accent)] focus:bg-[var(--sauna-panel-strong)]"
+                  className="resize-none rounded-[22px] border border-[color:var(--sauna-line)] bg-[var(--sauna-soft)] px-4 py-3 text-sm leading-6 text-[var(--sauna-text)] outline-none transition focus:border-[var(--sauna-accent)] focus:bg-[var(--sauna-panel-strong)]"
                 />
               </label>
               <label className="grid gap-2">
@@ -151,7 +151,7 @@ export function StudioPanel() {
                   onChange={(event) => setSourceURLs(event.target.value)}
                   placeholder="每行一个公开资料链接。第一版会记录进任务，后续接入检索和上传资料。"
                   rows={3}
-                  className="resize-none rounded-[22px] border border-[color:var(--sauna-line)] bg-[var(--sauna-steam)] px-4 py-3 text-sm leading-6 text-[var(--sauna-text)] outline-none transition focus:border-[var(--sauna-accent)] focus:bg-[var(--sauna-panel-strong)]"
+                  className="resize-none rounded-[22px] border border-[color:var(--sauna-line)] bg-[var(--sauna-soft)] px-4 py-3 text-sm leading-6 text-[var(--sauna-text)] outline-none transition focus:border-[var(--sauna-accent)] focus:bg-[var(--sauna-panel-strong)]"
                 />
               </label>
             </div>
@@ -166,7 +166,7 @@ export function StudioPanel() {
               className="mt-6 inline-flex h-12 items-center gap-2 rounded-full bg-[var(--sauna-primary)] px-6 text-sm font-semibold text-[var(--sauna-primary-contrast)] transition hover:bg-[var(--sauna-primary-hover)] disabled:cursor-not-allowed disabled:opacity-45 active:translate-y-px"
             >
               {busy ? <ArrowClockwise size={16} className="animate-spin" /> : <ArrowRight size={15} />}
-              {token ? "开始蒸馏" : "登录后蒸馏"}
+              {token ? "开始生成" : "登录后生成"}
             </button>
           </motion.form>
         </div>
@@ -176,13 +176,13 @@ export function StudioPanel() {
         <div className="rounded-[34px] border border-[color:var(--sauna-line)] bg-[var(--sauna-panel-strong)] p-5 shadow-[var(--sauna-shadow)] backdrop-blur-xl">
           <div className="flex items-center justify-between gap-3">
             <h2 className="text-2xl font-semibold tracking-[-0.045em] text-[var(--sauna-text)]">任务</h2>
-            <button onClick={() => { void loadJobs(); void loadAgents(); }} className="grid size-9 place-items-center rounded-full bg-[var(--sauna-soft)] text-[var(--sauna-muted)] transition hover:bg-[var(--sauna-soft)]" aria-label="刷新蒸馏任务">
+            <button onClick={() => { void loadJobs(); void loadAgents(); }} className="grid size-9 place-items-center rounded-full border border-[color:var(--sauna-line)] bg-[var(--sauna-soft)] text-[var(--sauna-muted)] transition hover:text-[var(--sauna-text)]" aria-label="刷新蒸馏任务">
               <ArrowClockwise size={16} />
             </button>
           </div>
           <div className="mt-5 grid gap-3">
             {jobs.length === 0 ? (
-              <p className="rounded-[22px] bg-[var(--sauna-steam)] p-4 text-sm text-[var(--sauna-muted)]">还没有蒸馏任务。</p>
+              <p className="rounded-[22px] bg-[var(--sauna-soft)] p-4 text-sm text-[var(--sauna-muted)]">还没有蒸馏任务。</p>
             ) : jobs.map((job) => (
               <div key={job.id} className="rounded-[22px] border border-[color:var(--sauna-line)] bg-[var(--sauna-panel)] p-4">
                 <div className="flex items-center justify-between gap-3">

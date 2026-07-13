@@ -2,232 +2,87 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { ArrowRight, Brain, Info, Sparkle, X } from "@phosphor-icons/react";
+import { ArrowRight, Brain, Info, X } from "@phosphor-icons/react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 const experts = [
-  { name: "乔布斯", role: "产品直觉", avatar: "🍎", className: "left-[8%] top-[18%]" },
-  { name: "马斯克", role: "第一性原理", avatar: "🚀", className: "right-[9%] top-[17%]" },
-  { name: "比尔盖茨", role: "系统思维", avatar: "💻", className: "left-[14%] bottom-[16%]" },
-  { name: "周受资", role: "全球增长", avatar: "📱", className: "right-[15%] bottom-[15%]" },
+  { name: "乔布斯", role: "产品直觉", avatar: "🍎" },
+  { name: "马斯克", role: "第一性原理", avatar: "🚀" },
+  { name: "比尔盖茨", role: "系统思维", avatar: "💻" },
+  { name: "周受资", role: "全球增长", avatar: "📱" },
 ] as const;
-
-const pulseRings = ["inset-[18%]", "inset-[28%]", "inset-[38%]"] as const;
 
 export function EntryGate() {
   const reduce = useReducedMotion();
   const [introOpen, setIntroOpen] = useState(false);
 
   useEffect(() => {
-    if (!introOpen) {
-      return;
-    }
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        setIntroOpen(false);
-      }
-    }
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    if (!introOpen) return;
+    const onKeyDown = (event: KeyboardEvent) => event.key === "Escape" && setIntroOpen(false);
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
   }, [introOpen]);
 
   return (
-    <main className="relative min-h-[100dvh] overflow-hidden bg-[var(--sauna-steam)] text-[var(--sauna-text)]">
-      <motion.div
-        className="pointer-events-none absolute left-[5%] top-[8%] size-[28rem] rounded-full bg-[var(--sauna-steam)] blur-3xl"
-        animate={reduce ? undefined : { x: [0, 32, 0], y: [0, 18, 0], opacity: [0.6, 0.95, 0.6] }}
-        transition={{ duration: 9, repeat: Infinity, ease: "easeInOut" }}
-      />
-      <motion.div
-        className="pointer-events-none absolute bottom-[4%] right-[6%] size-[30rem] rounded-full bg-[var(--sauna-accent-soft)] blur-3xl"
-        animate={reduce ? undefined : { x: [0, -28, 0], y: [0, -22, 0], opacity: [0.55, 0.9, 0.55] }}
-        transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
-      />
+    <main className="relative min-h-[100dvh] overflow-hidden bg-[var(--sauna-bg)] text-[var(--sauna-text)]">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_82%_12%,var(--sauna-glow-2),transparent_28rem),radial-gradient(circle_at_12%_86%,var(--sauna-glow-1),transparent_30rem)]" />
+      <motion.div className="pointer-events-none absolute -left-[8%] top-[5%] h-[72%] w-[48%] -skew-x-12 bg-[linear-gradient(112deg,var(--sauna-glow-2),transparent)] blur-2xl" animate={reduce ? undefined : { x: ["-3%", "5%", "-3%"], opacity: [0.45, 0.72, 0.45] }} transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }} />
 
-      <div className="absolute right-4 top-4 z-20 sm:right-6 lg:right-8">
-        <ThemeToggle />
-      </div>
+      <header className="relative z-20 mx-auto flex h-20 max-w-[1460px] items-center justify-between px-5 sm:px-8">
+        <Link href="/lobby" className="flex items-center gap-3" aria-label="进入 Sauna">
+          <span className="grid size-10 place-items-center rounded-[16px] bg-[var(--sauna-primary)] text-[var(--sauna-primary-contrast)]"><Brain size={19} weight="duotone" /></span>
+          <span className="sauna-display text-xl tracking-[-0.04em]">Sauna</span>
+        </Link>
+        <div className="flex items-center gap-2">
+          <button type="button" onClick={() => setIntroOpen(true)} className="hidden h-11 items-center gap-2 rounded-full px-4 text-sm text-[var(--sauna-muted-strong)] transition hover:bg-[var(--sauna-soft)] sm:inline-flex"><Info size={17} /> 什么是 Sauna</button>
+          <Link href="/settings" className="h-11 rounded-full px-4 text-sm font-medium leading-[44px] text-[var(--sauna-muted-strong)] transition hover:bg-[var(--sauna-soft)]">登录</Link>
+          <ThemeToggle compact />
+        </div>
+      </header>
 
-      <section className="relative mx-auto grid min-h-[100dvh] max-w-[1480px] items-center gap-8 px-4 py-6 pt-20 sm:px-6 lg:grid-cols-[0.86fr_1.14fr] lg:px-8">
-        <motion.div
-          initial={reduce ? false : { opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-          className="relative z-10 flex min-h-[48dvh] flex-col justify-between rounded-[38px] border border-[color:var(--sauna-line)] bg-[var(--sauna-panel-strong)] p-6 shadow-[var(--sauna-shadow)] backdrop-blur-2xl sm:p-8 lg:min-h-[640px]"
-        >
-          <Link href="/lobby" className="flex w-fit items-center gap-3 text-sm font-semibold tracking-tight text-[var(--sauna-text)]" aria-label="进入 Sauna">
-            <span className="grid size-11 place-items-center rounded-[18px] bg-[var(--sauna-primary)] text-[var(--sauna-primary-contrast)] shadow-[var(--sauna-shadow)]">
-              <Brain size={21} weight="duotone" />
-            </span>
-            Sauna
-          </Link>
-
-          <div className="mt-12 sm:mt-16">
-            <h1 className="max-w-[8ch] text-6xl font-semibold leading-[0.94] tracking-[-0.08em] text-[var(--sauna-text)] sm:text-7xl lg:text-8xl">
-              入席。
-            </h1>
-            <p className="mt-6 max-w-[18ch] text-lg leading-relaxed text-[var(--sauna-muted-strong)]">
-              让智囊团开始升温。
-            </p>
-          </div>
-
+      <section className="relative z-10 mx-auto grid min-h-[calc(100dvh-5rem)] max-w-[1460px] items-center gap-12 px-5 pb-12 sm:px-8 lg:grid-cols-[0.92fr_1.08fr]">
+        <motion.div initial={reduce ? false : { opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.72, ease: [0.16, 1, 0.3, 1] }}>
+          <p className="text-sm font-medium tracking-[0.14em] text-[var(--sauna-accent-strong)]">PERSONAL BRAIN TRUST</p>
+          <h1 className="sauna-display mt-6 max-w-[9ch] text-6xl leading-[0.94] tracking-[-0.06em] sm:text-7xl lg:text-[88px]">坐下来，听听他们怎么想。</h1>
+          <p className="mt-7 max-w-[30ch] text-lg leading-8 text-[var(--sauna-muted-strong)]">一处安静的私人空间，让你和真正值得学习的思维方式认真聊一聊。</p>
           <div className="mt-10 flex flex-wrap items-center gap-3">
-            <motion.div whileHover={reduce ? undefined : { y: -2, scale: 1.015 }} whileTap={reduce ? undefined : { scale: 0.985 }}>
-              <Link
-                href="/lobby"
-                className="group relative inline-flex h-13 items-center gap-3 overflow-hidden whitespace-nowrap rounded-full bg-[var(--sauna-primary)] px-6 text-sm font-semibold text-[var(--sauna-primary-contrast)] shadow-[var(--sauna-shadow)] transition duration-300 hover:bg-[var(--sauna-primary-hover)] hover:shadow-[var(--sauna-shadow)] active:translate-y-px"
-              >
-                <span className="absolute inset-y-0 -left-10 w-10 rotate-12 bg-[var(--sauna-panel-strong)] blur-sm transition duration-500 group-hover:left-[115%]" />
-                进入
-                <ArrowRight size={17} className="transition duration-300 group-hover:translate-x-1" />
-              </Link>
-            </motion.div>
-            <motion.button
-              type="button"
-              onClick={() => setIntroOpen(true)}
-              whileHover={reduce ? undefined : { y: -2, scale: 1.01 }}
-              whileTap={reduce ? undefined : { scale: 0.985 }}
-              className="inline-flex h-13 items-center gap-2 rounded-full border border-[color:var(--sauna-line)] bg-[var(--sauna-panel)] px-5 text-sm font-semibold text-[var(--sauna-muted-strong)] shadow-[var(--sauna-shadow)] backdrop-blur-xl transition duration-300 hover:bg-[var(--sauna-panel-strong)] hover:text-[var(--sauna-text)] hover:shadow-[var(--sauna-shadow)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--sauna-accent)]"
-              aria-haspopup="dialog"
-              aria-expanded={introOpen}
-            >
-              <Info size={17} weight="duotone" />
-              什么是 Sauna
-            </motion.button>
-            <span className="inline-flex h-13 items-center rounded-full border border-[color:var(--sauna-line)] bg-[var(--sauna-panel)] px-5 text-sm font-medium text-[var(--sauna-muted)]">
-              桑拿房已就绪
-            </span>
+            <Link href="/lobby" className="group inline-flex h-13 items-center gap-3 rounded-full bg-[var(--sauna-primary)] px-6 text-sm font-semibold text-[var(--sauna-primary-contrast)] shadow-[var(--sauna-shadow)] transition hover:-translate-y-0.5 hover:bg-[var(--sauna-primary-hover)] active:translate-y-px">进入桑拿房 <ArrowRight size={17} className="transition group-hover:translate-x-1" /></Link>
+            <button type="button" onClick={() => setIntroOpen(true)} className="inline-flex h-13 items-center gap-2 rounded-full border border-[color:var(--sauna-line)] bg-[var(--sauna-panel-strong)] px-5 text-sm font-semibold text-[var(--sauna-muted-strong)] shadow-[var(--sauna-shadow-soft)] transition hover:-translate-y-0.5 active:translate-y-px"><Info size={17} /> 了解 Sauna</button>
           </div>
         </motion.div>
 
-        <motion.div
-          initial={reduce ? false : { opacity: 0, scale: 0.96, y: 18 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          transition={{ duration: 0.82, delay: 0.08, ease: [0.16, 1, 0.3, 1] }}
-          className="relative min-h-[520px] overflow-hidden rounded-[44px] border border-[color:var(--sauna-line)] bg-[var(--sauna-panel)] shadow-[var(--sauna-shadow)] backdrop-blur-2xl sm:min-h-[640px]"
-        >
-          <div className="absolute inset-4 rounded-[36px] border border-[color:var(--sauna-inner-line)] bg-gradient-to-br from-[var(--sauna-panel-strong)] via-transparent to-[var(--sauna-soft)]" />
-          {pulseRings.map((ring, index) => (
-            <motion.div
-              key={ring}
-              className={`pointer-events-none absolute ${ring} rounded-full border border-[color:var(--sauna-line)]`}
-              animate={reduce ? undefined : { scale: [1, 1.025, 1], opacity: [0.55, 0.9, 0.55] }}
-              transition={{ duration: 4.8 + index * 0.7, repeat: Infinity, ease: "easeInOut" }}
-            />
-          ))}
-
-          <motion.div
-            className="absolute left-1/2 top-1/2 grid size-34 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-[38px] bg-[var(--sauna-primary)] text-[var(--sauna-primary-contrast)] shadow-[var(--sauna-shadow)] sm:size-40"
-            animate={reduce ? undefined : { scale: [1, 1.045, 1], rotate: [0, -1.5, 0], boxShadow: ["0 30px 70px var(--sauna-shadow-soft)", "0 38px 86px var(--sauna-accent-shadow)", "0 30px 70px var(--sauna-shadow-soft)"] }}
-            transition={{ duration: 4.2, repeat: Infinity, ease: "easeInOut" }}
-          >
-            <Sparkle size={36} weight="duotone" />
-          </motion.div>
-
-          {experts.map((expert, index) => (
-            <motion.div
-              key={expert.name}
-              className={`absolute ${expert.className} w-34 rounded-[28px] border border-[color:var(--sauna-line)] bg-[var(--sauna-panel-strong)] p-3 shadow-[var(--sauna-shadow)] backdrop-blur-xl transition duration-300 hover:bg-[var(--sauna-panel-strong)] hover:shadow-[var(--sauna-shadow)] sm:w-40 sm:p-4`}
-              whileHover={reduce ? undefined : { y: -5, scale: 1.025 }}
-              animate={reduce ? undefined : { y: [0, index % 2 ? 12 : -12, 0], x: [0, index % 2 ? -5 : 5, 0] }}
-              transition={{ duration: 4.2 + index * 0.5, repeat: Infinity, ease: "easeInOut" }}
-            >
-              <div className="grid size-11 place-items-center rounded-[17px] bg-[var(--sauna-soft)] text-[24px] shadow-[inset_0_1px_0_rgb(255_255_255_/_0.72)]" aria-hidden="true">
-                {expert.avatar}
-              </div>
-              <p className="mt-4 text-base font-semibold tracking-[-0.04em] text-[var(--sauna-text)]">{expert.name}</p>
-              <p className="mt-1 text-xs text-[var(--sauna-muted)]">{expert.role}</p>
-            </motion.div>
-          ))}
-
-          <motion.div
-            className="absolute bottom-6 left-1/2 w-[min(92%,520px)] -translate-x-1/2 rounded-full border border-[color:var(--sauna-line)] bg-[var(--sauna-panel-strong)] p-2 shadow-[var(--sauna-shadow)] backdrop-blur-xl"
-            initial={reduce ? false : { opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.65, delay: 0.38, ease: [0.16, 1, 0.3, 1] }}
-          >
-            <div className="flex items-center justify-between gap-3 rounded-full bg-[var(--sauna-soft-strong)] px-5 py-4">
-              <span className="text-sm font-medium text-[var(--sauna-muted)]">准备一次高质量提问</span>
-              <span className="grid size-9 place-items-center rounded-full bg-[var(--sauna-accent)] text-[var(--sauna-primary-contrast)]">
-                <ArrowRight size={16} weight="bold" />
-              </span>
-            </div>
-          </motion.div>
+        <motion.div initial={reduce ? false : { opacity: 0, x: 24 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.8, delay: 0.08, ease: [0.16, 1, 0.3, 1] }} className="relative rounded-[38px] border border-[color:var(--sauna-line)] bg-[color-mix(in_srgb,var(--sauna-panel)_86%,transparent)] p-5 shadow-[var(--sauna-shadow)] backdrop-blur-xl sm:p-7">
+          <div className="pointer-events-none absolute inset-x-12 top-0 h-px bg-[var(--sauna-accent)]" />
+          <div className="mb-6 flex items-end justify-between gap-4">
+            <div><p className="text-sm text-[var(--sauna-muted)]">今晚在场</p><h2 className="sauna-display mt-1 text-3xl tracking-[-0.04em]">你的智囊团</h2></div>
+            <span className="rounded-full bg-[var(--sauna-accent-soft)] px-3 py-1.5 text-xs text-[var(--sauna-accent-strong)]">4 位待命</span>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {experts.map((expert, index) => (
+              <motion.div key={expert.name} initial={reduce ? false : { opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.42, delay: 0.16 + index * 0.06 }} className="flex items-center gap-4 rounded-[24px] border border-[color:var(--sauna-line)] bg-[var(--sauna-panel-strong)] p-4 shadow-[0_12px_34px_var(--sauna-shadow-soft)]">
+                <span className="grid size-12 place-items-center rounded-[18px] bg-[var(--sauna-soft)] text-2xl">{expert.avatar}</span>
+                <div><p className="sauna-display text-xl text-[var(--sauna-text)]">{expert.name}</p><p className="mt-1 text-xs text-[var(--sauna-muted)]">{expert.role}</p></div>
+              </motion.div>
+            ))}
+          </div>
+          <div className="mt-5 rounded-[24px] bg-[var(--sauna-primary)] p-5 text-[var(--sauna-primary-contrast)]"><p className="text-xs tracking-[0.14em] text-[var(--sauna-primary-contrast-muted)]">THE ROOM IS READY</p><p className="sauna-display mt-3 text-2xl">先选一个人，再说出你的问题。</p></div>
         </motion.div>
       </section>
 
       <AnimatePresence>
-        {introOpen && (
-          <motion.div
-            className="fixed inset-0 z-[80] grid place-items-center bg-[var(--sauna-scrim)] px-4 py-8 backdrop-blur-md"
-            role="presentation"
-            initial={reduce ? false : { opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={reduce ? undefined : { opacity: 0 }}
-            transition={{ duration: 0.22, ease: "easeOut" }}
-            onMouseDown={() => setIntroOpen(false)}
-          >
-            <motion.section
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="sauna-intro-title"
-              className="relative w-full max-w-[640px] overflow-hidden rounded-[36px] border border-[color:var(--sauna-inner-line)] bg-[var(--sauna-panel)] p-5 shadow-[var(--sauna-shadow)] backdrop-blur-2xl sm:p-7"
-              initial={reduce ? false : { opacity: 0, y: 22, scale: 0.965 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={reduce ? undefined : { opacity: 0, y: 14, scale: 0.975 }}
-              transition={{ duration: 0.34, ease: [0.16, 1, 0.3, 1] }}
-              onMouseDown={(event) => event.stopPropagation()}
-            >
-              <motion.div
-                className="pointer-events-none absolute -right-16 -top-16 size-56 rounded-full bg-[var(--sauna-accent-soft)] blur-3xl"
-                animate={reduce ? undefined : { opacity: [0.55, 0.9, 0.55], scale: [1, 1.08, 1] }}
-                transition={{ duration: 5.6, repeat: Infinity, ease: "easeInOut" }}
-              />
-              <button
-                type="button"
-                onClick={() => setIntroOpen(false)}
-                className="absolute right-5 top-5 z-10 grid size-10 place-items-center rounded-full bg-[var(--sauna-panel-strong)] text-[var(--sauna-muted)] shadow-[var(--sauna-shadow)] transition duration-300 hover:bg-[var(--sauna-primary)] hover:text-[var(--sauna-primary-contrast)] active:translate-y-px focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--sauna-accent)]"
-                aria-label="关闭介绍"
-              >
-                <X size={17} weight="bold" />
-              </button>
-
-              <div className="relative">
-                <div className="grid size-13 place-items-center rounded-[22px] bg-[var(--sauna-primary)] text-[var(--sauna-primary-contrast)] shadow-[var(--sauna-shadow)]">
-                  <Brain size={24} weight="duotone" />
-                </div>
-                <p className="mt-7 text-sm font-semibold text-[var(--sauna-accent)]">Personal AI Brain Trust</p>
-                <h2 id="sauna-intro-title" className="mt-2 text-4xl font-semibold leading-[0.98] tracking-[-0.065em] text-[var(--sauna-text)] sm:text-5xl">
-                  什么是 Sauna？
-                </h2>
-                <div className="mt-6 grid gap-3 text-sm leading-6 text-[var(--sauna-muted-strong)]">
-                  <p>Sauna 是你的个人 AI 智囊团桑拿房。</p>
-                  <p>系统预置了一些已经通过 nuwa-skill 蒸馏好的专家视角，你可以先直接体验。</p>
-                  <p>当你想学习某个人的思考方式时，可以登录后进入蒸馏车间，生成自己的专属 Skill。</p>
-                  <p>对话时，Sauna 会加载对应 Skill，并使用你配置的大模型供应商、Key 和模型进行真实调用。</p>
-                </div>
-                <div className="mt-7 grid gap-3 sm:grid-cols-2">
-                  <Link
-                    href="/lobby"
-                    onClick={() => setIntroOpen(false)}
-                    className="group inline-flex h-12 items-center justify-center gap-2 rounded-full bg-[var(--sauna-primary)] px-5 text-sm font-semibold text-[var(--sauna-primary-contrast)] shadow-[var(--sauna-shadow)] transition duration-300 hover:bg-[var(--sauna-primary-hover)] active:translate-y-px"
-                  >
-                    进入桑拿房
-                    <ArrowRight size={16} className="transition duration-300 group-hover:translate-x-1" />
-                  </Link>
-                  <Link
-                    href="/studio"
-                    onClick={() => setIntroOpen(false)}
-                    className="inline-flex h-12 items-center justify-center rounded-full border border-[color:var(--sauna-line)] bg-[var(--sauna-panel-strong)] px-5 text-sm font-semibold text-[var(--sauna-muted-strong)] transition duration-300 hover:bg-[var(--sauna-soft)] active:translate-y-px"
-                  >
-                    开始蒸馏
-                  </Link>
-                </div>
-              </div>
+        {introOpen ? (
+          <motion.div className="fixed inset-0 z-[80] grid place-items-center bg-[var(--sauna-scrim)] px-4 py-8 backdrop-blur-md" role="presentation" initial={reduce ? false : { opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onMouseDown={() => setIntroOpen(false)}>
+            <motion.section role="dialog" aria-modal="true" aria-labelledby="sauna-intro-title" className="relative w-full max-w-[620px] overflow-hidden rounded-[34px] border border-[color:var(--sauna-line)] bg-[var(--sauna-panel-strong)] p-6 shadow-[var(--sauna-shadow)] sm:p-8" initial={reduce ? false : { opacity: 0, y: 20, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 12, scale: 0.98 }} onMouseDown={(event) => event.stopPropagation()}>
+              <button type="button" onClick={() => setIntroOpen(false)} className="absolute right-5 top-5 grid size-10 place-items-center rounded-full bg-[var(--sauna-soft)] text-[var(--sauna-muted)]" aria-label="关闭介绍"><X size={17} /></button>
+              <span className="grid size-13 place-items-center rounded-[20px] bg-[var(--sauna-primary)] text-[var(--sauna-primary-contrast)]"><Brain size={23} weight="duotone" /></span>
+              <p className="mt-7 text-sm text-[var(--sauna-accent-strong)]">Personal AI Brain Trust</p>
+              <h2 id="sauna-intro-title" className="sauna-display mt-2 text-4xl tracking-[-0.05em] sm:text-5xl">什么是 Sauna？</h2>
+              <div className="mt-6 grid gap-4 text-sm leading-7 text-[var(--sauna-muted-strong)]"><p>Sauna 是你的个人 AI 智囊团工作空间。</p><p>默认智囊来自已经蒸馏好的 Skill；你也可以在蒸馏车间创建想学习的人物。</p><p>咨询时系统加载对应 Skill，并使用你配置的大模型进行真实、流式的回答。</p></div>
+              <div className="mt-8 flex flex-wrap gap-3"><Link href="/lobby" onClick={() => setIntroOpen(false)} className="inline-flex h-12 items-center gap-2 rounded-full bg-[var(--sauna-primary)] px-5 text-sm font-semibold text-[var(--sauna-primary-contrast)]">进入桑拿房 <ArrowRight size={16} /></Link><Link href="/studio" onClick={() => setIntroOpen(false)} className="inline-flex h-12 items-center rounded-full border border-[color:var(--sauna-line)] px-5 text-sm font-semibold text-[var(--sauna-muted-strong)]">开始蒸馏</Link></div>
             </motion.section>
           </motion.div>
-        )}
+        ) : null}
       </AnimatePresence>
     </main>
   );

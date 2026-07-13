@@ -14,7 +14,7 @@ import {
 } from "@phosphor-icons/react";
 import { useSaunaStore } from "@/store/sauna-store";
 
-const fieldClass = "h-11 rounded-full border border-[color:var(--sauna-line)] bg-[var(--sauna-steam)] px-4 text-sm text-[var(--sauna-text)] outline-none transition placeholder:text-[var(--sauna-muted)] focus:border-[var(--sauna-accent)] focus:bg-[var(--sauna-panel-strong)]";
+const fieldClass = "h-11 rounded-full border border-[color:var(--sauna-line)] bg-[var(--sauna-soft)] px-4 text-sm text-[var(--sauna-text)] outline-none transition placeholder:text-[var(--sauna-muted)] focus:border-[var(--sauna-accent)] focus:bg-[var(--sauna-panel-strong)]";
 const buttonClass = "inline-flex h-11 items-center justify-center gap-2 rounded-full bg-[var(--sauna-primary)] px-5 text-sm font-semibold text-[var(--sauna-primary-contrast)] transition hover:bg-[var(--sauna-primary-hover)] active:translate-y-px disabled:cursor-not-allowed disabled:bg-[var(--sauna-soft-strong)]";
 
 export function ApiSetupCard() {
@@ -26,7 +26,6 @@ export function ApiSetupCard() {
     devCode,
     authCodeSentEmail,
     authStatus,
-    providerStatus,
     authError,
     providerError,
     apiError,
@@ -43,7 +42,6 @@ export function ApiSetupCard() {
   }, [providers]);
   const isLoggedIn = Boolean(token && identity);
   const authBusy = authStatus === "loading";
-  const providerBusy = providerStatus === "loading";
   const codeEmail = authCodeSentEmail ?? email;
   const hasCodeSent = Boolean(authCodeSentEmail);
 
@@ -120,7 +118,7 @@ export function ApiSetupCard() {
         </div>
       ) : (
         <div className="mt-5 grid gap-4">
-          <div className="flex items-center justify-between gap-3 rounded-[24px] bg-[var(--sauna-soft-strong)] p-3">
+          <div className="flex items-center justify-between gap-3 rounded-[24px] border border-[color:var(--sauna-line)] bg-[var(--sauna-soft)] p-3">
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold text-[var(--sauna-text)]">{identity?.user.email}</p>
               <p className="mt-1 text-xs text-[var(--sauna-muted)]">{identity?.workspace.name}</p>
@@ -128,7 +126,7 @@ export function ApiSetupCard() {
             <button
               type="button"
               onClick={() => void logout()}
-              className="grid size-10 shrink-0 place-items-center rounded-full bg-[var(--sauna-panel-strong)] text-[var(--sauna-muted)] transition hover:text-[var(--sauna-text)] active:translate-y-px"
+              className="grid size-10 shrink-0 place-items-center rounded-full border border-[color:var(--sauna-line)] bg-[var(--sauna-panel-strong)] text-[var(--sauna-muted)] transition hover:text-[var(--sauna-text)] active:translate-y-px"
               aria-label="退出登录"
             >
               <SignOut size={18} />
@@ -145,7 +143,7 @@ export function ApiSetupCard() {
               <p className="mt-1 text-xs text-[var(--sauna-primary-contrast-muted)]">{defaultProvider.masked_api_key}</p>
             </div>
           ) : (
-            <div className="rounded-[24px] bg-[var(--sauna-soft-strong)] p-4">
+            <div className="rounded-[24px] border border-[color:var(--sauna-line)] bg-[var(--sauna-soft)] p-4">
               <div className="flex items-center gap-2 text-sm font-semibold text-[var(--sauna-text)]">
                 <GearSix size={17} weight="duotone" className="text-[var(--sauna-accent)]" />
                 需要配置模型

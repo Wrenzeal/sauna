@@ -7,10 +7,11 @@ You are collaborating on the Sauna repository from a different server than the C
 Before making changes, read these files in order:
 
 1. `CLAUDE.md`
-2. `docs/CLAUDE_HANDOFF.md`
-3. `docs/PRD_CONTEXT.md`
-4. `README.md`
-5. `AGENTS.md` if it exists locally
+2. `DESIGN.md`
+3. `docs/CLAUDE_HANDOFF.md`
+4. `docs/PRD_CONTEXT.md`
+5. `README.md`
+6. `AGENTS.md` if it exists locally
 
 Then summarize the current project state, recent changes, validation commands, and risks before editing.
 
@@ -82,11 +83,12 @@ Use `git diff --check` before finalizing changes.
 
 ## UI design direction
 
-The current frontend theme is a fresh day/night visual system:
+`DESIGN.md` is the authoritative UI/UX contract. The current frontend uses a quiet-luxury private-club visual system:
 
-- Day mode: clean mint/aqua spa-lab surfaces.
-- Night mode: deep teal near-black surfaces.
-- Accent: one consistent cyan-teal accent.
+- Day mode: cream, ivory, walnut and soft daylight warmth.
+- Night mode: charcoal, deep walnut, amber firelight and a restrained lavender undertone.
+- Navigation is a hotel-like top bar; do not restore the persistent desktop sidebar.
+- Workstations use material consoles with walnut, brass and softly lit screens.
+- Do not restore distillation tanks, temperature gauges, steam particles, full-room scenes, Three.js or continuous decorative animation.
 - Theme colors live in `apps/web/src/app/globals.css` as semantic `--sauna-*` CSS variables.
-- Do not reintroduce mixed black/white/green or warm cedar hardcoded component palettes.
-- Use the existing `ThemeToggle` component for day/night switching.
+- Use the existing `ThemeToggle` and preserve its localStorage and View Transition behavior.

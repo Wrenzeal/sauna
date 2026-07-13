@@ -23,6 +23,7 @@ import {
   PaperPlaneRight,
   ShieldCheck,
   WarningCircle,
+  X,
 } from "@phosphor-icons/react";
 import { useSaunaStore } from "@/store/sauna-store";
 import type { Message } from "@/types/sauna";
@@ -755,6 +756,7 @@ export function FocusRoomPanel({
   const [editingTitle, setEditingTitle] = useState("");
   const [pendingDeleteSessionId, setPendingDeleteSessionId] =
     useState<string>();
+  const [historyOpen, setHistoryOpen] = useState(false);
   const hydrated = useHydrated();
   if (sessionView.routeSessionId !== sessionId) {
     setSessionView({ routeSessionId: sessionId, currentSessionId: sessionId });
@@ -918,234 +920,71 @@ export function FocusRoomPanel({
   }
 
   return (
-    <section className="grid h-[calc(100dvh-7rem)] min-h-0 gap-5 overflow-hidden lg:grid-cols-[320px_minmax(0,1fr)]">
-      <motion.aside
-        initial={reduce ? false : { opacity: 0, y: 18 }}
+    <section className="relative flex h-[calc(100dvh-7rem)] min-h-0 overflow-hidden rounded-[36px] border border-[color:var(--sauna-line)] bg-[color-mix(in_srgb,var(--sauna-panel-strong)_94%,transparent)] shadow-[var(--sauna-shadow)] backdrop-blur-xl">
+      <motion.div
+        initial={reduce ? false : { opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-        className="min-h-0 overflow-y-auto overscroll-contain rounded-[38px] border border-[color:var(--sauna-line)] bg-[var(--sauna-panel)] p-5 shadow-[var(--sauna-shadow)] backdrop-blur-xl"
+        className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden p-3 sm:p-5"
       >
-        <p className="text-sm font-medium text-[var(--sauna-muted)]">VIP 桑拿房</p>
-        <motion.div
-          className="mt-7 grid size-24 place-items-center rounded-[30px] bg-[var(--sauna-accent-soft)] text-4xl text-[var(--sauna-accent-strong)]"
-          animate={reduce ? undefined : { y: [0, -8, 0] }}
-          transition={{ duration: 3.4, repeat: Infinity, ease: "easeInOut" }}
-        >
-          {agent?.avatarSeed ?? "🧠"}
-        </motion.div>
-        <h1 className="mt-6 text-4xl font-semibold tracking-[-0.06em] text-[var(--sauna-text)]">
-          {agent?.displayName ?? "智囊"}
-        </h1>
-        <p className="mt-2 text-[var(--sauna-muted)]">{agent?.role ?? "专注咨询"}</p>
-
-        <div className="mt-8 grid gap-3">
-          <div className="flex items-center gap-3 rounded-[24px] bg-[var(--sauna-soft)] p-4 text-sm text-[var(--sauna-muted-strong)]">
-            <ShieldCheck size={20} className="text-[var(--sauna-accent-strong)]" />
-            {token ? "已登录" : "需要登录"}
+        <div className="relative flex items-center justify-between gap-3 rounded-[25px] border border-[color:var(--sauna-line)] bg-[var(--sauna-panel)] px-4 py-3 sm:px-5">
+          <div className="flex min-w-0 items-center gap-3">
+            <button type="button" onClick={() => router.push("/lobby")} className="grid size-10 shrink-0 place-items-center rounded-[15px] bg-[var(--sauna-primary)] text-xl text-[var(--sauna-primary-contrast)]" aria-label="返回桑拿房">
+              {agent?.avatarSeed ?? "🧠"}
+            </button>
+            <div className="min-w-0">
+              <h1 className="sauna-display truncate text-xl tracking-[-0.035em] text-[var(--sauna-text)] sm:text-2xl">{title}</h1>
+              <p className="mt-0.5 flex items-center gap-2 text-xs text-[var(--sauna-muted)]"><span>{agent?.role ?? "专注咨询"}</span><span>·</span><span>{statusLabel}</span>{busy ? <ThinkingDots reduce={reduce} /> : null}</p>
+            </div>
           </div>
-          <div className="flex items-center gap-3 rounded-[24px] bg-[var(--sauna-primary)] p-4 text-sm text-[var(--sauna-primary-contrast-muted)]">
-            <Brain size={20} className="text-[var(--sauna-primary-contrast)]" />
-            <span className="flex min-w-0 flex-1 items-center gap-2">
-              {statusLabel}
-              {busy ? <ThinkingDots reduce={reduce} /> : null}
-            </span>
+          <div className="flex shrink-0 items-center gap-2">
+            <button type="button" onClick={() => void openFreshSession()} disabled={!token || busy} className="hidden h-10 items-center gap-2 rounded-full border border-[color:var(--sauna-line)] bg-[var(--sauna-panel-strong)] px-4 text-sm font-semibold text-[var(--sauna-muted-strong)] transition hover:bg-[var(--sauna-soft)] disabled:opacity-40 sm:inline-flex">新咨询 <ArrowRight size={14} /></button>
+            <button type="button" onClick={() => setHistoryOpen(true)} className="inline-flex h-10 items-center gap-2 rounded-full bg-[var(--sauna-soft)] px-4 text-sm font-semibold text-[var(--sauna-muted-strong)] transition hover:bg-[var(--sauna-soft-strong)]"><ClockCounterClockwise size={16} /><span className="hidden sm:inline">历史记录</span></button>
           </div>
         </div>
 
-        <div className="mt-5 rounded-[28px] bg-[var(--sauna-panel-strong)] p-3 shadow-[var(--sauna-shadow)]">
-          <div className="flex items-center justify-between gap-3 px-2 py-2">
-            <h2 className="text-sm font-semibold text-[var(--sauna-text)]">历史咨询</h2>
-            <ClockCounterClockwise size={17} className="text-[var(--sauna-accent)]" />
-          </div>
-          {historySessions.length ? (
-            <div className="mt-2 grid max-h-[330px] gap-2 overflow-y-auto pr-1">
-              {historySessions.map((session) => {
+        <ChatMessagesPanel messages={messages} statusLabel={statusLabel} busy={busy} focusError={focusError} archiveStatus={archiveStatus} reduce={reduce} />
+
+        <form onSubmit={submitMessage} className="relative flex items-end gap-3 rounded-[24px] border border-[color:var(--sauna-line)] bg-[var(--sauna-soft)] p-2.5 transition focus-within:border-[var(--sauna-accent)] focus-within:bg-[var(--sauna-panel-strong)]">
+          <textarea value={draft} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); event.currentTarget.form?.requestSubmit(); } }} rows={1} className="max-h-36 min-h-7 min-w-0 flex-1 resize-none bg-transparent px-3 py-2 text-sm leading-6 text-[var(--sauna-text)] outline-none placeholder:text-[var(--sauna-muted)]" placeholder={token ? (busy ? "智囊正在工作" : "说出你真正想解决的问题…") : "请先在大厅登录"} disabled={!token || busy} />
+          <button type="submit" disabled={!token || busy || !draft.trim()} className="grid size-11 shrink-0 place-items-center rounded-full bg-[var(--sauna-primary)] text-[var(--sauna-primary-contrast)] transition hover:bg-[var(--sauna-primary-hover)] disabled:cursor-not-allowed disabled:opacity-40" aria-label={busy ? "正在发送" : "发送"}><SubmitGlyph busy={busy} reduce={reduce} /></button>
+        </form>
+      </motion.div>
+
+      {historyOpen ? (
+        <motion.div className="fixed inset-0 z-50 bg-[var(--sauna-scrim)] backdrop-blur-sm" initial={reduce ? false : { opacity: 0 }} animate={{ opacity: 1 }} onMouseDown={() => setHistoryOpen(false)}>
+          <motion.aside role="dialog" aria-modal="true" aria-label="历史咨询" initial={reduce ? false : { x: "100%" }} animate={{ x: 0 }} transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }} onMouseDown={(event) => event.stopPropagation()} className="absolute inset-y-0 right-0 flex w-full max-w-[420px] flex-col border-l border-[color:var(--sauna-line)] bg-[var(--sauna-panel-strong)] p-5 shadow-[var(--sauna-shadow)]">
+            <div className="flex items-center justify-between gap-4"><div><p className="text-sm text-[var(--sauna-muted)]">Consultation archive</p><h2 className="sauna-display mt-1 text-3xl tracking-[-0.04em]">历史咨询</h2></div><button type="button" onClick={() => setHistoryOpen(false)} className="grid size-10 place-items-center rounded-full bg-[var(--sauna-soft)] text-[var(--sauna-muted)]" aria-label="关闭历史记录"><X size={17} /></button></div>
+            <div className="mt-6 min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
+              {historySessions.length ? historySessions.map((session) => {
                 const active = session.id === currentSessionId;
                 return (
-                  <div
-                    key={session.id}
-                    className={`grid grid-cols-[34px_minmax(0,1fr)_auto] gap-2 rounded-[20px] p-2 transition ${active ? "bg-[var(--sauna-accent-soft)]" : "bg-[var(--sauna-soft-strong)] hover:bg-[var(--sauna-soft)]"}`}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => router.push(`/focus-room/${session.id}`)}
-                      className="grid size-8 place-items-center rounded-[13px] bg-[var(--sauna-panel-strong)] text-lg"
-                    >
-                      {session.agentAvatarEmoji || "🧠"}
-                    </button>
+                  <div key={session.id} className={`grid grid-cols-[42px_minmax(0,1fr)_auto] gap-3 rounded-[20px] border p-3 ${active ? "border-[color:var(--sauna-accent)] bg-[var(--sauna-accent-soft)]" : "border-[color:var(--sauna-line)] bg-[var(--sauna-panel)]"}`}>
+                    <button type="button" onClick={() => { setHistoryOpen(false); router.push(`/focus-room/${session.id}`); }} className="grid size-10 place-items-center rounded-[15px] bg-[var(--sauna-panel-strong)] text-xl">{session.agentAvatarEmoji || "🧠"}</button>
                     <div className="min-w-0">
                       {editingSessionId === session.id ? (
-                        <form
-                          onSubmit={submitRename}
-                          onClick={(event) => event.stopPropagation()}
-                          className="flex gap-1"
-                        >
-                          <input
-                            value={editingTitle}
-                            onChange={(event) =>
-                              setEditingTitle(event.target.value)
-                            }
-                            className="min-w-0 flex-1 rounded-full bg-[var(--sauna-panel-strong)] px-3 py-1 text-xs font-semibold text-[var(--sauna-text)] outline-none ring-1 ring-[var(--sauna-line-strong)] focus:ring-[var(--sauna-accent)]"
-                            autoFocus
-                            maxLength={80}
-                          />
-                          <button
-                            type="submit"
-                            className="rounded-full bg-[var(--sauna-primary)] px-2 text-[10px] font-semibold text-[var(--sauna-primary-contrast)]"
-                          >
-                            保存
-                          </button>
-                        </form>
+                        <form onSubmit={submitRename} className="flex gap-1"><input value={editingTitle} onChange={(event) => setEditingTitle(event.target.value)} className="min-w-0 flex-1 rounded-full bg-[var(--sauna-panel-strong)] px-3 py-1 text-xs outline-none ring-1 ring-[var(--sauna-line-strong)]" autoFocus maxLength={80} /><button type="submit" className="rounded-full bg-[var(--sauna-primary)] px-2 text-[10px] text-[var(--sauna-primary-contrast)]">保存</button></form>
                       ) : (
-                        <span className="flex items-center justify-between gap-2">
-                          <span className="truncate text-xs font-semibold text-[var(--sauna-text)]">
-                            {session.title || session.agentDisplayName}
-                          </span>
-                          <span className="shrink-0 text-[10px] text-[var(--sauna-muted)]">
-                            {formatSessionTime(
-                              session.lastActivityAt,
-                              hydrated,
-                            )}
-                          </span>
-                        </span>
+                        <button type="button" onClick={() => { setHistoryOpen(false); router.push(`/focus-room/${session.id}`); }} className="block w-full text-left"><span className="block truncate text-sm font-semibold text-[var(--sauna-text)]">{session.title || session.agentDisplayName}</span><span className="mt-1 block truncate text-xs text-[var(--sauna-muted)]">{formatSessionTime(session.lastActivityAt, hydrated)}</span></button>
                       )}
-                      <span className="mt-0.5 line-clamp-1 block text-[11px] text-[var(--sauna-muted)]">
-                        {session.lastMessagePreview ||
-                          `${session.agentDisplayName || "智囊"} 的会话`}
-                      </span>
                     </div>
-                    <span className="flex items-center gap-1 self-start">
-                      <button
-                        type="button"
-                        onClick={() => beginRename(session)}
-                        className="grid size-7 place-items-center rounded-full bg-[var(--sauna-panel-strong)] text-[var(--sauna-muted)] transition hover:text-[var(--sauna-text)]"
-                        aria-label="重命名会话"
-                      >
-                        <PencilSimple size={13} />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setPendingDeleteSessionId(session.id)}
-                        className="grid size-7 place-items-center rounded-full bg-[var(--sauna-panel-strong)] text-[var(--sauna-danger)] transition hover:bg-[var(--sauna-danger-soft)]"
-                        aria-label="删除会话"
-                      >
-                        <Trash size={13} />
-                      </button>
-                    </span>
+                    <span className="flex items-start gap-1"><button type="button" onClick={() => beginRename(session)} className="grid size-8 place-items-center rounded-full text-[var(--sauna-muted)] hover:bg-[var(--sauna-soft)]" aria-label="重命名会话"><PencilSimple size={14} /></button><button type="button" onClick={() => setPendingDeleteSessionId(session.id)} className="grid size-8 place-items-center rounded-full text-[var(--sauna-danger)] hover:bg-[var(--sauna-danger-soft)]" aria-label="删除会话"><Trash size={14} /></button></span>
                   </div>
                 );
-              })}
+              }) : <div className="rounded-[22px] bg-[var(--sauna-soft)] p-5 text-sm text-[var(--sauna-muted)]">还没有真正发生过的咨询。</div>}
             </div>
-          ) : (
-            <p className="mt-2 rounded-[20px] bg-[var(--sauna-soft-strong)] p-3 text-xs leading-relaxed text-[var(--sauna-muted)]">
-              会话会自动保存在这里。
-            </p>
-          )}
-          <button
-            type="button"
-            onClick={() => void openFreshSession()}
-            disabled={!token || busy}
-            className="mt-3 inline-flex h-10 w-full items-center justify-center gap-2 rounded-full bg-[var(--sauna-accent)] text-sm font-semibold text-[var(--sauna-primary-contrast)] transition hover:bg-[var(--sauna-accent-hover)] active:translate-y-px disabled:cursor-not-allowed disabled:bg-[var(--sauna-soft-strong)]"
-          >
-            新开咨询 <ArrowRight size={15} />
-          </button>
-        </div>
-      </motion.aside>
+            <button type="button" onClick={() => { setHistoryOpen(false); void openFreshSession(); }} disabled={!token || busy} className="mt-4 inline-flex h-11 items-center justify-center gap-2 rounded-full bg-[var(--sauna-primary)] text-sm font-semibold text-[var(--sauna-primary-contrast)] disabled:opacity-40">新开咨询 <ArrowRight size={15} /></button>
+          </motion.aside>
+        </motion.div>
+      ) : null}
 
       {pendingDeleteSessionId ? (
-        <div
-          className="fixed inset-0 z-50 grid place-items-center bg-[var(--sauna-scrim)] px-4 backdrop-blur-sm"
-          role="dialog"
-          aria-modal="true"
-          aria-label="删除会话确认"
-        >
-          <motion.div
-            initial={reduce ? false : { opacity: 0, y: 14, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            className="w-full max-w-sm rounded-[30px] bg-[var(--sauna-panel-strong)] p-6 shadow-[var(--sauna-shadow)]"
-          >
-            <h2 className="text-xl font-semibold tracking-[-0.04em] text-[var(--sauna-text)]">
-              删除这条咨询？
-            </h2>
-            <p className="mt-3 text-sm leading-relaxed text-[var(--sauna-muted)]">
-              删除后会清理这条会话的消息和事件记录，无法恢复。
-            </p>
-            <div className="mt-6 flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setPendingDeleteSessionId(undefined)}
-                className="h-10 rounded-full bg-[var(--sauna-soft-strong)] px-4 text-sm font-semibold text-[var(--sauna-muted-strong)] transition hover:bg-[var(--sauna-soft)]"
-              >
-                取消
-              </button>
-              <button
-                type="button"
-                onClick={() => void confirmDeleteSession()}
-                className="h-10 rounded-full bg-[var(--sauna-danger)] px-4 text-sm font-semibold text-[var(--sauna-primary-contrast)] transition hover:bg-[var(--sauna-danger-strong)]"
-              >
-                删除
-              </button>
-            </div>
+        <div className="fixed inset-0 z-[60] grid place-items-center bg-[var(--sauna-scrim)] px-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="删除会话确认">
+          <motion.div initial={reduce ? false : { opacity: 0, y: 14, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} className="w-full max-w-sm rounded-[28px] border border-[color:var(--sauna-line)] bg-[var(--sauna-panel-strong)] p-6 shadow-[var(--sauna-shadow)]">
+            <h2 className="sauna-display text-2xl tracking-[-0.04em]">删除这条咨询？</h2><p className="mt-3 text-sm leading-6 text-[var(--sauna-muted)]">消息和事件记录会一并清理，无法恢复。</p><div className="mt-6 flex justify-end gap-2"><button type="button" onClick={() => setPendingDeleteSessionId(undefined)} className="h-10 rounded-full bg-[var(--sauna-soft)] px-4 text-sm font-semibold text-[var(--sauna-muted-strong)]">取消</button><button type="button" onClick={() => void confirmDeleteSession()} className="h-10 rounded-full bg-[var(--sauna-danger)] px-4 text-sm font-semibold text-white">删除</button></div>
           </motion.div>
         </div>
       ) : null}
-      <motion.div
-        initial={reduce ? false : { opacity: 0, y: 18 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.05, ease: [0.16, 1, 0.3, 1] }}
-        className="relative flex min-h-0 flex-col overflow-hidden rounded-[38px] border border-[color:var(--sauna-line)] bg-[var(--sauna-panel-strong)] p-4 shadow-[var(--sauna-shadow)] backdrop-blur-xl sm:p-5"
-      >
-        <div className="relative flex items-center justify-between gap-4 rounded-[30px] bg-[var(--sauna-soft-strong)] p-5">
-          <div>
-            <h2 className="text-2xl font-semibold tracking-[-0.045em] text-[var(--sauna-text)]">
-              {title}
-            </h2>
-            <p className="mt-1 text-sm text-[var(--sauna-muted)]">1v1 咨询</p>
-          </div>
-          <span
-            className={`hidden items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold sm:inline-flex ${statusTone}`}
-          >
-            {busy ? (
-              <DotsThree size={16} weight="bold" />
-            ) : (
-              <CheckCircle size={14} weight="fill" />
-            )}
-            {statusLabel}
-          </span>
-        </div>
-
-        <ChatMessagesPanel
-          messages={messages}
-          statusLabel={statusLabel}
-          busy={busy}
-          focusError={focusError}
-          archiveStatus={archiveStatus}
-          reduce={reduce}
-        />
-
-        <form
-          onSubmit={submitMessage}
-          className="relative flex items-center gap-3 rounded-full border border-[color:var(--sauna-line)] bg-[var(--sauna-steam)] p-2 transition focus-within:border-[var(--sauna-accent)] focus-within:bg-[var(--sauna-panel-strong)]"
-        >
-          <input
-            value={draft}
-            onChange={(event) => setDraft(event.target.value)}
-            className="min-w-0 flex-1 bg-transparent px-4 text-sm text-[var(--sauna-text)] outline-none placeholder:text-[var(--sauna-muted)]"
-            placeholder={
-              token ? (busy ? "智囊正在工作" : "输入问题") : "请先在大厅登录"
-            }
-            disabled={!token || busy}
-          />
-          <button
-            type="submit"
-            disabled={!token || busy || !draft.trim()}
-            className="grid size-11 place-items-center rounded-full bg-[var(--sauna-accent)] text-[var(--sauna-primary-contrast)] transition hover:bg-[var(--sauna-accent-hover)] active:translate-y-px disabled:cursor-not-allowed disabled:bg-[var(--sauna-soft-strong)]"
-            aria-label={busy ? "正在发送" : "发送"}
-          >
-            <SubmitGlyph busy={busy} reduce={reduce} />
-          </button>
-        </form>
-      </motion.div>
     </section>
   );
 }

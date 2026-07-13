@@ -356,3 +356,34 @@ When starting on the other server:
 
 - Date: 2026-07-03
 - Purpose: create Git-tracked Claude Code cross-server instructions and sanitized shared project memory.
+
+
+---
+
+## 2026-07-13 Quiet-luxury full-product redesign (supersedes prior tank/steam direction)
+
+The design direction documented above for distillation tanks, temperature gauges, steam particles, and preheating rituals is obsolete. `DESIGN.md` is now the authoritative visual and interaction contract.
+
+### Current UI state
+
+- Day theme uses cream, ivory, walnut, brass, and warm window-light ambience.
+- Night theme uses charcoal, deep walnut, amber firelight, and a restrained lavender undertone.
+- Desktop navigation is a sticky hotel-style top navigation rather than a left sidebar.
+- The entry page is an atmospheric welcome scene with a concise advisor directory.
+- The lobby reveals the consultation composer only after the user selects a workstation.
+- Workstations are equal-height material consoles with walnut, brass nameplates, and softly lit screens.
+- FocusRoom is a centered, internally scrolling consultation surface; history is in a right-side drawer.
+- Studio, settings, provider configuration, and board placeholder share the same quiet-luxury surfaces.
+- Unused steam, temperature, and preparation-modal components were removed.
+
+### Preserved behavior
+
+Routes, API integrations, Zustand state, authentication, provider settings, SSE streaming, Markdown/code rendering, plan-event rendering, session rename/delete, and conversation history behavior remain intact.
+
+### Verification
+
+- `npm run web:typecheck`: passed.
+- `npm run web:lint`: passed.
+- `npm run web:build`: passed (only the existing Next.js multiple-lockfile workspace-root warning).
+- `git diff --check`: passed.
+- No backend changes; backend restart is not required.

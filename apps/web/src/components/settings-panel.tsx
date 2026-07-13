@@ -19,8 +19,8 @@ import { getSaunaApiBaseUrl, humanizeApiError } from "@/lib/sauna-api";
 import { useSaunaStore } from "@/store/sauna-store";
 import type { FetchedModel, ProviderConfig, ProviderTestChatResult } from "@/types/sauna";
 
-const fieldClass = "h-11 w-full rounded-[16px] border border-[color:var(--sauna-line)] bg-[var(--sauna-steam)] px-4 text-sm text-[var(--sauna-text)] outline-none transition placeholder:text-[var(--sauna-muted)] focus:border-[var(--sauna-accent)] focus:bg-[var(--sauna-panel-strong)]";
-const selectClass = "min-h-11 w-full rounded-[16px] border border-[color:var(--sauna-line)] bg-[var(--sauna-steam)] px-4 py-3 text-sm text-[var(--sauna-text)] outline-none transition focus:border-[var(--sauna-accent)] focus:bg-[var(--sauna-panel-strong)]";
+const fieldClass = "h-11 w-full rounded-[16px] border border-[color:var(--sauna-line)] bg-[var(--sauna-soft)] px-4 text-sm text-[var(--sauna-text)] outline-none transition placeholder:text-[var(--sauna-muted)] focus:border-[var(--sauna-accent)] focus:bg-[var(--sauna-panel-strong)]";
+const selectClass = "min-h-11 w-full rounded-[16px] border border-[color:var(--sauna-line)] bg-[var(--sauna-soft)] px-4 py-3 text-sm text-[var(--sauna-text)] outline-none transition focus:border-[var(--sauna-accent)] focus:bg-[var(--sauna-panel-strong)]";
 const primaryButtonClass = "inline-flex h-11 items-center justify-center gap-2 rounded-full bg-[var(--sauna-primary)] px-5 text-sm font-semibold text-[var(--sauna-primary-contrast)] transition hover:bg-[var(--sauna-primary-hover)] active:translate-y-px disabled:cursor-not-allowed disabled:bg-[var(--sauna-soft-strong)]";
 const secondaryButtonClass = "inline-flex h-11 items-center justify-center gap-2 rounded-full border border-[color:var(--sauna-line)] bg-[var(--sauna-panel-strong)] px-5 text-sm font-semibold text-[var(--sauna-text)] transition hover:bg-[var(--sauna-soft)] active:translate-y-px disabled:cursor-not-allowed disabled:text-[var(--sauna-muted)]";
 const dangerButtonClass = "inline-flex h-11 items-center justify-center gap-2 rounded-full bg-[var(--sauna-danger-soft)] px-5 text-sm font-semibold text-[var(--sauna-danger-strong)] transition hover:bg-[var(--sauna-danger-soft)] active:translate-y-px disabled:cursor-not-allowed disabled:opacity-60";
@@ -384,9 +384,9 @@ export function SettingsPanel() {
         className="relative overflow-hidden rounded-[38px] border border-[color:var(--sauna-line)] bg-[var(--sauna-panel)] p-5 shadow-[var(--sauna-shadow)] backdrop-blur-xl sm:p-6"
       >
         <motion.div
-          className="pointer-events-none absolute right-[8%] top-[10%] size-48 rounded-full bg-[var(--sauna-accent-soft)] blur-2xl"
-          animate={reduce ? undefined : { scale: [1, 1.12, 1], opacity: [0.48, 0.78, 0.48] }}
-          transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
+          className="pointer-events-none absolute right-[8%] top-[10%] size-56 rounded-full bg-[color-mix(in_srgb,var(--sauna-accent-soft)_58%,transparent)] blur-3xl"
+          animate={reduce ? undefined : { scale: [1, 1.04, 1], opacity: [0.34, 0.58, 0.34] }}
+          transition={{ duration: 16, repeat: Infinity, ease: "easeInOut" }}
         />
         <div className="relative flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div>
@@ -394,7 +394,7 @@ export function SettingsPanel() {
             <h1 className="mt-3 max-w-[9ch] text-5xl font-semibold leading-[0.98] tracking-[-0.07em] text-[var(--sauna-text)] sm:text-6xl">模型中枢。</h1>
             <p className="mt-5 max-w-none whitespace-nowrap text-sm leading-relaxed text-[var(--sauna-muted-strong)]">把供应商、Key 和模型集中管理。保存后，大厅会使用真实调用。</p>
           </div>
-          <div className="rounded-[28px] bg-[var(--sauna-panel-strong)] p-4 shadow-[var(--sauna-shadow)]">
+          <div className="rounded-[28px] border border-[color:var(--sauna-line)] bg-[var(--sauna-panel-strong)] p-4">
             <p className="text-xs font-medium text-[var(--sauna-muted)]">API Proxy</p>
             <p className="mt-2 break-all text-sm font-semibold text-[var(--sauna-text)]">{getSaunaApiBaseUrl()}</p>
           </div>
@@ -413,10 +413,10 @@ export function SettingsPanel() {
                 key={provider.id}
                 type="button"
                 onClick={() => editProvider(provider)}
-                className={`group rounded-[32px] border p-5 text-left shadow-[var(--sauna-shadow)] transition hover:-translate-y-1 active:translate-y-px ${selectedProviderId === provider.id ? "border-[color:var(--sauna-accent)] bg-[var(--sauna-accent-soft)]" : "border-[color:var(--sauna-line)] bg-[var(--sauna-panel-strong)]"}`}
+                className={`group rounded-[32px] border p-5 text-left transition hover:-translate-y-0.5 active:translate-y-px ${selectedProviderId === provider.id ? "border-[color:var(--sauna-accent)] bg-[var(--sauna-accent-soft)]" : "border-[color:var(--sauna-line)] bg-[var(--sauna-panel-strong)]"}`}
               >
                 <div className="flex items-start justify-between gap-4">
-                  <div className="grid size-13 place-items-center rounded-[20px] bg-[var(--sauna-primary)] text-[var(--sauna-primary-contrast)]">
+                  <div className="grid size-13 place-items-center rounded-[20px] bg-[var(--sauna-soft)] text-[var(--sauna-accent-strong)]">
                     <Key size={22} weight="duotone" />
                   </div>
                   <span className={`rounded-full px-3 py-1 text-xs font-semibold ${provider.is_default ? "bg-[var(--sauna-accent-soft)] text-[var(--sauna-accent-strong)]" : "bg-[var(--sauna-soft-strong)] text-[var(--sauna-muted)]"}`}>
@@ -519,7 +519,7 @@ export function SettingsPanel() {
             向量模型
             <input className={fieldClass} value={draft.embedding_model} onChange={(event) => updateDraft("embedding_model", event.target.value)} placeholder="text-embedding-3-small" />
           </label>
-          <label className="flex items-center gap-3 rounded-[20px] bg-[var(--sauna-steam)] p-3 text-sm font-medium text-[var(--sauna-muted-strong)]">
+          <label className="flex items-center gap-3 rounded-[20px] border border-[color:var(--sauna-line)] bg-[var(--sauna-soft)] p-3 text-sm font-medium text-[var(--sauna-muted-strong)]">
             <input className="size-4 accent-[var(--sauna-accent)]" type="checkbox" checked={draft.is_default} onChange={(event) => updateDraft("is_default", event.target.checked)} />
             设为默认调用模型
           </label>
