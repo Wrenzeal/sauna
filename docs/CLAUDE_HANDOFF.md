@@ -406,3 +406,20 @@ Routes, API integrations, Zustand state, authentication, provider settings, SSE 
 - `npm run web:build`: passed; existing multiple-lockfile workspace-root warning only.
 - `git diff --check`: passed.
 - Backend restart is not required.
+
+
+## 2026-07-13 Brand icon and bilingual README
+
+- Replaced the mint-dot favicon with the Sauna “light door and seat” mark: a walnut arch, amber interior light, and a quiet seat representing entry into a private advisory space.
+- Added a maintainable SVG master plus multi-resolution favicon, 180px Apple touch icon, and 512px README asset.
+- Next.js metadata now declares browser and Apple icons; light/dark browser theme colors use the Next.js 16 `viewport` export.
+- Rebuilt `README.md` as the Chinese default and added `README_EN.md` with equivalent product, nuwa-skill, architecture, setup, deployment, security, and roadmap content.
+- README examples use placeholders only and do not include real database, SMTP, provider, or GitHub credentials.
+
+### Verification
+- `npm run web:typecheck`: passed.
+- `npm run web:lint`: passed.
+- `npm run web:build`: passed; `/icon.svg` generated and only the existing multiple-lockfile workspace-root warning remains.
+- `git diff --check`: passed.
+- README local-link check and targeted secret scan passed.
+- ICO includes 16px, 32px, and 48px sizes; Apple icon is 180px.

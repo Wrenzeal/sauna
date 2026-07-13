@@ -1,187 +1,180 @@
-# Sauna
+<div align="center">
+  <img src="apps/web/public/sauna-mark.svg" width="112" alt="Sauna 标志：光门与座席" />
+  <h1>Sauna</h1>
+  <p><strong>和你的 AI 智囊团一起，把复杂的问题想清楚。</strong></p>
+  <p>
+    <a href="README.md">简体中文</a> ·
+    <a href="README_EN.md">English</a>
+  </p>
+</div>
 
-Sauna is a personal AI brain-trust workspace. It lets users consult with a set of distilled advisors, and later distill their own advisors from structured persona prompts and knowledge material inspired by the nuwa-skill approach.
+Sauna 是一个个人 AI 智囊团工作空间。系统可以提供已经通过 `nuwa-skill` 思路蒸馏完成的默认智囊，也允许用户创建属于自己的智囊 Skill；咨询时，Sauna 会加载对应 Skill，并调用用户配置的大模型进行真实、流式的对话。
 
-## What it does
+> 项目目前处于持续开发阶段。产品界面仍在迭代，因此仓库暂不展示可能快速过时的截图。
 
-- **Lobby**: shows available advisors as a workspace-style brain trust.
-- **Focus room**: one-to-one consultation with a selected advisor.
-- **Distillation studio**: creates user-owned advisor skills from a public template or a new distillation job.
-- **Model settings**: stores user-provided OpenAI-compatible provider configuration such as Base URL, API key, and model.
-- **Streaming chat**: streams assistant output over SSE and persists real consultation history.
+## 核心体验
 
-## Tech stack
+- **智囊大厅**：以工位形式展示默认和个人智囊，选中人物后再开始咨询。
+- **VIP 桑拿房**：支持 SSE 流式响应、Markdown、代码块、执行计划展示和历史会话。
+- **蒸馏车间**：从公共模板创建 Skill，或提交新的 `nuwa-skill` 蒸馏任务。
+- **模型设置**：保存 OpenAI-compatible Base URL、API Key、供应商和模型。
+- **真实登录**：支持邮件验证码登录；生产环境通过 SMTP 发送验证码。
+- **董事会桑拿**：多智囊协作与辩论的后续能力，当前为规划功能。
 
-- **Frontend**: Next.js 16 App Router, React 19, Tailwind CSS, Zustand, Motion.
-- **Backend**: Go, Gin, Clean Architecture-style service/repository/http layers.
-- **Database**: PostgreSQL with `pgvector` and `pgcrypto`.
-- **Cache**: DragonFlyDB or Redis-compatible cache.
-- **LLM adapter**: OpenAI-compatible chat completions and model listing endpoints.
+## nuwa-skill 如何接入
 
-## Repository layout
+默认智囊不是只靠一句“模仿名人”的提示词生成。后端会把已蒸馏的 Skill Markdown 作为版本化内容保存，在每次咨询时将所选人物的身份、认知框架和 Skill 内容组装进系统提示词，再交给用户配置的模型。
+
+默认 Skill 位于：
 
 ```text
-apps/web       Next.js frontend
-apps/backend   Go API server, migrations, nuwa-skill seed data
-docs           Product context and notes
-scripts        Local start/stop scripts
+apps/backend/seed/nuwa-skills
 ```
 
-## Prerequisites
+当前仓库包含乔布斯、马斯克、费曼、芒格、Naval 和 Paul Graham 等种子 Skill。用户创建的智囊以私有 Agent 和 Skill 版本保存；后续知识资料可通过 PostgreSQL `pgvector` 扩展检索能力。
 
-- Node.js and npm
-- Go 1.25 or newer
-- PostgreSQL with `pgvector` and `pgcrypto`
-- DragonFlyDB or Redis-compatible service
-
-A typical local setup uses:
+## 架构
 
 ```text
-PostgreSQL: 127.0.0.1:5432, database sauna
-DragonFlyDB: redis://127.0.0.1:16379/0
+Browser / Next.js 16
+        │  REST + SSE
+        ▼
+Go API / Gin
+        │
+        ├── Auth、Workspace、Agent、Session、Turn
+        ├── Prompt Assembly / nuwa-skill Loader
+        └── OpenAI-compatible LLM Adapter
+        │
+        ├── PostgreSQL + pgvector + pgcrypto
+        └── DragonFlyDB / Redis-compatible cache
+```
+
+- **前端**：Next.js 16 App Router、React 19、Tailwind CSS、Zustand、Motion。
+- **后端**：Go、Gin，按 Domain / Repository / Usecase / Handler 分层。
+- **数据库**：PostgreSQL，关系数据与向量数据统一存储。
+- **缓存**：DragonFlyDB，负责验证码、限流和运行时缓存。
+- **模型层**：OpenAI-compatible 模型发现与流式 Chat Completions。
+
+## 仓库结构
+
+```text
+apps/web       Next.js 前端
+apps/backend   Go API、数据库迁移和 nuwa-skill 种子
+scripts        本地启停脚本
+docs           PRD 与跨开发环境交接文档
+```
+
+## 环境要求
+
+- Node.js 与 npm
+- Go 1.25+
+- PostgreSQL，并启用 `pgvector`、`pgcrypto`
+- DragonFlyDB 或兼容 Redis 的服务
+
+默认本地服务：
+
+```text
+PostgreSQL: 127.0.0.1:5432 / sauna
+DragonFly:  redis://127.0.0.1:16379/0
 Backend:    http://127.0.0.1:19588
 Frontend:   http://127.0.0.1:3000
 ```
 
-## Environment variables
-
-Copy the example file and edit values for your machine. The local start script reads `.env` and `.env.local`; both are ignored by git.
+## 配置
 
 ```bash
 cp .env.example .env
 ```
 
-Important backend variables:
+后端核心变量：
 
-```text
-DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5432/sauna?sslmode=disable
+```dotenv
+APP_ENV=development
+HTTP_ADDR=:19588
+DATABASE_URL=postgres://postgres:YOUR_PASSWORD@127.0.0.1:5432/sauna?sslmode=disable
 REDIS_URL=redis://127.0.0.1:16379/0
 SAUNA_SECRET_KEY=change-me-to-a-long-random-secret
-CORS_ALLOW_ORIGINS=http://localhost:3000,http://127.0.0.1:3000,https://sauna.wrenzeal.top
+CORS_ALLOW_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
 AUTH_EMAIL_DRIVER=dev
 ```
 
-For production email-code login, configure SMTP on the backend/VPS:
+前端变量：
 
-```text
-APP_ENV=production
-AUTH_EMAIL_DRIVER=smtp
-SMTP_HOST=smtp.example.com
-SMTP_PORT=587
-SMTP_USERNAME=your-smtp-user
-SMTP_PASSWORD=your-smtp-password
-SMTP_FROM=noreply@example.com
-SMTP_FROM_NAME=Sauna
-SMTP_SECURITY=auto
-```
-
-Development uses `AUTH_EMAIL_DRIVER=dev`, which returns/logs a development verification code. Production never returns `dev_code` and requires SMTP.
-
-Important frontend variables:
-
-```text
+```dotenv
 NEXT_PUBLIC_SAUNA_API_BASE_URL=http://127.0.0.1:19588/api/v1
+SAUNA_BACKEND_INTERNAL_URL=http://127.0.0.1:19588
 ```
 
-Do not commit real `.env` files or provider API keys.
+生产环境邮件登录还需要配置 `SMTP_HOST`、`SMTP_PORT`、`SMTP_USERNAME`、`SMTP_PASSWORD`、`SMTP_FROM` 和 `SMTP_SECURITY`。不要把真实数据库密码、SMTP 密码或模型 Key 提交到 Git。
 
-## Install
+## 安装与运行
 
 ```bash
 npm install
 npm --prefix apps/web install
+cd apps/backend && go mod download && cd ../..
 ```
 
-Go dependencies are resolved by the backend module:
-
-```bash
-cd apps/backend
-go mod download
-```
-
-## Run locally
-
-From the repository root, after configuring `.env` or `.env.local`:
+启动 VPS 上的 Go 后端：
 
 ```bash
 npm run dev:start
 ```
 
-This starts only the Go backend on `:19588`. The frontend is expected to run on Vercel for the deployed app.
-
-Stop the backend with:
+停止后端：
 
 ```bash
 npm run dev:stop
 ```
 
-For local UI development, run the frontend separately:
+本地开发前端：
 
 ```bash
 npm run web:dev
 ```
 
-The local frontend will proxy `/api/sauna/*` to the backend configured by `SAUNA_BACKEND_INTERNAL_URL`.
+健康检查：
 
-## Verification
+```bash
+curl http://127.0.0.1:19588/health
+```
+
+## 验证
 
 ```bash
 npm run backend:test
 npm run web:typecheck
 npm run web:lint
 npm run web:build
+git diff --check
 ```
 
-Backend health check:
+## 部署
 
-```bash
-curl http://127.0.0.1:19588/health
-```
-
-## Deployment notes
-
-### Frontend on Vercel
-
-Recommended Vercel settings:
+### Vercel 前端
 
 ```text
 Root Directory: apps/web
 Build Command: npm run build
-Environment: NEXT_PUBLIC_SAUNA_API_BASE_URL=https://api.sauna.wrenzeal.top/api/v1
+NEXT_PUBLIC_SAUNA_API_BASE_URL=https://api.sauna.wrenzeal.top/api/v1
 ```
 
-The production frontend domain is intended to be:
+生产前端地址为 `https://sauna.wrenzeal.top`。Vercel 只需要公开 API 地址，不应保存数据库、SMTP、平台模型或加密密钥。
 
-```text
-https://sauna.wrenzeal.top
-```
+### Go 后端与 Nginx
 
-Do not put backend secrets, SMTP credentials, database URLs, or LLM provider keys in Vercel frontend variables. Vercel only needs the public API base URL above.
+Go 后端监听 `127.0.0.1:19588`，由 Nginx 暴露为 `https://api.sauna.wrenzeal.top`。SSE 代理路径必须关闭 buffering，并设置足够长的读取超时。后端环境保存数据库、DragonFlyDB、`SAUNA_SECRET_KEY`、CORS 和 SMTP 配置。
 
-### Backend behind Nginx
+## 安全边界
 
-The backend should run privately on the VPS, for example on `127.0.0.1:19588`, and be exposed through Nginx:
+- Provider API Key 加密后入库，前端只获得脱敏提示。
+- 匿名试用与登录验证码通过 DragonFlyDB 限流。
+- `.env`、构建产物、依赖目录、本地运行状态及 Codex/OMX 状态不应提交。
+- 生产环境必须使用高强度 `SAUNA_SECRET_KEY`、明确的 `DATABASE_URL` 和 SMTP 配置。
 
-```text
-https://api.sauna.wrenzeal.top
-```
+## 路线图
 
-For SSE streaming, disable proxy buffering in the Nginx location that forwards to the Go API.
-
-The backend environment on the VPS should include the production database, DragonFlyDB, `SAUNA_SECRET_KEY`, CORS origins, and SMTP settings for real login emails.
-
-## Advisor and nuwa-skill model
-
-Default advisors are seeded from markdown skill files under:
-
-```text
-apps/backend/seed/nuwa-skills
-```
-
-A user consultation loads the selected advisor's current skill content into the system prompt before calling the configured LLM provider. User-created advisors are stored as private agent versions and can later be extended with richer RAG ingestion through PostgreSQL and `pgvector`.
-
-## Security notes
-
-- Provider API keys are encrypted before storage and only masked hints are returned to the frontend.
-- `.env`, local runtime state, local Codex/OMX state, build output, sqlite files, and dependency directories are ignored by git.
-- Public deployments must set a strong `SAUNA_SECRET_KEY` and an explicit production `DATABASE_URL`.
+- 完善外部 Agent 执行器与蒸馏任务队列。
+- 将上传资料切分、嵌入并存入 `pgvector`。
+- 实现多智囊董事会讨论、观点汇总和分歧展示。
+- 增加稳定的产品截图、贡献指南和自动化端到端测试。
