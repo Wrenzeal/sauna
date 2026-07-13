@@ -1,7 +1,7 @@
 "use client";
 
 import { MouseEvent, useSyncExternalStore } from "react";
-import { MoonStars, Sparkle, Sun } from "@phosphor-icons/react";
+import { MoonStars, Sun } from "@phosphor-icons/react";
 import { motion, useReducedMotion } from "motion/react";
 
 type SaunaTheme = "day" | "night";
@@ -82,30 +82,19 @@ export function ThemeToggle({ compact = false }: { compact?: boolean }) {
       aria-pressed={night}
     >
       <motion.span
-        className="absolute inset-0 opacity-80"
-        animate={
-          reduce
-            ? undefined
-            : {
-                background: night
-                  ? [
-                      "radial-gradient(circle at 78% 35%, rgba(99,230,215,0.30), transparent 34%)",
-                      "radial-gradient(circle at 30% 65%, rgba(97,172,255,0.22), transparent 38%)",
-                      "radial-gradient(circle at 78% 35%, rgba(99,230,215,0.30), transparent 34%)",
-                    ]
-                  : [
-                      "radial-gradient(circle at 24% 35%, rgba(21,184,166,0.18), transparent 34%)",
-                      "radial-gradient(circle at 70% 58%, rgba(151,211,255,0.22), transparent 38%)",
-                      "radial-gradient(circle at 24% 35%, rgba(21,184,166,0.18), transparent 34%)",
-                    ],
-              }
-        }
-        transition={{ duration: 4.2, repeat: Infinity, ease: "easeInOut" }}
+        className="absolute inset-0"
+        animate={{
+          background: night
+            ? "radial-gradient(circle at 76% 42%, var(--sauna-glow-1), transparent 48%)"
+            : "radial-gradient(circle at 24% 42%, var(--sauna-glow-2), transparent 50%)",
+          opacity: night ? 0.62 : 0.86,
+        }}
+        transition={{ duration: 0.48, ease: [0.16, 1, 0.3, 1] }}
       />
       <motion.span
         className="relative z-10 grid size-10 place-items-center rounded-full bg-[var(--sauna-accent)] text-[var(--sauna-primary-contrast)] shadow-[0_12px_30px_var(--sauna-accent-shadow)]"
         animate={{ x: night ? (compact ? 40 : 86) : 0, rotate: night ? 180 : 0 }}
-        transition={{ type: "spring", stiffness: 420, damping: 30 }}
+        transition={{ duration: 0.42, ease: [0.16, 1, 0.3, 1] }}
       >
         <motion.span
           key={theme}
@@ -121,21 +110,12 @@ export function ThemeToggle({ compact = false }: { compact?: boolean }) {
         {compact ? null : night ? "深夜" : "白天"}
       </span>
 
-      {[0, 1, 2].map((index) => (
-        <motion.span
-          key={index}
-          className="pointer-events-none absolute text-[var(--sauna-accent)]"
-          style={{
-            left: `${compact ? 58 + index * 8 : 78 + index * 12}%`,
-            top: `${24 + index * 18}%`,
-          }}
-          animate={reduce ? undefined : { opacity: night ? [0.15, 0.78, 0.15] : [0.05, 0.28, 0.05], scale: [0.7, 1.18, 0.7] }}
-          transition={{ duration: 1.6 + index * 0.28, repeat: Infinity, ease: "easeInOut", delay: index * 0.15 }}
-          aria-hidden="true"
-        >
-          <Sparkle size={compact ? 8 : 10} weight="fill" />
-        </motion.span>
-      ))}
+      <motion.span
+        className="pointer-events-none absolute inset-y-2 rounded-full bg-[radial-gradient(circle,var(--sauna-glow-1),transparent_68%)]"
+        animate={{ left: night ? "38%" : "2%", right: night ? "2%" : "38%", opacity: night ? 0.42 : 0.62 }}
+        transition={{ duration: 0.42, ease: [0.16, 1, 0.3, 1] }}
+        aria-hidden="true"
+      />
     </button>
   );
 }

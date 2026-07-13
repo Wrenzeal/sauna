@@ -387,3 +387,22 @@ Routes, API integrations, Zustand state, authentication, provider settings, SSE 
 - `npm run web:build`: passed (only the existing Next.js multiple-lockfile workspace-root warning).
 - `git diff --check`: passed.
 - No backend changes; backend restart is not required.
+
+
+## 2026-07-13 Boutique-hotel motion system
+
+- Added shared motion timing, easing and route-order rules for consistent interaction behavior.
+- Entry now opens the Lobby through a click-origin warm light curtain; Lobby receives and releases the same light rather than hard-cutting.
+- Workspace routes transition with navigation-aware horizontal direction; FocusRoom enters as a deeper space from below.
+- Top-navigation active surfaces and underline now glide between destinations.
+- Workstations use one-shot material light, shadow and lift responses; the selected advisor composer crossfades by identity.
+- FocusRoom history drawer and delete dialog now animate both entry and exit.
+- Theme toggle no longer uses teal sparkle loops and instead shifts a warm semantic light field.
+- Reduced-motion behavior remains supported and no dependencies, routes, APIs, stores or SSE contracts changed.
+
+### Verification
+- `npm run web:typecheck`: passed.
+- `npm run web:lint`: passed.
+- `npm run web:build`: passed; existing multiple-lockfile workspace-root warning only.
+- `git diff --check`: passed.
+- Backend restart is not required.

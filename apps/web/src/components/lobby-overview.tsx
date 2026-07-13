@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
-import { motion, useReducedMotion } from "motion/react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { motionDuration, saunaEase } from "@/lib/motion-system";
 import { ArrowRight, GearSix, PaperPlaneTilt, Plus, WarningCircle } from "@phosphor-icons/react";
 import { AgentCard } from "@/components/agent-card";
 import { useSaunaStore } from "@/store/sauna-store";
@@ -104,9 +105,10 @@ export function LobbyOverview() {
           </div>
         )}
 
-        <motion.div layout className="sticky bottom-4 z-30 mx-auto mt-7 max-w-[900px]">
+        <motion.div layout className="sticky bottom-4 z-30 mx-auto mt-7 max-w-[900px]" transition={{ duration: motionDuration.component, ease: saunaEase }}>
+          <AnimatePresence mode="wait" initial={false}>
           {activeAgent ? (
-            <motion.form onSubmit={submitQuestion} initial={reduce ? false : { opacity: 0, y: 20, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} className="rounded-[28px] border border-[color:var(--sauna-line-strong)] bg-[color-mix(in_srgb,var(--sauna-panel-strong)_94%,transparent)] p-3 shadow-[var(--sauna-shadow)] backdrop-blur-2xl">
+            <motion.form key={activeAgent.id} onSubmit={submitQuestion} initial={reduce ? false : { opacity: 0, y: 22, scale: 0.985, filter: "blur(6px)" }} animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }} exit={reduce ? undefined : { opacity: 0, y: 10, scale: 0.99 }} transition={{ duration: motionDuration.component, ease: saunaEase }} className="rounded-[28px] border border-[color:var(--sauna-line-strong)] bg-[color-mix(in_srgb,var(--sauna-panel-strong)_94%,transparent)] p-3 shadow-[var(--sauna-shadow)] backdrop-blur-2xl">
               <div className="flex items-center gap-3 px-2 pb-3">
                 <span className="grid size-10 place-items-center rounded-[15px] bg-[var(--sauna-soft)] text-xl">{activeAgent.avatarSeed || "🧠"}</span>
                 <div className="min-w-0 flex-1">
@@ -125,8 +127,9 @@ export function LobbyOverview() {
               </div>
             </motion.form>
           ) : (
-            <div className="flex items-center justify-center gap-2 text-sm text-[var(--sauna-muted)]"><ArrowRight size={15} /> 选择一个工位，咨询入口会在这里出现</div>
+            <motion.div key="workstation-hint" initial={reduce ? false : { opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex items-center justify-center gap-2 text-sm text-[var(--sauna-muted)]"><ArrowRight size={15} /> 选择一个工位，咨询入口会在这里出现</motion.div>
           )}
+          </AnimatePresence>
         </motion.div>
 
         {focusError ? <div className="mx-auto mt-4 max-w-[900px] rounded-[20px] bg-[var(--sauna-danger-soft)] px-4 py-3 text-sm text-[var(--sauna-danger-strong)]">{focusError}</div> : null}

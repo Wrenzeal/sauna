@@ -10,7 +10,7 @@ import {
 import { useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { motion, useReducedMotion } from "motion/react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import {
   ArrowRight,
   Brain,
@@ -951,9 +951,10 @@ export function FocusRoomPanel({
         </form>
       </motion.div>
 
+      <AnimatePresence>
       {historyOpen ? (
-        <motion.div className="fixed inset-0 z-50 bg-[var(--sauna-scrim)] backdrop-blur-sm" initial={reduce ? false : { opacity: 0 }} animate={{ opacity: 1 }} onMouseDown={() => setHistoryOpen(false)}>
-          <motion.aside role="dialog" aria-modal="true" aria-label="历史咨询" initial={reduce ? false : { x: "100%" }} animate={{ x: 0 }} transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }} onMouseDown={(event) => event.stopPropagation()} className="absolute inset-y-0 right-0 flex w-full max-w-[420px] flex-col border-l border-[color:var(--sauna-line)] bg-[var(--sauna-panel-strong)] p-5 shadow-[var(--sauna-shadow)]">
+        <motion.div className="fixed inset-0 z-50 bg-[var(--sauna-scrim)] backdrop-blur-sm" initial={reduce ? false : { opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onMouseDown={() => setHistoryOpen(false)}>
+          <motion.aside role="dialog" aria-modal="true" aria-label="历史咨询" initial={reduce ? false : { x: "100%", filter: "blur(6px)" }} animate={{ x: 0, filter: "blur(0px)" }} exit={{ x: "100%", filter: "blur(4px)" }} transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }} onMouseDown={(event) => event.stopPropagation()} className="absolute inset-y-0 right-0 flex w-full max-w-[420px] flex-col border-l border-[color:var(--sauna-line)] bg-[var(--sauna-panel-strong)] p-5 shadow-[var(--sauna-shadow)]">
             <div className="flex items-center justify-between gap-4"><div><p className="text-sm text-[var(--sauna-muted)]">Consultation archive</p><h2 className="sauna-display mt-1 text-3xl tracking-[-0.04em]">历史咨询</h2></div><button type="button" onClick={() => setHistoryOpen(false)} className="grid size-10 place-items-center rounded-full bg-[var(--sauna-soft)] text-[var(--sauna-muted)]" aria-label="关闭历史记录"><X size={17} /></button></div>
             <div className="mt-6 min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
               {historySessions.length ? historySessions.map((session) => {
@@ -977,14 +978,17 @@ export function FocusRoomPanel({
           </motion.aside>
         </motion.div>
       ) : null}
+      </AnimatePresence>
 
+      <AnimatePresence>
       {pendingDeleteSessionId ? (
-        <div className="fixed inset-0 z-[60] grid place-items-center bg-[var(--sauna-scrim)] px-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="删除会话确认">
-          <motion.div initial={reduce ? false : { opacity: 0, y: 14, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} className="w-full max-w-sm rounded-[28px] border border-[color:var(--sauna-line)] bg-[var(--sauna-panel-strong)] p-6 shadow-[var(--sauna-shadow)]">
+        <motion.div initial={reduce ? false : { opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[60] grid place-items-center bg-[var(--sauna-scrim)] px-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="删除会话确认">
+          <motion.div initial={reduce ? false : { opacity: 0, y: 14, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 8, scale: 0.985 }} transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }} className="w-full max-w-sm rounded-[28px] border border-[color:var(--sauna-line)] bg-[var(--sauna-panel-strong)] p-6 shadow-[var(--sauna-shadow)]">
             <h2 className="sauna-display text-2xl tracking-[-0.04em]">删除这条咨询？</h2><p className="mt-3 text-sm leading-6 text-[var(--sauna-muted)]">消息和事件记录会一并清理，无法恢复。</p><div className="mt-6 flex justify-end gap-2"><button type="button" onClick={() => setPendingDeleteSessionId(undefined)} className="h-10 rounded-full bg-[var(--sauna-soft)] px-4 text-sm font-semibold text-[var(--sauna-muted-strong)]">取消</button><button type="button" onClick={() => void confirmDeleteSession()} className="h-10 rounded-full bg-[var(--sauna-danger)] px-4 text-sm font-semibold text-white">删除</button></div>
           </motion.div>
-        </div>
+        </motion.div>
       ) : null}
+      </AnimatePresence>
     </section>
   );
 }

@@ -2,6 +2,7 @@
 
 import { ArrowRight, Brain, Circle } from "@phosphor-icons/react";
 import { motion, useReducedMotion } from "motion/react";
+import { motionDuration, saunaEase } from "@/lib/motion-system";
 import type { AgentProfile } from "@/types/sauna";
 
 const statusText: Record<AgentProfile["status"], string> = {
@@ -39,8 +40,9 @@ export function AgentCard({
       layout
       initial={reduce ? false : { opacity: 0, y: 18 }}
       animate={{ opacity: unavailable ? 0.62 : 1, y: 0 }}
-      whileHover={reduce || unavailable ? undefined : { y: -5 }}
-      transition={{ type: "spring", stiffness: 260, damping: 28 }}
+      whileHover={reduce || unavailable ? undefined : { y: -4 }}
+      whileTap={reduce || unavailable ? undefined : { scale: 0.992 }}
+      transition={{ duration: motionDuration.component, ease: saunaEase }}
       className="group relative h-full min-h-[336px]"
     >
       <button
@@ -51,8 +53,8 @@ export function AgentCard({
         aria-pressed={selected}
         className={`relative flex h-full w-full flex-col overflow-hidden rounded-[30px] border p-5 text-left outline-none transition duration-300 focus-visible:ring-2 focus-visible:ring-[var(--sauna-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--sauna-bg)] ${selected ? "border-[color:var(--sauna-accent)] bg-[var(--sauna-panel-strong)] shadow-[var(--sauna-shadow)]" : "border-[color:var(--sauna-line)] bg-[var(--sauna-panel)] shadow-[0_16px_50px_var(--sauna-shadow-soft)] hover:border-[color:var(--sauna-line-strong)] hover:bg-[var(--sauna-panel-strong)]"}`}
       >
-        <span className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-[radial-gradient(circle_at_78%_0%,var(--sauna-glow-1),transparent_64%)] opacity-80" />
-        <span className="pointer-events-none absolute left-0 top-0 h-full w-[38%] bg-[linear-gradient(108deg,var(--sauna-glow-2),transparent)] opacity-40" />
+        <motion.span className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-[radial-gradient(circle_at_78%_0%,var(--sauna-glow-1),transparent_64%)]" animate={{ opacity: selected ? 1 : 0.58 }} transition={{ duration: motionDuration.component, ease: saunaEase }} />
+        <motion.span className="pointer-events-none absolute left-0 top-0 h-full w-[38%] bg-[linear-gradient(108deg,var(--sauna-glow-2),transparent)]" animate={{ opacity: selected ? 0.62 : 0.3, x: selected ? 8 : 0 }} transition={{ duration: motionDuration.component, ease: saunaEase }} />
 
         <div className="relative flex items-start justify-between gap-4">
           <span className={`inline-flex items-center gap-2 rounded-full border border-[color:var(--sauna-line)] bg-[var(--sauna-panel-strong)] px-3 py-1.5 text-xs font-medium ${statusClass[agent.status]}`}>
@@ -79,8 +81,8 @@ export function AgentCard({
             </div>
             <motion.div
               className="grid size-[74px] shrink-0 place-items-center rounded-[24px] border border-[color:var(--sauna-line)] bg-[var(--sauna-panel-strong)] text-[34px] shadow-[var(--sauna-shadow-soft)]"
-              animate={selected && !reduce ? { boxShadow: ["0 10px 30px var(--sauna-shadow-soft)", "0 15px 38px var(--sauna-accent-shadow)", "0 10px 30px var(--sauna-shadow-soft)"] } : undefined}
-              transition={{ duration: 3.4, repeat: Infinity, ease: "easeInOut" }}
+              animate={{ scale: selected ? 1.035 : 1, y: selected ? -2 : 0, boxShadow: selected ? "0 16px 38px var(--sauna-accent-shadow)" : "0 10px 30px var(--sauna-shadow-soft)" }}
+              transition={{ duration: motionDuration.component, ease: saunaEase }}
             >
               {agent.avatarSeed || "🧠"}
             </motion.div>

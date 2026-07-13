@@ -38,7 +38,9 @@
 - Typography: serif display/identity headings, sans-serif operational UI and body text, tabular numerals for data
 - Spacing/layout rhythm: generous 24/32/48px section rhythm, max content width 1440px
 - Shape/radius/elevation: soft outer radii, tighter controls, walnut-tinted shadows, thin warm borders
-- Motion: 16–20s ambient light; 180–480ms interaction transitions; reduced-motion fallback required
+- Motion: 16–24s ambient light; 160–220ms micro feedback; 280–380ms component reveals; 360–480ms directional page transitions; 650–850ms entry light-curtain; reduced-motion fallback required
+- Route language: top-level workspace routes slide according to navigation order; FocusRoom enters as a deeper space from below; navigation chrome remains stable
+- Interaction language: material light, border and shadow respond once to selection; avoid looping float, bounce, sparkle and flash effects
 - Imagery/iconography: Phosphor line icons and restrained emoji/identity marks; no equipment illustrations
 
 ## Components
