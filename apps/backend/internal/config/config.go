@@ -9,61 +9,53 @@ import (
 )
 
 type Config struct {
-	AppEnv                  string
-	HTTPAddr                string
-	DatabaseURL             string
-	RedisURL                string
-	CORSAllowOrigins        []string
-	MigrationsDir           string
-	NuwaSkillSeedDir        string
-	SecretKey               string
-	PlatformProviderBaseURL string
-	PlatformProviderAPIKey  string
-	PlatformChatModel       string
-	EmailCodeTTL            time.Duration
-	AuthSessionTTL          time.Duration
-	AuthEmailDriver         string
-	AuthEmailLimitPerHour   int
-	AuthIPLimitPerHour      int
-	SMTPHost                string
-	SMTPPort                int
-	SMTPUsername            string
-	SMTPPassword            string
-	SMTPFrom                string
-	SMTPFromName            string
-	SMTPSecurity            string
-	SMTPTimeout             time.Duration
-	TrialLimitPerHour       int
+	AppEnv                string
+	HTTPAddr              string
+	DatabaseURL           string
+	RedisURL              string
+	CORSAllowOrigins      []string
+	MigrationsDir         string
+	NuwaSkillSeedDir      string
+	SecretKey             string
+	EmailCodeTTL          time.Duration
+	AuthSessionTTL        time.Duration
+	AuthEmailDriver       string
+	AuthEmailLimitPerHour int
+	AuthIPLimitPerHour    int
+	SMTPHost              string
+	SMTPPort              int
+	SMTPUsername          string
+	SMTPPassword          string
+	SMTPFrom              string
+	SMTPFromName          string
+	SMTPSecurity          string
+	SMTPTimeout           time.Duration
 }
 
 func Load() Config {
 	appEnv := env("APP_ENV", "development")
 	return Config{
-		AppEnv:                  appEnv,
-		HTTPAddr:                env("HTTP_ADDR", ":19588"),
-		DatabaseURL:             env("DATABASE_URL", defaultDatabaseURL(appEnv)),
-		RedisURL:                env("REDIS_URL", "redis://127.0.0.1:16379/0"),
-		CORSAllowOrigins:        listEnv("CORS_ALLOW_ORIGINS", defaultCORSAllowOrigins()),
-		MigrationsDir:           env("MIGRATIONS_DIR", "migrations"),
-		NuwaSkillSeedDir:        env("NUWA_SKILL_SEED_DIR", "seed/nuwa-skills"),
-		SecretKey:               env("SAUNA_SECRET_KEY", "dev-only-sauna-secret-change-me-32-bytes"),
-		PlatformProviderBaseURL: env("PLATFORM_PROVIDER_BASE_URL", ""),
-		PlatformProviderAPIKey:  env("PLATFORM_PROVIDER_API_KEY", ""),
-		PlatformChatModel:       env("PLATFORM_CHAT_MODEL", ""),
-		EmailCodeTTL:            durationEnv("EMAIL_CODE_TTL", 10*time.Minute),
-		AuthSessionTTL:          durationEnv("AUTH_SESSION_TTL", 30*24*time.Hour),
-		AuthEmailDriver:         env("AUTH_EMAIL_DRIVER", defaultAuthEmailDriver(appEnv)),
-		AuthEmailLimitPerHour:   intEnv("AUTH_EMAIL_LIMIT_PER_HOUR", 5),
-		AuthIPLimitPerHour:      intEnv("AUTH_IP_LIMIT_PER_HOUR", 20),
-		SMTPHost:                env("SMTP_HOST", ""),
-		SMTPPort:                intEnv("SMTP_PORT", 587),
-		SMTPUsername:            env("SMTP_USERNAME", ""),
-		SMTPPassword:            env("SMTP_PASSWORD", ""),
-		SMTPFrom:                env("SMTP_FROM", ""),
-		SMTPFromName:            env("SMTP_FROM_NAME", "Sauna"),
-		SMTPSecurity:            env("SMTP_SECURITY", "auto"),
-		SMTPTimeout:             durationEnv("SMTP_TIMEOUT", 15*time.Second),
-		TrialLimitPerHour:       intEnv("TRIAL_LIMIT_PER_HOUR", 20),
+		AppEnv:                appEnv,
+		HTTPAddr:              env("HTTP_ADDR", ":19588"),
+		DatabaseURL:           env("DATABASE_URL", defaultDatabaseURL(appEnv)),
+		RedisURL:              env("REDIS_URL", "redis://127.0.0.1:16379/0"),
+		CORSAllowOrigins:      listEnv("CORS_ALLOW_ORIGINS", defaultCORSAllowOrigins()),
+		MigrationsDir:         env("MIGRATIONS_DIR", "migrations"),
+		NuwaSkillSeedDir:      env("NUWA_SKILL_SEED_DIR", "seed/nuwa-skills"),
+		SecretKey:             env("SAUNA_SECRET_KEY", "dev-only-sauna-secret-change-me-32-bytes"),
+		EmailCodeTTL:          durationEnv("EMAIL_CODE_TTL", 10*time.Minute),
+		AuthSessionTTL:        durationEnv("AUTH_SESSION_TTL", 30*24*time.Hour),
+		AuthEmailDriver:       env("AUTH_EMAIL_DRIVER", defaultAuthEmailDriver(appEnv)),
+		AuthEmailLimitPerHour: intEnv("AUTH_EMAIL_LIMIT_PER_HOUR", 5),
+		AuthIPLimitPerHour:    intEnv("AUTH_IP_LIMIT_PER_HOUR", 20),
+		SMTPHost:              env("SMTP_HOST", ""),
+		SMTPPort:              intEnv("SMTP_PORT", 587),
+		SMTPUsername:          env("SMTP_USERNAME", ""),
+		SMTPPassword:          env("SMTP_PASSWORD", ""),
+		SMTPFrom:              env("SMTP_FROM", ""),
+		SMTPFromName:          env("SMTP_FROM_NAME", "Sauna"),
+		SMTPSecurity:          env("SMTP_SECURITY", "auto"),
+		SMTPTimeout:           durationEnv("SMTP_TIMEOUT", 15*time.Second),
 	}
 }
 

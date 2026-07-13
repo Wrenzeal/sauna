@@ -69,12 +69,8 @@ func main() {
 		Auth:     service.NewAuthService(repo, cacheStore, cacheStore, emailSender, cfg.EmailCodeTTL, cfg.AuthSessionTTL, cfg.AppEnv, cfg.AuthEmailLimitPerHour, cfg.AuthIPLimitPerHour),
 		Provider: service.NewProviderService(repo, box, llmClient),
 		Agents:   service.NewAgentService(repo),
-		Focus: service.NewFocusRoomService(repo, box, llmClient, cacheStore, cfg.TrialLimitPerHour, service.PlatformProvider{
-			BaseURL: cfg.PlatformProviderBaseURL,
-			APIKey:  cfg.PlatformProviderAPIKey,
-			Model:   cfg.PlatformChatModel,
-		}),
-		Distill: service.NewDistillationService(repo, service.NewLocalNuwaRunner()),
+		Focus:    service.NewFocusRoomService(repo, box, llmClient),
+		Distill:  service.NewDistillationService(repo, service.NewLocalNuwaRunner()),
 	}
 
 	router := httpapi.NewRouter(services, httpapi.RouterOptions{CORSAllowOrigins: cfg.CORSAllowOrigins})

@@ -6,6 +6,7 @@ import { MouseEvent, useEffect, useState } from "react";
 import { ArrowRight, Brain, Info, X } from "@phosphor-icons/react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { AccountMenu } from "@/components/access-coordinator";
 import { motionDuration, saunaEase } from "@/lib/motion-system";
 
 const experts = [
@@ -55,7 +56,7 @@ export function EntryGate() {
         </Link>
         <div className="flex items-center gap-2">
           <button type="button" onClick={() => setIntroOpen(true)} className="hidden h-11 items-center gap-2 rounded-full px-4 text-sm text-[var(--sauna-muted-strong)] transition hover:bg-[var(--sauna-soft)] sm:inline-flex"><Info size={17} /> 什么是 Sauna</button>
-          <Link href="/settings" className="inline-flex h-11 items-center justify-center rounded-full px-4 text-sm font-medium text-[var(--sauna-muted-strong)] transition hover:bg-[var(--sauna-soft)]">登录</Link>
+          <AccountMenu />
           <ThemeToggle compact />
         </div>
       </header>

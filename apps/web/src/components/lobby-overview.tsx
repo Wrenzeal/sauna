@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { motionDuration, saunaEase } from "@/lib/motion-system";
+import { decideModelAction } from "@/lib/access-policy";
+import { useAccessUIStore } from "@/store/access-ui-store";
 import { ArrowRight, GearSix, PaperPlaneTilt, Plus, WarningCircle } from "@phosphor-icons/react";
 import { AgentCard } from "@/components/agent-card";
 import { useSaunaStore } from "@/store/sauna-store";
@@ -27,13 +29,29 @@ export function LobbyOverview() {
   } = useSaunaStore();
   const [question, setQuestion] = useState("");
   const [openingAgentId, setOpeningAgentId] = useState<string>();
+  const openAuth = useAccessUIStore((state) => state.openAuth);
+  const openProvider = useAccessUIStore((state) => state.openProvider);
+  const pendingIntent = useAccessUIStore((state) => state.auth.intent);
 
   useEffect(() => {
     void loadPublicAgents();
-    void loadIdentity();
+    void loadIdentity().catch(() => undefined);
   }, [loadIdentity, loadPublicAgents]);
 
+  useEffect(() => {
+    const restore = (event: Event) => {
+      const intent = (event as CustomEvent<typeof pendingIntent>).detail;
+      if (intent.kind !== "consultation" || intent.draft.sourceRoute !== "/lobby") return;
+      setSelectedAgentId(intent.draft.agentId);
+      setQuestion(intent.draft.content);
+    };
+    window.addEventListener("sauna-auth-complete", restore);
+    return () => window.removeEventListener("sauna-auth-complete", restore);
+  }, [setSelectedAgentId]);
+
   const safeAgents = agents ?? [];
+  const publicAgents = safeAgents.filter((agent) => agent.sourceKind === "public");
+  const privateAgents = token ? safeAgents.filter((agent) => agent.sourceKind === "private") : [];
   const safeProviders = providers ?? [];
   const activeAgentId = safeAgents.some((agent) => agent.id === selectedAgentId) ? selectedAgentId : "";
   const activeAgent = safeAgents.find((agent) => agent.id === activeAgentId);
@@ -42,17 +60,14 @@ export function LobbyOverview() {
 
   async function handleOpen(agentId: string, prompt?: string) {
     if (!agentId) return;
+    const promptText = prompt?.trim() ?? "";
+    const intent = { kind: "consultation" as const, draft: { agentId, content: promptText, sourceRoute: "/lobby" } };
+    const decision = decideModelAction({ authenticated: Boolean(token), providerReady, intent });
+    if (decision.kind === "open_auth") { openAuth(decision.reason, decision.intent); return; }
+    if (decision.kind === "open_provider") { openProvider(decision.mode, decision.reason); return; }
     setOpeningAgentId(agentId);
-    try {
-      if (token && safeProviders.length === 0) await loadProviders();
-      const params = new URLSearchParams({ agentId });
-      const promptText = prompt?.trim();
-      if (promptText) params.set("prompt", promptText);
-      router.push(`/focus-room/new?${params.toString()}`);
-      setQuestion("");
-    } catch {
-      setOpeningAgentId(undefined);
-    }
+    router.push(`/focus-room/new?agentId=${encodeURIComponent(agentId)}`);
+    setQuestion("");
   }
 
   function submitQuestion(event: FormEvent<HTMLFormElement>) {
@@ -87,23 +102,9 @@ export function LobbyOverview() {
           </Link>
         </div>
 
-        {safeAgents.length ? (
-          <motion.div className="grid auto-rows-fr grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3" initial={reduce ? false : "hidden"} animate="show" variants={{ hidden: {}, show: { transition: { staggerChildren: 0.07 } } }}>
-            {safeAgents.map((agent) => (
-              <motion.div key={agent.id} className="h-full" variants={{ hidden: { opacity: 0, y: 18 }, show: { opacity: 1, y: 0 } }} transition={{ duration: 0.48, ease: [0.16, 1, 0.3, 1] }}>
-                <AgentCard agent={agent} selected={activeAgentId === agent.id} opening={openingAgentId === agent.id} onSelect={setSelectedAgentId} onOpen={(id) => void handleOpen(id)} />
-              </motion.div>
-            ))}
-          </motion.div>
-        ) : (
-          <div className="grid min-h-[360px] place-items-center rounded-[30px] border border-[color:var(--sauna-line)] bg-[var(--sauna-panel-strong)] p-8 text-center">
-            <div>
-              <WarningCircle size={30} className="mx-auto text-[var(--sauna-danger)]" />
-              <h2 className="sauna-display mt-4 text-3xl text-[var(--sauna-text)]">{apiUnavailable ? "后端暂不可用" : "还没有智囊"}</h2>
-              <p className="mt-2 text-sm text-[var(--sauna-muted)]">{apiUnavailable ? "请确认 Go 后端已经启动。" : "去蒸馏车间创建你的第一位智囊。"}</p>
-            </div>
-          </div>
-        )}
+        {privateAgents.length ? <section id="my-advisors" className="mb-10"><div className="mb-5"><p className="text-sm text-[var(--sauna-muted)]">Private collection</p><h3 className="sauna-display mt-1 text-3xl">我的智囊</h3></div><motion.div className="grid auto-rows-fr grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3" initial={reduce ? false : "hidden"} animate="show" variants={{ hidden: {}, show: { transition: { staggerChildren: 0.07 } } }}>{privateAgents.map((agent) => <motion.div key={agent.id} className="h-full" variants={{ hidden: { opacity: 0, y: 18 }, show: { opacity: 1, y: 0 } }}><AgentCard agent={agent} selected={activeAgentId === agent.id} opening={openingAgentId === agent.id} onSelect={setSelectedAgentId} onOpen={(id) => void handleOpen(id)} /></motion.div>)}</motion.div></section> : token ? <section id="my-advisors" className="mb-10 rounded-[28px] border border-[color:var(--sauna-line)] bg-[var(--sauna-panel-strong)] p-6"><h3 className="sauna-display text-3xl">我的智囊</h3><p className="mt-2 text-sm text-[var(--sauna-muted)]">还没有私人智囊。去蒸馏车间创建第一位。</p></section> : null}
+
+        {publicAgents.length ? <section><div className="mb-5"><p className="text-sm text-[var(--sauna-muted)]">House advisors</p><h3 className="sauna-display mt-1 text-3xl">默认智囊</h3></div><motion.div className="grid auto-rows-fr grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3" initial={reduce ? false : "hidden"} animate="show" variants={{ hidden: {}, show: { transition: { staggerChildren: 0.07 } } }}>{publicAgents.map((agent) => <motion.div key={agent.id} className="h-full" variants={{ hidden: { opacity: 0, y: 18 }, show: { opacity: 1, y: 0 } }}><AgentCard agent={agent} selected={activeAgentId === agent.id} opening={openingAgentId === agent.id} onSelect={setSelectedAgentId} onOpen={(id) => void handleOpen(id)} /></motion.div>)}</motion.div></section> : <div className="grid min-h-[360px] place-items-center rounded-[30px] border border-[color:var(--sauna-line)] bg-[var(--sauna-panel-strong)] p-8 text-center"><div><WarningCircle size={30} className="mx-auto text-[var(--sauna-danger)]" /><h2 className="sauna-display mt-4 text-3xl">{apiUnavailable ? "后端暂不可用" : "还没有智囊"}</h2></div></div>}
 
         <motion.div layout className="sticky bottom-4 z-30 mx-auto mt-7 max-w-[900px]" transition={{ duration: motionDuration.component, ease: saunaEase }}>
           <AnimatePresence mode="wait" initial={false}>
@@ -120,7 +121,7 @@ export function LobbyOverview() {
               <div className="flex items-end gap-3 rounded-[21px] bg-[var(--sauna-soft)] px-4 py-3">
                 <textarea value={question} onChange={(event) => setQuestion(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); event.currentTarget.form?.requestSubmit(); } }} rows={1} className="max-h-32 min-h-6 min-w-0 flex-1 resize-none bg-transparent text-sm leading-6 text-[var(--sauna-text)] outline-none placeholder:text-[var(--sauna-muted)]" placeholder={token && providerReady ? "今天最想和他聊什么？" : "选择后继续完成登录或模型配置"} />
                 {token && !providerReady ? (
-                  <Link href="/settings" className="inline-flex h-10 items-center gap-2 rounded-full bg-[var(--sauna-primary)] px-4 text-sm font-semibold text-[var(--sauna-primary-contrast)]"><GearSix size={16} /> 去设置</Link>
+                  <button type="button" onClick={() => openProvider("create", "provider_missing")} className="inline-flex h-10 items-center gap-2 rounded-full bg-[var(--sauna-primary)] px-4 text-sm font-semibold text-[var(--sauna-primary-contrast)]"><GearSix size={16} /> 配置模型</button>
                 ) : (
                   <button type="submit" disabled={sessionStatus === "loading" || !question.trim()} className="grid size-10 place-items-center rounded-full bg-[var(--sauna-primary)] text-[var(--sauna-primary-contrast)] transition hover:bg-[var(--sauna-primary-hover)] disabled:cursor-not-allowed disabled:opacity-40" aria-label="开始咨询"><PaperPlaneTilt size={17} weight="fill" /></button>
                 )}

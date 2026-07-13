@@ -13,26 +13,13 @@ import (
 	"sauna/backend/internal/llm"
 )
 
-type FocusRateLimiter interface {
-	AllowFixedWindow(ctx context.Context, scope string, limit int, window time.Duration) (bool, int, error)
-}
-
 type FocusRoomService struct {
-	repo       FocusRoomRepository
-	box        secretcrypto.SecretBox
-	llm        llm.Client
-	rate       FocusRateLimiter
-	trialLimit int
-	platform   PlatformProvider
+	repo FocusRoomRepository
+	box  secretcrypto.SecretBox
+	llm  llm.Client
 }
 
 const focusContextMessageLimit = 12
-
-type PlatformProvider struct {
-	BaseURL string
-	APIKey  string
-	Model   string
-}
 
 type CreateSessionRequest struct {
 	AgentID          string `json:"agent_id"`
@@ -56,15 +43,8 @@ type StreamFrame struct {
 	Data  []byte          `json:"data"`
 }
 
-type TrialTurnResult struct {
-	AgentID       string `json:"agent_id"`
-	ProviderMode  string `json:"provider_mode"`
-	RemainingUses int    `json:"remaining_uses"`
-	Preview       string `json:"preview"`
-}
-
-func NewFocusRoomService(repo FocusRoomRepository, box secretcrypto.SecretBox, client llm.Client, rate FocusRateLimiter, trialLimit int, platform PlatformProvider) *FocusRoomService {
-	return &FocusRoomService{repo: repo, box: box, llm: client, rate: rate, trialLimit: trialLimit, platform: platform}
+func NewFocusRoomService(repo FocusRoomRepository, box secretcrypto.SecretBox, client llm.Client) *FocusRoomService {
+	return &FocusRoomService{repo: repo, box: box, llm: client}
 }
 
 func (s *FocusRoomService) CreateSession(ctx context.Context, workspaceID string, request CreateSessionRequest) (domain.Session, error) {
@@ -190,21 +170,6 @@ func (s *FocusRoomService) StreamTurn(ctx context.Context, workspaceID string, t
 		return nil
 	}
 	return s.generateTurn(ctx, workspaceID, turn, emit)
-}
-
-func (s *FocusRoomService) TrialTurn(ctx context.Context, agentID string, prompt string, visitorKey string) (TrialTurnResult, error) {
-	if s.rate != nil {
-		allowed, remaining, err := s.rate.AllowFixedWindow(ctx, "trial:"+visitorKey, s.trialLimit, time.Hour)
-		if err != nil {
-			return TrialTurnResult{}, err
-		}
-		if !allowed {
-			return TrialTurnResult{}, domain.ErrRateLimited
-		}
-		preview := "试用会使用平台演示模型。登录后，默认智囊也会优先使用你自己的 provider 和 key。"
-		return TrialTurnResult{AgentID: agentID, ProviderMode: "platform_trial", RemainingUses: remaining, Preview: preview}, nil
-	}
-	return TrialTurnResult{AgentID: agentID, ProviderMode: "platform_trial", RemainingUses: s.trialLimit, Preview: "试用已准备好。"}, nil
 }
 
 func (s *FocusRoomService) generateTurn(ctx context.Context, workspaceID string, turn domain.Turn, emit func(StreamFrame) error) error {

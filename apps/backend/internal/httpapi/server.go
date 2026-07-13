@@ -48,7 +48,6 @@ func NewRouter(services Services, options ...RouterOptions) *gin.Engine {
 	v1.GET("/me", server.requireAuth(), server.me)
 
 	v1.GET("/public/agents", server.publicAgents)
-	v1.POST("/public/agents/:agent_id/trial-turns", server.publicTrialTurn)
 
 	providers := v1.Group("/provider-configs", server.requireAuth())
 	providers.GET("", server.listProviderConfigs)
@@ -199,23 +198,6 @@ func (s *Server) publicAgents(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"agents": agents})
-}
-
-func (s *Server) publicTrialTurn(c *gin.Context) {
-	var request struct {
-		Prompt string `json:"prompt"`
-	}
-	_ = c.ShouldBindJSON(&request)
-	visitor := c.ClientIP()
-	if visitor == "" {
-		visitor = "anonymous"
-	}
-	result, err := s.focus.TrialTurn(c.Request.Context(), c.Param("agent_id"), request.Prompt, visitor)
-	if err != nil {
-		respondError(c, err)
-		return
-	}
-	c.JSON(http.StatusOK, result)
 }
 
 func (s *Server) listProviderConfigs(c *gin.Context) {

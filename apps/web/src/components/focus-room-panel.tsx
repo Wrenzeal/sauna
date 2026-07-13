@@ -26,6 +26,8 @@ import {
   X,
 } from "@phosphor-icons/react";
 import { useSaunaStore } from "@/store/sauna-store";
+import { LockedAccessShell } from "@/components/access-coordinator";
+import { useAccessUIStore } from "@/store/access-ui-store";
 import type { Message } from "@/types/sauna";
 
 const subscribeHydration = () => () => {};
@@ -738,9 +740,9 @@ export function FocusRoomPanel({
     streamStatus,
     focusError,
     token,
+    providers,
     loadPublicAgents,
     loadIdentity,
-    loadMessages,
     renameFocusSession,
     deleteFocusSession,
     startConsultation,
@@ -757,6 +759,9 @@ export function FocusRoomPanel({
   const [pendingDeleteSessionId, setPendingDeleteSessionId] =
     useState<string>();
   const [historyOpen, setHistoryOpen] = useState(false);
+  const authIntent = useAccessUIStore((state) => state.auth.intent);
+  const openAuth = useAccessUIStore((state) => state.openAuth);
+  const openProvider = useAccessUIStore((state) => state.openProvider);
   const hydrated = useHydrated();
   if (sessionView.routeSessionId !== sessionId) {
     setSessionView({ routeSessionId: sessionId, currentSessionId: sessionId });
@@ -774,7 +779,7 @@ export function FocusRoomPanel({
 
   useEffect(() => {
     void loadPublicAgents();
-    void loadIdentity();
+    void loadIdentity().catch(() => undefined);
   }, [loadIdentity, loadPublicAgents]);
 
   useEffect(() => {
@@ -786,19 +791,25 @@ export function FocusRoomPanel({
     }
     if (token) {
       void resumeSession(currentSessionId);
-      return;
     }
-    void loadMessages(currentSessionId);
   }, [
     activeSession?.id,
     currentSessionId,
     hasLocalMessages,
     isDraftSession,
-    loadMessages,
     resumeSession,
     sessions.length,
     token,
   ]);
+
+  useEffect(() => {
+    const restore = (event: Event) => {
+      const intent = (event as CustomEvent<typeof authIntent>).detail;
+      if (intent.kind === "consultation" && (!draftAgentId || intent.draft.agentId === draftAgentId)) setDraft(intent.draft.content);
+    };
+    window.addEventListener("sauna-auth-complete", restore);
+    return () => window.removeEventListener("sauna-auth-complete", restore);
+  }, [draftAgentId]);
 
   const agent = useMemo(() => {
     const agentList = agents ?? [];
@@ -848,6 +859,15 @@ export function FocusRoomPanel({
     event.preventDefault();
     const content = draft.trim();
     if (!content || busy) {
+      return;
+    }
+    if (!token) {
+      const agentID = draftAgentId || agent?.id || selectedAgentId;
+      openAuth("consultation_guard", { kind: "consultation", draft: { agentId: agentID, content, sourceRoute: window.location.pathname } });
+      return;
+    }
+    if (!providers.length) {
+      openProvider("create", "provider_missing");
       return;
     }
     setDraft("");
@@ -917,6 +937,10 @@ export function FocusRoomPanel({
     }
     setSessionView({ routeSessionId: "new", currentSessionId: "new" });
     router.push(`/focus-room/new?agentId=${encodeURIComponent(agentID)}`);
+  }
+
+  if (!token) {
+    return <LockedAccessShell title="这是一间私人咨询室" copy="登录后才能进入会话、读取历史和调用你的模型。当前页面不会在访客状态请求任何私人消息。" />;
   }
 
   return (

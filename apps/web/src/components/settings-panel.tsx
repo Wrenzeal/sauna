@@ -17,6 +17,7 @@ import {
 } from "@phosphor-icons/react";
 import { getSaunaApiBaseUrl, humanizeApiError } from "@/lib/sauna-api";
 import { useSaunaStore } from "@/store/sauna-store";
+import { LockedAccessShell } from "@/components/access-coordinator";
 import type { FetchedModel, ProviderConfig, ProviderTestChatResult } from "@/types/sauna";
 
 const fieldClass = "h-11 w-full rounded-[16px] border border-[color:var(--sauna-line)] bg-[var(--sauna-soft)] px-4 text-sm text-[var(--sauna-text)] outline-none transition placeholder:text-[var(--sauna-muted)] focus:border-[var(--sauna-accent)] focus:bg-[var(--sauna-panel-strong)]";
@@ -180,7 +181,7 @@ export function SettingsPanel() {
   const hasCodeSent = Boolean(authCodeSentEmail);
 
   useEffect(() => {
-    void loadIdentity();
+    void loadIdentity().catch(() => undefined);
   }, [loadIdentity]);
 
   useEffect(() => {
@@ -314,65 +315,7 @@ export function SettingsPanel() {
   }
 
   if (!isLoggedIn) {
-    return (
-      <section className="grid min-h-[calc(100dvh-7rem)] place-items-center">
-        <motion.div
-          initial={reduce ? false : { opacity: 0, y: 18 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-          className="w-full max-w-[520px] rounded-[38px] border border-[color:var(--sauna-line)] bg-[var(--sauna-panel-strong)] p-6 shadow-[var(--sauna-shadow)] backdrop-blur-xl"
-        >
-          <div className="grid size-16 place-items-center rounded-[24px] bg-[var(--sauna-primary)] text-[var(--sauna-primary-contrast)]">
-            <UserCircle size={28} weight="duotone" />
-          </div>
-          <h1 className="mt-6 text-4xl font-semibold tracking-[-0.06em] text-[var(--sauna-text)]">先登录。</h1>
-          <p className="mt-3 max-w-[34ch] text-sm leading-relaxed text-[var(--sauna-muted)]">登录后保存你的 Base URL、Key 和默认模型。</p>
-
-          <div className="mt-6 grid gap-3">
-            <form className="grid gap-3" onSubmit={submitEmail}>
-              <label className="grid gap-2 text-sm font-medium text-[var(--sauna-muted-strong)]">
-                邮箱
-                <input
-                  className={fieldClass}
-                  type="email"
-                  value={email}
-                  onChange={(event) => setEmail(event.target.value)}
-                  placeholder="name@example.com"
-                  autoComplete="email"
-                  required
-                />
-              </label>
-              <button className={primaryButtonClass} type="submit" disabled={authBusy || !email.trim()}>
-                {hasCodeSent ? "重新发送验证码" : "发送验证码"}
-              </button>
-            </form>
-
-            {hasCodeSent ? (
-              <form className="grid gap-3" onSubmit={submitCode}>
-                <div className="rounded-[22px] bg-[var(--sauna-accent-soft)] px-4 py-3 text-sm font-semibold text-[var(--sauna-accent-strong)]">
-                  {devCode ? `开发验证码 ${devCode}` : `验证码已发送至 ${codeEmail}`}
-                </div>
-                <label className="grid gap-2 text-sm font-medium text-[var(--sauna-muted-strong)]">
-                  验证码
-                  <input
-                    className={fieldClass}
-                    value={code}
-                    onChange={(event) => setCode(event.target.value)}
-                    placeholder="6 位数字"
-                    inputMode="numeric"
-                    required
-                  />
-                </label>
-                <button className={primaryButtonClass} type="submit" disabled={authBusy || !code.trim()}>
-                  登录
-                </button>
-              </form>
-            ) : null}
-            {authError ? <p className="text-sm leading-relaxed text-[var(--sauna-danger)]">{authError}</p> : null}
-          </div>
-        </motion.div>
-      </section>
-    );
+    return <LockedAccessShell title="先拥有一个私人工作区" copy="登录后才能保存 Base URL、API Key 和默认模型。这里不会向访客展示或加载任何私人配置。" />;
   }
 
   return (

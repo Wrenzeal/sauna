@@ -7,6 +7,7 @@ import { motion } from "motion/react";
 import { motionDuration, saunaEase } from "@/lib/motion-system";
 import { PageTransition } from "@/components/page-transition";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { AccountMenu } from "@/components/access-coordinator";
 
 const navItems = [
   { href: "/lobby", label: "桑拿房", icon: Brain },
@@ -58,6 +59,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <ClockCounterClockwise size={17} /> 会话
             </Link>
             <ThemeToggle compact />
+            <AccountMenu />
           </div>
         </div>
       </header>

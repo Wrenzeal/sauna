@@ -168,7 +168,7 @@ Go 后端监听 `127.0.0.1:19588`，由 Nginx 暴露为 `https://api.sauna.wrenz
 ## 安全边界
 
 - Provider API Key 加密后入库，前端只获得脱敏提示。
-- 匿名试用与登录验证码通过 DragonFlyDB 限流。
+- 登录验证码与认证接口通过 DragonFlyDB 限流；未登录用户只能浏览默认智囊。
 - `.env`、构建产物、依赖目录、本地运行状态及 Codex/OMX 状态不应提交。
 - 生产环境必须使用高强度 `SAUNA_SECRET_KEY`、明确的 `DATABASE_URL` 和 SMTP 配置。
 

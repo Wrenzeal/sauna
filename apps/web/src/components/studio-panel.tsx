@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { ArrowClockwise, ArrowRight, CheckCircle, Sparkle, WarningCircle } from "@phosphor-icons/react";
 import { useSaunaStore } from "@/store/sauna-store";
+import { LockedAccessShell } from "@/components/access-coordinator";
 
 const statusText: Record<string, string> = {
   queued: "排队中",
@@ -61,6 +62,10 @@ export function StudioPanel() {
     } catch {
       setNotice("提交失败，请检查登录状态和后端服务。");
     }
+  }
+
+  if (!token) {
+    return <LockedAccessShell title="蒸馏属于你的智囊" copy="登录后可以提交人物资料，让 nuwa-skill agent 生成只属于你的 Skill。访客状态不会加载私人任务。" />;
   }
 
   return (

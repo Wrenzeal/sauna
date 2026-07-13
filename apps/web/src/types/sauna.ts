@@ -14,6 +14,7 @@ export interface AgentProfile {
   status: AgentStatus;
   currentSessionId?: string;
   lastActivity: string;
+  sourceKind: "public" | "private";
 }
 
 export interface SessionSummary {

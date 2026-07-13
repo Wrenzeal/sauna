@@ -73,7 +73,7 @@ export function AgentCard({
         <div className="relative mt-8 flex flex-1 flex-col justify-between rounded-[24px] border border-[color:var(--sauna-inner-line)] bg-[linear-gradient(145deg,var(--sauna-panel-strong),var(--sauna-soft))] p-5 shadow-[inset_0_1px_0_var(--sauna-inner-line)]">
           <div className="flex items-center justify-between gap-5">
             <div className="min-w-0">
-              <p className="text-xs tracking-[0.16em] text-[var(--sauna-muted)]">PRIVATE ADVISOR</p>
+              <p className="text-xs tracking-[0.16em] text-[var(--sauna-muted)]">{agent.sourceKind === "public" ? "HOUSE ADVISOR" : "PRIVATE ADVISOR"}</p>
               <h2 className="sauna-display mt-3 truncate text-[34px] leading-none tracking-[-0.045em] text-[var(--sauna-text)]" title={agent.displayName}>
                 {agent.displayName}
               </h2>

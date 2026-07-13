@@ -9,7 +9,8 @@
     "backend:test": "npm --prefix apps/backend run test",
     "backend:run": "npm --prefix apps/backend run dev",
     "dev:start": "bash scripts/start-dev.sh",
-    "dev:stop": "bash scripts/stop-dev.sh"
+    "dev:stop": "bash scripts/stop-dev.sh",
+    "web:test": "npm --prefix apps/web run test"
   },
   "workspaces": [
     "apps/web"

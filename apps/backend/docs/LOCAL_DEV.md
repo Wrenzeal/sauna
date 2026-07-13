@@ -76,4 +76,4 @@ Migration `002_seed_public_agents.sql` seeds the default public templates:
 - 比尔盖茨
 - 周受资
 
-Logged-in users use their own default provider config for these public agents. Anonymous trial calls are rate-limited in DragonFlyDB and use only platform trial settings.
+Logged-in users use their own default provider config for these public agents.

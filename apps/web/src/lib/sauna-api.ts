@@ -56,6 +56,16 @@ export class SaunaApiError extends Error {
   }
 }
 
+export type AccessErrorKind = "unauthorized" | "provider_required" | "provider_failure" | "ordinary";
+
+export function classifySaunaApiError(error: unknown): AccessErrorKind {
+  if (!(error instanceof SaunaApiError)) return "ordinary";
+  if (error.status === 401 || error.code === "unauthorized") return "unauthorized";
+  if (error.code === "provider_config_required") return "provider_required";
+  if (error.code === "provider_request_failed") return "provider_failure";
+  return "ordinary";
+}
+
 function apiUrl(path: string) {
   const base = getSaunaApiBaseUrl();
   const cleanPath = path.startsWith("/") ? path : `/${path}`;
@@ -97,7 +107,12 @@ async function requestJson<T>(path: string, init: RequestInit = {}, token?: stri
   });
 
   if (!response.ok) {
-    throw await parseError(response);
+    const error = await parseError(response);
+    if (typeof window !== "undefined") {
+      const kind = classifySaunaApiError(error);
+      if (kind !== "ordinary") window.dispatchEvent(new CustomEvent("sauna-access-error", { detail: { kind, error } }));
+    }
+    throw error;
   }
 
   if (response.status === 204) {
@@ -299,7 +314,12 @@ export async function streamTurn(sessionId: string, turnId: string, options: Str
   });
 
   if (!response.ok) {
-    throw await parseError(response);
+    const error = await parseError(response);
+    if (typeof window !== "undefined") {
+      const kind = classifySaunaApiError(error);
+      if (kind !== "ordinary") window.dispatchEvent(new CustomEvent("sauna-access-error", { detail: { kind, error } }));
+    }
+    throw error;
   }
   if (!response.body) {
     throw new SaunaApiError(502, "stream_unavailable", "Sauna API stream is unavailable.");

@@ -168,7 +168,7 @@ The Go service listens on `127.0.0.1:19588` and is exposed by Nginx at `https://
 ## Security boundaries
 
 - Provider API keys are encrypted at rest; the frontend only receives masked hints.
-- Anonymous trials and login codes are rate-limited through DragonFlyDB.
+- Login codes and authentication endpoints are rate-limited through DragonFlyDB; signed-out users can only browse the default advisors.
 - `.env` files, build output, dependency directories, local runtime state, and Codex/OMX state must not be committed.
 - Production requires a strong `SAUNA_SECRET_KEY`, an explicit `DATABASE_URL`, and SMTP configuration.
 

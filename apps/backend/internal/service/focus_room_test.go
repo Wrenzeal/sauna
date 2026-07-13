@@ -16,7 +16,7 @@ import (
 
 func TestCreateSessionUsesUserProviderForPublicAgent(t *testing.T) {
 	repo := newFakeFocusRepo(t)
-	svc := NewFocusRoomService(repo, repo.box, fakeLLM{}, &fakeRateLimiter{allowed: true, remaining: 19}, 20, PlatformProvider{})
+	svc := NewFocusRoomService(repo, repo.box, fakeLLM{})
 
 	session, err := svc.CreateSession(context.Background(), repo.workspaceID, CreateSessionRequest{AgentID: repo.agent.Agent.ID})
 	if err != nil {
@@ -33,7 +33,7 @@ func TestCreateSessionUsesUserProviderForPublicAgent(t *testing.T) {
 func TestCreateSessionRequiresProviderWhenLoggedInUserHasNone(t *testing.T) {
 	repo := newFakeFocusRepo(t)
 	repo.providerMissing = true
-	svc := NewFocusRoomService(repo, repo.box, fakeLLM{}, &fakeRateLimiter{allowed: true, remaining: 19}, 20, PlatformProvider{})
+	svc := NewFocusRoomService(repo, repo.box, fakeLLM{})
 
 	_, err := svc.CreateSession(context.Background(), repo.workspaceID, CreateSessionRequest{AgentID: repo.agent.Agent.ID})
 	if !errors.Is(err, domain.ErrProviderConfigRequired) {
@@ -43,7 +43,7 @@ func TestCreateSessionRequiresProviderWhenLoggedInUserHasNone(t *testing.T) {
 
 func TestStartConsultationCreatesSessionAndFirstTurn(t *testing.T) {
 	repo := newFakeFocusRepo(t)
-	svc := NewFocusRoomService(repo, repo.box, fakeLLM{}, &fakeRateLimiter{allowed: true, remaining: 19}, 20, PlatformProvider{})
+	svc := NewFocusRoomService(repo, repo.box, fakeLLM{})
 
 	result, err := svc.StartConsultation(context.Background(), repo.workspaceID, StartConsultationRequest{AgentID: repo.agent.Agent.ID, Content: "  我该怎么做产品？  "})
 	if err != nil {
@@ -62,7 +62,7 @@ func TestStartConsultationCreatesSessionAndFirstTurn(t *testing.T) {
 
 func TestStartConsultationRejectsEmptyContent(t *testing.T) {
 	repo := newFakeFocusRepo(t)
-	svc := NewFocusRoomService(repo, repo.box, fakeLLM{}, &fakeRateLimiter{allowed: true, remaining: 19}, 20, PlatformProvider{})
+	svc := NewFocusRoomService(repo, repo.box, fakeLLM{})
 
 	_, err := svc.StartConsultation(context.Background(), repo.workspaceID, StartConsultationRequest{AgentID: repo.agent.Agent.ID, Content: "   "})
 	if !errors.Is(err, domain.ErrInvalidInput) {
@@ -70,29 +70,9 @@ func TestStartConsultationRejectsEmptyContent(t *testing.T) {
 	}
 }
 
-func TestTrialTurnUsesPlatformTrialRateLimit(t *testing.T) {
-	repo := newFakeFocusRepo(t)
-	rate := &fakeRateLimiter{allowed: true, remaining: 18}
-	svc := NewFocusRoomService(repo, repo.box, fakeLLM{}, rate, 20, PlatformProvider{BaseURL: "https://platform.example/v1", APIKey: "platform", Model: "demo"})
-
-	result, err := svc.TrialTurn(context.Background(), repo.agent.Agent.ID, "如何判断方向？", "visitor-1")
-	if err != nil {
-		t.Fatalf("TrialTurn: %v", err)
-	}
-	if result.ProviderMode != "platform_trial" {
-		t.Fatalf("expected platform trial, got %s", result.ProviderMode)
-	}
-	if result.RemainingUses != 18 {
-		t.Fatalf("expected remaining 18, got %d", result.RemainingUses)
-	}
-	if !strings.Contains(rate.scope, "trial:visitor-1") {
-		t.Fatalf("unexpected rate scope %q", rate.scope)
-	}
-}
-
 func TestStreamTurnPersistsSequencedTerminalEvents(t *testing.T) {
 	repo := newFakeFocusRepo(t)
-	svc := NewFocusRoomService(repo, repo.box, fakeLLM{chunks: []string{"先聚焦", "，再验证"}}, &fakeRateLimiter{allowed: true, remaining: 19}, 20, PlatformProvider{})
+	svc := NewFocusRoomService(repo, repo.box, fakeLLM{chunks: []string{"先聚焦", "，再验证"}})
 
 	var frames []StreamFrame
 	err := svc.StreamTurn(context.Background(), repo.workspaceID, repo.turn.ID, "", func(frame StreamFrame) error {
@@ -138,7 +118,7 @@ func TestStreamTurnSystemPromptPinsSelectedAgentSkillIdentity(t *testing.T) {
 	repo.agent.Version.SystemPrompt = "系统设定：像乔布斯一样先做减法。"
 	repo.agent.Version.SkillMarkdown = "# Steve Jobs · 思维操作系统\n\n## 角色扮演规则\n直接以Steve Jobs的身份回应。"
 	var sent []llm.Message
-	svc := NewFocusRoomService(repo, repo.box, fakeLLM{chunks: []string{"ok"}, messages: &sent}, &fakeRateLimiter{allowed: true, remaining: 19}, 20, PlatformProvider{})
+	svc := NewFocusRoomService(repo, repo.box, fakeLLM{chunks: []string{"ok"}, messages: &sent})
 
 	err := svc.StreamTurn(context.Background(), repo.workspaceID, repo.turn.ID, "", func(StreamFrame) error { return nil })
 	if err != nil {
@@ -165,7 +145,7 @@ func TestStreamTurnIncludesRecentSessionMessages(t *testing.T) {
 		{ID: repo.userMessage.ID, WorkspaceID: repo.workspaceID, SessionID: repo.session.ID, TurnID: repo.turn.ID, Role: domain.MessageRoleUser, Content: "当前问题", Status: domain.MessageStatusDone, CreatedAt: now.Add(-1 * time.Minute)},
 	}
 	var sent []llm.Message
-	svc := NewFocusRoomService(repo, repo.box, fakeLLM{chunks: []string{"ok"}, messages: &sent}, &fakeRateLimiter{allowed: true, remaining: 19}, 20, PlatformProvider{})
+	svc := NewFocusRoomService(repo, repo.box, fakeLLM{chunks: []string{"ok"}, messages: &sent})
 
 	err := svc.StreamTurn(context.Background(), repo.workspaceID, repo.turn.ID, "", func(StreamFrame) error { return nil })
 	if err != nil {
@@ -181,7 +161,7 @@ func TestStreamTurnIncludesRecentSessionMessages(t *testing.T) {
 
 func TestRenameSessionTrimsAndLimitsTitle(t *testing.T) {
 	repo := newFakeFocusRepo(t)
-	svc := NewFocusRoomService(repo, repo.box, fakeLLM{}, &fakeRateLimiter{allowed: true, remaining: 19}, 20, PlatformProvider{})
+	svc := NewFocusRoomService(repo, repo.box, fakeLLM{})
 
 	longTitle := "  " + strings.Repeat("名", 90) + "  "
 	session, err := svc.RenameSession(context.Background(), repo.workspaceID, repo.session.ID, longTitle)
@@ -195,7 +175,7 @@ func TestRenameSessionTrimsAndLimitsTitle(t *testing.T) {
 
 func TestRenameSessionRejectsEmptyTitle(t *testing.T) {
 	repo := newFakeFocusRepo(t)
-	svc := NewFocusRoomService(repo, repo.box, fakeLLM{}, &fakeRateLimiter{allowed: true, remaining: 19}, 20, PlatformProvider{})
+	svc := NewFocusRoomService(repo, repo.box, fakeLLM{})
 
 	_, err := svc.RenameSession(context.Background(), repo.workspaceID, repo.session.ID, "   ")
 	if !errors.Is(err, domain.ErrInvalidInput) {
@@ -205,7 +185,7 @@ func TestRenameSessionRejectsEmptyTitle(t *testing.T) {
 
 func TestDeleteSessionDelegatesToRepository(t *testing.T) {
 	repo := newFakeFocusRepo(t)
-	svc := NewFocusRoomService(repo, repo.box, fakeLLM{}, &fakeRateLimiter{allowed: true, remaining: 19}, 20, PlatformProvider{})
+	svc := NewFocusRoomService(repo, repo.box, fakeLLM{})
 
 	if err := svc.DeleteSession(context.Background(), repo.workspaceID, repo.session.ID); err != nil {
 		t.Fatalf("DeleteSession: %v", err)
@@ -217,7 +197,7 @@ func TestDeleteSessionDelegatesToRepository(t *testing.T) {
 
 func TestSessionsReturnsFocusSummaries(t *testing.T) {
 	repo := newFakeFocusRepo(t)
-	svc := NewFocusRoomService(repo, repo.box, fakeLLM{}, &fakeRateLimiter{allowed: true, remaining: 19}, 20, PlatformProvider{})
+	svc := NewFocusRoomService(repo, repo.box, fakeLLM{})
 
 	sessions, err := svc.Sessions(context.Background(), repo.workspaceID)
 	if err != nil {
@@ -426,15 +406,4 @@ func (f fakeLLM) StreamChat(_ context.Context, request llm.ChatRequest, onDelta 
 		}
 	}
 	return llm.TokenUsage{CompletionTokens: len(chunks), TotalTokens: len(chunks)}, nil
-}
-
-type fakeRateLimiter struct {
-	allowed   bool
-	remaining int
-	scope     string
-}
-
-func (f *fakeRateLimiter) AllowFixedWindow(_ context.Context, scope string, _ int, _ time.Duration) (bool, int, error) {
-	f.scope = scope
-	return f.allowed, f.remaining, nil
 }

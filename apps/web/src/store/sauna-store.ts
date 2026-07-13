@@ -2,7 +2,8 @@
 
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
-import { createSaunaApiClient, humanizeApiError, streamTurn } from "@/lib/sauna-api";
+import { classifySaunaApiError, createSaunaApiClient, humanizeApiError, streamTurn } from "@/lib/sauna-api";
+import { migrateSaunaPersistedState } from "@/lib/access-policy";
 import type {
   AgentProfile,
   AgentStatus,
@@ -59,6 +60,7 @@ function mapAgent(agent: ApiAgent, index: number): AgentProfile {
     accent: accents[index % accents.length] ?? "emerald",
     status: statusMap[agent.status] ?? "idle",
     lastActivity: agent.is_public_template ? "默认智囊" : "已蒸馏",
+    sourceKind: agent.is_public_template ? "public" : "private",
   };
 }
 
@@ -162,6 +164,7 @@ interface SaunaState {
   startEmail: (email: string) => Promise<AuthStartResult>;
   verifyEmail: (email: string, code: string) => Promise<void>;
   logout: () => Promise<void>;
+  invalidateSession: () => void;
   loadProviders: (tokenOverride?: string) => Promise<void>;
   createProvider: (input: CreateProviderConfigInput) => Promise<ProviderConfig>;
   updateProvider: (id: string, input: UpdateProviderConfigInput) => Promise<ProviderConfig>;
@@ -209,7 +212,7 @@ export const useSaunaStore = create<SaunaState>()(
         try {
           const { agents } = await createSaunaApiClient().listPublicAgents();
           const mappedAgents = (agents ?? []).map(mapAgent);
-          const privateAgents = (get().agents ?? []).filter((agent) => agent.lastActivity !== "默认智囊");
+          const privateAgents = (get().agents ?? []).filter((agent) => agent.sourceKind === "private");
           const combined = [...mappedAgents, ...privateAgents];
           set({
             agents: combined,
@@ -232,7 +235,7 @@ export const useSaunaStore = create<SaunaState>()(
         }
         try {
           const { agents } = await createSaunaApiClient(token).listWorkspaceAgents();
-          const publicAgents = (get().agents ?? []).filter((agent) => agent.lastActivity === "默认智囊");
+          const publicAgents = (get().agents ?? []).filter((agent) => agent.sourceKind === "public");
           const mappedPrivate = (agents ?? []).map((agent, index) => mapAgent(agent, publicAgents.length + index));
           const combined = [...publicAgents, ...mappedPrivate];
           set({
@@ -241,7 +244,8 @@ export const useSaunaStore = create<SaunaState>()(
               ? get().selectedAgentId
               : combined[0]?.id ?? "",
           });
-        } catch {
+        } catch (error) {
+          if (classifySaunaApiError(error) === "unauthorized") throw error;
           // Public agents remain usable if private agent loading fails.
         }
       },
@@ -259,7 +263,11 @@ export const useSaunaStore = create<SaunaState>()(
           await get().loadDistillationJobs(token);
           await get().loadFocusSessions(token);
         } catch (error) {
-          set({ token: undefined, identity: undefined, providers: [], authCodeSentEmail: undefined, devCode: undefined, authStatus: "error", authError: humanizeApiError(error) });
+          if (classifySaunaApiError(error) === "unauthorized") {
+            set({ token: undefined, identity: undefined, providers: [], distillationJobs: [], activeSession: undefined, messagesBySession: {}, sessions: [], authCodeSentEmail: undefined, devCode: undefined, authStatus: "error", authError: humanizeApiError(error), agents: (get().agents ?? []).filter((agent) => agent.sourceKind === "public"), selectedAgentId: "" });
+            throw error;
+          }
+          set({ authStatus: "error", authError: humanizeApiError(error) });
         }
       },
       startEmail: async (email) => {
@@ -289,6 +297,22 @@ export const useSaunaStore = create<SaunaState>()(
           throw error;
         }
       },
+      invalidateSession: () => set({
+        token: undefined,
+        identity: undefined,
+        providers: [],
+        distillationJobs: [],
+        activeSession: undefined,
+        messagesBySession: {},
+        sessions: [],
+        initialPromptsBySession: {},
+        turnsInFlightBySession: {},
+        streamEvents: [],
+        agents: (get().agents ?? []).filter((agent) => agent.sourceKind === "public"),
+        selectedAgentId: "",
+        authStatus: "error",
+        authError: "登录已过期，请重新登录。",
+      }),
       logout: async () => {
         const token = get().token;
         set({ authStatus: "loading" });
@@ -313,6 +337,12 @@ export const useSaunaStore = create<SaunaState>()(
           devCode: undefined,
           authStatus: "idle",
           providerStatus: "idle",
+          agents: (get().agents ?? []).filter((agent) => agent.sourceKind === "public"),
+          selectedAgentId: "",
+          streamEvents: [],
+          focusError: undefined,
+          providerError: undefined,
+          distillationError: undefined,
         });
       },
       loadProviders: async (tokenOverride) => {
@@ -864,12 +894,9 @@ export const useSaunaStore = create<SaunaState>()(
     {
       name: "sauna-session",
       storage: createJSONStorage(() => localStorage),
-      partialize: (state) => ({
-        token: state.token,
-        identity: state.identity,
-        activeSession: state.activeSession,
-        selectedAgentId: state.selectedAgentId,
-      }),
+      version: 2,
+      migrate: (persistedState) => migrateSaunaPersistedState(persistedState),
+      partialize: (state) => ({ token: state.token }),
     },
   ),
 );

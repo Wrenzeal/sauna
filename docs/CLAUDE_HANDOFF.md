@@ -423,3 +423,23 @@ Routes, API integrations, Zustand state, authentication, provider settings, SSE 
 - `git diff --check`: passed.
 - README local-link check and targeted secret scan passed.
 - ICO includes 16px, 32px, and 48px sizes; Apple icon is 180px.
+
+## 2026-07-13 Authentication and access control
+
+### Product contract
+- Entry and top-navigation login buttons open a global email verification modal.
+- Visitors see public/default advisors only. Settings, Studio, and FocusRoom render locked shells until authentication.
+- Authenticated users see separate private and default advisor sections and may configure providers, distill advisors, save sessions, and consult models.
+- A blocked consultation keeps the selected advisor and unsent draft through login/provider setup but requires a second explicit send.
+- Missing provider configuration opens create mode; upstream/provider failures open repair mode. No automatic fallback is permitted.
+
+### Implementation anchors
+- `apps/web/src/components/access-coordinator.tsx`: global auth/provider modal host, account menu, locked shell, focus trap/restoration.
+- `apps/web/src/store/access-ui-store.ts`: non-persisted modal and access-intent state.
+- `apps/web/src/lib/access-policy.ts`: access decisions and persist migration.
+- `apps/web/src/store/sauna-store.ts`: public/private data lifecycle, token-only persistence, logout/401 invalidation.
+- `apps/backend/internal/httpapi/server.go`: public agent listing remains; anonymous trial turns were removed.
+
+### Verification
+- Frontend policy tests, typecheck, lint, production build, backend Go tests, diff check, and removed-trial scan all pass.
+- Next build still reports the pre-existing multiple-lockfile workspace-root warning.

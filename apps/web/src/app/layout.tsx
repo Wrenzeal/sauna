@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { AccessCoordinatorProvider } from "@/components/access-coordinator";
 
 const geist = Geist({
   subsets: ["latin"],
@@ -61,7 +62,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
-      <body className="font-sans antialiased">{children}</body>
+      <body className="font-sans antialiased"><AccessCoordinatorProvider>{children}</AccessCoordinatorProvider></body>
     </html>
   );
 }
