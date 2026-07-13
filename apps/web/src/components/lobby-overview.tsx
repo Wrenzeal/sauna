@@ -68,7 +68,7 @@ export function LobbyOverview() {
 
       <motion.header initial={reduce ? false : { opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.65, ease: [0.16, 1, 0.3, 1] }} className="relative mx-auto max-w-[1180px] py-8 text-center sm:py-12">
         <p className="text-sm font-medium tracking-[0.12em] text-[var(--sauna-accent-strong)]">你的私人智囊会所</p>
-        <h1 className="sauna-display mx-auto mt-5 max-w-[12ch] text-5xl leading-[0.98] tracking-[-0.055em] text-[var(--sauna-text)] sm:text-6xl lg:text-[76px]">
+        <h1 className="sauna-display mx-auto mt-5 whitespace-nowrap text-[clamp(2.35rem,6vw,4.75rem)] leading-[0.98] tracking-[-0.055em] text-[var(--sauna-text)]">
           欢迎回来，慢慢聊。
         </h1>
         <p className="mx-auto mt-6 max-w-[34ch] text-base leading-7 text-[var(--sauna-muted-strong)] sm:text-lg">

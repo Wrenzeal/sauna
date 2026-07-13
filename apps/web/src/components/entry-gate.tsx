@@ -55,7 +55,7 @@ export function EntryGate() {
         </Link>
         <div className="flex items-center gap-2">
           <button type="button" onClick={() => setIntroOpen(true)} className="hidden h-11 items-center gap-2 rounded-full px-4 text-sm text-[var(--sauna-muted-strong)] transition hover:bg-[var(--sauna-soft)] sm:inline-flex"><Info size={17} /> 什么是 Sauna</button>
-          <Link href="/settings" className="h-11 rounded-full px-4 text-sm font-medium leading-[44px] text-[var(--sauna-muted-strong)] transition hover:bg-[var(--sauna-soft)]">登录</Link>
+          <Link href="/settings" className="inline-flex h-11 items-center justify-center rounded-full px-4 text-sm font-medium text-[var(--sauna-muted-strong)] transition hover:bg-[var(--sauna-soft)]">登录</Link>
           <ThemeToggle compact />
         </div>
       </header>
