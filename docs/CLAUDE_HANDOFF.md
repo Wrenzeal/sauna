@@ -465,3 +465,26 @@ Verification evidence: local/public health are 200; the public auth-start reques
 Verification email now uses MIME `multipart/alternative`: a complete text fallback plus a table-based inline-style HTML template using the current cream, walnut and amber brand system. The HTML includes the public `https://sauna.wrenzeal.top/sauna-mark.png` asset but remains readable when images are blocked. Sender is `Sauna <sauna@mail.wrenzeal.top>`.
 
 Production backend has been restarted with the new sender/template. A public auth-start request returned 200 without `dev_code`, the SMTP message was accepted, and backend logs contain no code. The recipient should visually inspect the newest email in QQ Mail; no code change is required unless a specific client rendering issue is reported.
+
+## 2026-07-14 Authentication UX and resend cooldown handoff
+
+### Current contract
+- Email verification resend is limited to once per 60 seconds by the backend, not only by frontend UI.
+- `POST /auth/email/start` returns `resend_after_seconds`; cooldown failures return HTTP 429 `verification_code_cooldown` with `retry_after_seconds`.
+- Invalid/expired codes return HTTP 400 `invalid_verification_code`. Do not classify this error as an unauthorized session.
+- The auth modal keeps the sent email fixed during the challenge, shows a countdown, and provides an explicit `更换邮箱` reset action.
+- Logout is local-outcome-first: show `logging_out`, wait no more than five seconds for the API, clear private state, and do not navigate away from the current pathname.
+
+### Main files
+- Backend cooldown/cache: `apps/backend/internal/cache/cache.go`, `apps/backend/internal/service/auth.go`.
+- HTTP error mapping: `apps/backend/internal/httpapi/server.go`.
+- Frontend modal/account menu: `apps/web/src/components/access-coordinator.tsx`.
+- Settings logout feedback: `apps/web/src/components/settings-panel.tsx`.
+- Auth state lifecycle: `apps/web/src/store/sauna-store.ts`.
+- Error metadata/policy: `apps/web/src/lib/sauna-api.ts`, `apps/web/src/lib/access-policy.ts`.
+
+### Production and verification
+- Backend production env includes `AUTH_RESEND_COOLDOWN=60s` and has been restarted.
+- Production smoke: first send 200, immediate resend 429 with retry metadata, wrong code 400 with dedicated copy.
+- Full backend tests, Go vet, web tests, typecheck, lint, production build, and `git diff --check` pass.
+- Browser-level pathname retention was verified statically (no logout route push/replace); run an interactive E2E check if modifying route guards or logout flows later.

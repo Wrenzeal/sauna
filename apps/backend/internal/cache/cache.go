@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -78,6 +79,61 @@ func (s *Store) AllowFixedWindow(ctx context.Context, scope string, limit int, w
 		remaining = 0
 	}
 	return int(count) <= limit, remaining, nil
+}
+
+func (s *Store) AcquireCooldown(ctx context.Context, scope string, token string, window time.Duration) (bool, time.Duration, error) {
+	if window <= 0 {
+		return true, 0, nil
+	}
+	const acquireCooldown = `
+local created = redis.call("SET", KEYS[1], ARGV[1], "PX", ARGV[2], "NX")
+if created then
+  return {1, tonumber(ARGV[2])}
+end
+local ttl = redis.call("PTTL", KEYS[1])
+if ttl < 0 then ttl = 0 end
+return {0, ttl}`
+	milliseconds := window.Milliseconds()
+	result, err := s.client.Eval(ctx, acquireCooldown, []string{cooldownKey(scope)}, codeHash(token), milliseconds).Slice()
+	if err != nil {
+		return false, 0, err
+	}
+	if len(result) != 2 {
+		return false, 0, fmt.Errorf("unexpected cooldown result length %d", len(result))
+	}
+	created, err := redisInt64(result[0])
+	if err != nil {
+		return false, 0, fmt.Errorf("decode cooldown acquired: %w", err)
+	}
+	ttlMilliseconds, err := redisInt64(result[1])
+	if err != nil {
+		return false, 0, fmt.Errorf("decode cooldown ttl: %w", err)
+	}
+	return created == 1, time.Duration(ttlMilliseconds) * time.Millisecond, nil
+}
+
+func (s *Store) ReleaseCooldownIfMatches(ctx context.Context, scope string, token string) error {
+	const compareAndDelete = `
+if redis.call("GET", KEYS[1]) == ARGV[1] then
+  return redis.call("DEL", KEYS[1])
+end
+return 0`
+	return s.client.Eval(ctx, compareAndDelete, []string{cooldownKey(scope)}, codeHash(token)).Err()
+}
+
+func redisInt64(value any) (int64, error) {
+	switch typed := value.(type) {
+	case int64:
+		return typed, nil
+	case string:
+		return strconv.ParseInt(typed, 10, 64)
+	default:
+		return 0, fmt.Errorf("unexpected Redis integer type %T", value)
+	}
+}
+
+func cooldownKey(scope string) string {
+	return "cooldown:" + sanitize(scope)
 }
 
 func emailCodeKey(email string) string {

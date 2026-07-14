@@ -42,17 +42,20 @@ export function getSaunaApiBaseUrl() {
 interface ErrorPayload {
   error?: string;
   message?: string;
+  retry_after_seconds?: number;
 }
 
 export class SaunaApiError extends Error {
   status: number;
   code: string;
+  retryAfterSeconds?: number;
 
-  constructor(status: number, code: string, message: string) {
+  constructor(status: number, code: string, message: string, retryAfterSeconds?: number) {
     super(message);
     this.name = "SaunaApiError";
     this.status = status;
     this.code = code;
+    this.retryAfterSeconds = retryAfterSeconds;
   }
 }
 
@@ -87,10 +90,15 @@ async function parseError(response: Response) {
     response.status,
     payload.error ?? "request_failed",
     payload.message ?? `Sauna API request failed with ${response.status}`,
+    payload.retry_after_seconds,
   );
 }
 
-async function requestJson<T>(path: string, init: RequestInit = {}, token?: string): Promise<T> {
+interface RequestBehavior {
+  dispatchAccessError?: boolean;
+}
+
+async function requestJson<T>(path: string, init: RequestInit = {}, token?: string, behavior: RequestBehavior = {}): Promise<T> {
   const headers = new Headers(init.headers);
   headers.set("Accept", "application/json");
   if (init.body && !headers.has("Content-Type")) {
@@ -108,7 +116,7 @@ async function requestJson<T>(path: string, init: RequestInit = {}, token?: stri
 
   if (!response.ok) {
     const error = await parseError(response);
-    if (typeof window !== "undefined") {
+    if (typeof window !== "undefined" && behavior.dispatchAccessError !== false) {
       const kind = classifySaunaApiError(error);
       if (kind !== "ordinary") window.dispatchEvent(new CustomEvent("sauna-access-error", { detail: { kind, error } }));
     }
@@ -202,8 +210,8 @@ export function createSaunaApiClient(token?: string) {
         { method: "POST", body: JSON.stringify({ email, code }) },
       );
     },
-    logout() {
-      return requestJson<{ ok: boolean }>("/auth/logout", { method: "POST" }, token);
+    logout(signal?: AbortSignal) {
+      return requestJson<{ ok: boolean }>("/auth/logout", { method: "POST", signal }, token, { dispatchAccessError: false });
     },
     me() {
       return requestJson<{ identity: AuthIdentity }>("/me", {}, token);
@@ -363,6 +371,12 @@ export function humanizeApiError(error: unknown) {
   if (error instanceof SaunaApiError) {
     if (error.code === "provider_config_required") {
       return "先接入你的模型 provider 和 key。";
+    }
+    if (error.code === "invalid_verification_code") {
+      return "验证码错误或已失效，请检查后重试。";
+    }
+    if (error.code === "verification_code_cooldown") {
+      return `验证码已发送，请在 ${error.retryAfterSeconds ?? 60} 秒后重试。`;
     }
     if (error.code === "unauthorized") {
       return "登录已过期，请重新登录。";

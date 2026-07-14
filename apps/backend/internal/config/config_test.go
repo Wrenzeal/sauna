@@ -3,20 +3,22 @@ package config
 import (
 	"strings"
 	"testing"
+	"time"
 )
 
 func validSMTPConfig() Config {
 	return Config{
-		AppEnv:          "production",
-		DatabaseURL:     "postgres://example",
-		RedisURL:        "redis://example",
-		SecretKey:       "0123456789abcdef",
-		AuthEmailDriver: "smtp",
-		SMTPHost:        "smtp.resend.com",
-		SMTPPort:        587,
-		SMTPUsername:    "resend",
-		SMTPPassword:    "re_test_key",
-		SMTPFrom:        "login@mail.wrenzeal.top",
+		AppEnv:             "production",
+		DatabaseURL:        "postgres://example",
+		RedisURL:           "redis://example",
+		SecretKey:          "0123456789abcdef",
+		AuthResendCooldown: time.Minute,
+		AuthEmailDriver:    "smtp",
+		SMTPHost:           "smtp.resend.com",
+		SMTPPort:           587,
+		SMTPUsername:       "resend",
+		SMTPPassword:       "re_test_key",
+		SMTPFrom:           "login@mail.wrenzeal.top",
 	}
 }
 
@@ -40,6 +42,14 @@ func TestValidateProductionSMTPRequiresCredentials(t *testing.T) {
 				t.Fatalf("expected %s validation error, got %v", tt.want, err)
 			}
 		})
+	}
+}
+
+func TestValidateRejectsSubsecondResendCooldown(t *testing.T) {
+	cfg := validSMTPConfig()
+	cfg.AuthResendCooldown = time.Millisecond
+	if err := cfg.Validate(); err == nil || !strings.Contains(err.Error(), "AUTH_RESEND_COOLDOWN") {
+		t.Fatalf("expected resend cooldown validation error, got %v", err)
 	}
 }
 

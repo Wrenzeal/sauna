@@ -29,16 +29,30 @@ const (
 )
 
 var (
-	ErrNotFound               = errors.New("not_found")
-	ErrUnauthorized           = errors.New("unauthorized")
-	ErrProviderConfigRequired = errors.New("provider_config_required")
-	ErrForbidden              = errors.New("forbidden")
-	ErrRateLimited            = errors.New("rate_limited")
-	ErrInvalidInput           = errors.New("invalid_input")
-	ErrProviderInUse          = errors.New("provider_config_in_use")
-	ErrJobNotReady            = errors.New("distillation_job_not_ready")
-	ErrEmailDelivery          = errors.New("email_delivery_failed")
+	ErrNotFound                = errors.New("not_found")
+	ErrUnauthorized            = errors.New("unauthorized")
+	ErrProviderConfigRequired  = errors.New("provider_config_required")
+	ErrForbidden               = errors.New("forbidden")
+	ErrRateLimited             = errors.New("rate_limited")
+	ErrInvalidInput            = errors.New("invalid_input")
+	ErrProviderInUse           = errors.New("provider_config_in_use")
+	ErrJobNotReady             = errors.New("distillation_job_not_ready")
+	ErrEmailDelivery           = errors.New("email_delivery_failed")
+	ErrInvalidVerificationCode = errors.New("invalid_verification_code")
+	ErrVerificationCooldown    = errors.New("verification_code_cooldown")
 )
+
+type VerificationCooldownError struct {
+	RetryAfter time.Duration
+}
+
+func (e *VerificationCooldownError) Error() string {
+	return ErrVerificationCooldown.Error()
+}
+
+func (e *VerificationCooldownError) Unwrap() error {
+	return ErrVerificationCooldown
+}
 
 type User struct {
 	ID          string    `json:"id"`

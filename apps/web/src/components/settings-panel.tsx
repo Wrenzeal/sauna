@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import {
   CheckCircle,
+  CircleNotch,
   FloppyDisk,
   GearSix,
   Key,
@@ -144,6 +145,7 @@ export function SettingsPanel() {
     devCode,
     authCodeSentEmail,
     authStatus,
+    authOperation,
     providerStatus,
     authError,
     providerError,
@@ -175,6 +177,7 @@ export function SettingsPanel() {
   const isLoggedIn = Boolean(token && identity);
   const busy = providerStatus === "loading";
   const authBusy = authStatus === "loading";
+  const loggingOut = authOperation === "logging_out";
   const selectedProvider = providerList.find((provider) => provider.id === selectedProviderId);
   const modelGroups = useMemo(() => groupModels(models), [models]);
   const codeEmail = authCodeSentEmail ?? email;
@@ -393,10 +396,11 @@ export function SettingsPanel() {
           <button
             type="button"
             onClick={() => void logout()}
-            className="grid size-11 place-items-center rounded-full bg-[var(--sauna-soft-strong)] text-[var(--sauna-muted)] transition hover:text-[var(--sauna-text)] active:translate-y-px"
-            aria-label="退出登录"
+            disabled={loggingOut}
+            className="grid size-11 place-items-center rounded-full bg-[var(--sauna-soft-strong)] text-[var(--sauna-muted)] transition hover:text-[var(--sauna-text)] active:translate-y-px disabled:cursor-wait disabled:opacity-60"
+            aria-label={loggingOut ? "正在退出登录" : "退出登录"}
           >
-            <SignOut size={18} />
+            {loggingOut ? <motion.span animate={reduce ? undefined : { rotate: 360 }} transition={{ duration: 0.8, repeat: Infinity, ease: "linear" }}><CircleNotch size={18} /></motion.span> : <SignOut size={18} />}
           </button>
         </div>
 

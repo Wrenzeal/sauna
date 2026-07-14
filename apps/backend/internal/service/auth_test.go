@@ -19,7 +19,7 @@ import (
 func TestStartEmailDevReturnsCodeAndSends(t *testing.T) {
 	store := cache.NewFakeStore()
 	sender := &fakeEmailSender{}
-	svc := NewAuthService(&fakeAuthRepo{}, store, store, sender, time.Minute, time.Hour, "development", 5, 20)
+	svc := NewAuthService(&fakeAuthRepo{}, store, store, sender, time.Minute, time.Hour, time.Minute, "development", 5, 20)
 
 	result, err := svc.StartEmail(context.Background(), "  USER@Example.COM  ", "203.0.113.10")
 	if err != nil {
@@ -43,7 +43,7 @@ func TestStartEmailDevReturnsCodeAndSends(t *testing.T) {
 func TestStartEmailProductionHidesDevCodeAndSends(t *testing.T) {
 	store := cache.NewFakeStore()
 	sender := &fakeEmailSender{}
-	svc := NewAuthService(&fakeAuthRepo{}, store, store, sender, time.Minute, time.Hour, "production", 5, 20)
+	svc := NewAuthService(&fakeAuthRepo{}, store, store, sender, time.Minute, time.Hour, time.Minute, "production", 5, 20)
 
 	result, err := svc.StartEmail(context.Background(), "user@example.com", "203.0.113.10")
 	if err != nil {
@@ -59,7 +59,7 @@ func TestStartEmailProductionHidesDevCodeAndSends(t *testing.T) {
 
 func TestStartEmailDeliveryFailureReturnsDomainError(t *testing.T) {
 	store := cache.NewFakeStore()
-	svc := NewAuthService(&fakeAuthRepo{}, store, store, &fakeEmailSender{err: errors.New("smtp down")}, time.Minute, time.Hour, "production", 5, 20)
+	svc := NewAuthService(&fakeAuthRepo{}, store, store, &fakeEmailSender{err: errors.New("smtp down")}, time.Minute, time.Hour, time.Minute, "production", 5, 20)
 
 	_, err := svc.StartEmail(context.Background(), "user@example.com", "203.0.113.10")
 	if !errors.Is(err, domain.ErrEmailDelivery) {
@@ -82,7 +82,7 @@ func TestStartEmailDeliveryFailureDoesNotDeleteNewerCode(t *testing.T) {
 			t.Fatalf("store newer code: %v", err)
 		}
 	}
-	svc := NewAuthService(&fakeAuthRepo{}, store, store, sender, time.Minute, time.Hour, "production", 5, 20)
+	svc := NewAuthService(&fakeAuthRepo{}, store, store, sender, time.Minute, time.Hour, time.Minute, "production", 5, 20)
 
 	_, err := svc.StartEmail(context.Background(), "user@example.com", "203.0.113.10")
 	if !errors.Is(err, domain.ErrEmailDelivery) {
@@ -96,7 +96,7 @@ func TestStartEmailDeliveryFailureDoesNotDeleteNewerCode(t *testing.T) {
 
 func TestStartEmailProductionNilSenderDoesNotStoreCode(t *testing.T) {
 	store := cache.NewFakeStore()
-	svc := NewAuthService(&fakeAuthRepo{}, store, store, nil, time.Minute, time.Hour, "Production", 5, 20)
+	svc := NewAuthService(&fakeAuthRepo{}, store, store, nil, time.Minute, time.Hour, time.Minute, "Production", 5, 20)
 
 	_, err := svc.StartEmail(context.Background(), "user@example.com", "203.0.113.10")
 	if !errors.Is(err, domain.ErrEmailDelivery) {
@@ -114,7 +114,7 @@ func TestStartEmailProductionNilSenderDoesNotStoreCode(t *testing.T) {
 func TestVerifyEmailCodeIsSingleUse(t *testing.T) {
 	store := cache.NewFakeStore()
 	sender := &fakeEmailSender{}
-	svc := NewAuthService(&fakeAuthRepo{}, store, store, sender, time.Minute, time.Hour, "production", 5, 20)
+	svc := NewAuthService(&fakeAuthRepo{}, store, store, sender, time.Minute, time.Hour, time.Minute, "production", 5, 20)
 
 	if _, err := svc.StartEmail(context.Background(), "user@example.com", "203.0.113.10"); err != nil {
 		t.Fatalf("StartEmail: %v", err)
@@ -122,14 +122,68 @@ func TestVerifyEmailCodeIsSingleUse(t *testing.T) {
 	if _, err := svc.VerifyEmail(context.Background(), "user@example.com", sender.code); err != nil {
 		t.Fatalf("first VerifyEmail: %v", err)
 	}
-	if _, err := svc.VerifyEmail(context.Background(), "user@example.com", sender.code); !errors.Is(err, domain.ErrUnauthorized) {
+	if _, err := svc.VerifyEmail(context.Background(), "user@example.com", sender.code); !errors.Is(err, domain.ErrInvalidVerificationCode) {
 		t.Fatalf("expected reused code to be unauthorized, got %v", err)
+	}
+}
+
+func TestStartEmailEnforcesResendCooldown(t *testing.T) {
+	store := cache.NewFakeStore()
+	sender := &fakeEmailSender{}
+	svc := NewAuthService(&fakeAuthRepo{}, store, store, sender, time.Minute, time.Hour, time.Minute, "production", 5, 20)
+
+	result, err := svc.StartEmail(context.Background(), "user@example.com", "203.0.113.10")
+	if err != nil {
+		t.Fatalf("first StartEmail: %v", err)
+	}
+	if result.ResendAfter != 60 {
+		t.Fatalf("expected 60-second resend metadata, got %d", result.ResendAfter)
+	}
+	if _, err := svc.StartEmail(context.Background(), "user@example.com", "203.0.113.10"); !errors.Is(err, domain.ErrVerificationCooldown) {
+		t.Fatalf("expected resend cooldown, got %v", err)
+	}
+	if sender.calls != 1 {
+		t.Fatalf("expected one delivered email during cooldown, got %d", sender.calls)
+	}
+}
+
+func TestStartEmailDeliveryFailureReleasesCooldown(t *testing.T) {
+	store := cache.NewFakeStore()
+	sender := &fakeEmailSender{err: errors.New("smtp down")}
+	svc := NewAuthService(&fakeAuthRepo{}, store, store, sender, time.Minute, time.Hour, time.Minute, "production", 5, 20)
+
+	if _, err := svc.StartEmail(context.Background(), "user@example.com", "203.0.113.10"); !errors.Is(err, domain.ErrEmailDelivery) {
+		t.Fatalf("expected delivery failure, got %v", err)
+	}
+	sender.err = nil
+	if _, err := svc.StartEmail(context.Background(), "user@example.com", "203.0.113.10"); err != nil {
+		t.Fatalf("expected immediate retry after failed delivery, got %v", err)
+	}
+}
+
+func TestCooldownAttemptDoesNotConsumeHourlyLimit(t *testing.T) {
+	store := cache.NewFakeStore()
+	sender := &fakeEmailSender{}
+	svc := NewAuthService(&fakeAuthRepo{}, store, store, sender, time.Minute, time.Hour, time.Minute, "production", 2, 20)
+
+	if _, err := svc.StartEmail(context.Background(), "user@example.com", "203.0.113.10"); err != nil {
+		t.Fatalf("first StartEmail: %v", err)
+	}
+	firstCode := sender.code
+	if _, err := svc.StartEmail(context.Background(), "user@example.com", "203.0.113.10"); !errors.Is(err, domain.ErrVerificationCooldown) {
+		t.Fatalf("expected cooldown on second request, got %v", err)
+	}
+	if err := store.ReleaseCooldownIfMatches(context.Background(), "auth_email:user@example.com", firstCode); err != nil {
+		t.Fatalf("release test cooldown: %v", err)
+	}
+	if _, err := svc.StartEmail(context.Background(), "user@example.com", "203.0.113.10"); err != nil {
+		t.Fatalf("cooldown rejection must not consume hourly quota, got %v", err)
 	}
 }
 
 func TestStartEmailRateLimitsEmailAndIP(t *testing.T) {
 	store := cache.NewFakeStore()
-	svc := NewAuthService(&fakeAuthRepo{}, store, store, &fakeEmailSender{}, time.Minute, time.Hour, "development", 1, 1)
+	svc := NewAuthService(&fakeAuthRepo{}, store, store, &fakeEmailSender{}, time.Minute, time.Hour, time.Nanosecond, "development", 1, 1)
 
 	if _, err := svc.StartEmail(context.Background(), "user@example.com", "203.0.113.10"); err != nil {
 		t.Fatalf("first StartEmail: %v", err)
@@ -229,6 +283,7 @@ func TestVerificationEmailHTMLEscapesCode(t *testing.T) {
 }
 
 type fakeEmailSender struct {
+	calls  int
 	email  string
 	code   string
 	ttl    time.Duration
@@ -237,6 +292,7 @@ type fakeEmailSender struct {
 }
 
 func (f *fakeEmailSender) SendVerificationCode(_ context.Context, email string, code string, ttl time.Duration) error {
+	f.calls++
 	f.email = email
 	f.code = code
 	f.ttl = ttl

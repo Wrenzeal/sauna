@@ -66,7 +66,7 @@ func main() {
 		log.Fatalf("email sender: %v", err)
 	}
 	services := httpapi.Services{
-		Auth:     service.NewAuthService(repo, cacheStore, cacheStore, emailSender, cfg.EmailCodeTTL, cfg.AuthSessionTTL, cfg.AppEnv, cfg.AuthEmailLimitPerHour, cfg.AuthIPLimitPerHour),
+		Auth:     service.NewAuthService(repo, cacheStore, cacheStore, emailSender, cfg.EmailCodeTTL, cfg.AuthSessionTTL, cfg.AuthResendCooldown, cfg.AppEnv, cfg.AuthEmailLimitPerHour, cfg.AuthIPLimitPerHour),
 		Provider: service.NewProviderService(repo, box, llmClient),
 		Agents:   service.NewAgentService(repo),
 		Focus:    service.NewFocusRoomService(repo, box, llmClient),

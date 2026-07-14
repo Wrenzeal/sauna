@@ -52,6 +52,7 @@ export interface AuthStartResult {
   email: string;
   dev_code?: string;
   expires_in_seconds: number;
+  resend_after_seconds: number;
 }
 
 export interface AuthVerifyResult {

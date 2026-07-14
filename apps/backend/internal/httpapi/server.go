@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 
@@ -506,9 +507,24 @@ func respondError(c *gin.Context, err error) {
 	status := http.StatusInternalServerError
 	code := "internal_error"
 	message := "Internal server error."
+	var cooldownError *domain.VerificationCooldownError
+	if errors.As(err, &cooldownError) {
+		retryAfter := int64((cooldownError.RetryAfter + time.Second - 1) / time.Second)
+		if retryAfter < 1 {
+			retryAfter = 1
+		}
+		c.JSON(http.StatusTooManyRequests, gin.H{
+			"error":               "verification_code_cooldown",
+			"message":             "验证码已发送，请稍后再试。",
+			"retry_after_seconds": retryAfter,
+		})
+		return
+	}
 	switch {
 	case errors.Is(err, domain.ErrInvalidInput):
 		status, code, message = http.StatusBadRequest, "invalid_input", "Invalid request input."
+	case errors.Is(err, domain.ErrInvalidVerificationCode):
+		status, code, message = http.StatusBadRequest, "invalid_verification_code", "验证码错误或已失效，请检查后重试。"
 	case errors.Is(err, domain.ErrUnauthorized):
 		status, code, message = http.StatusUnauthorized, "unauthorized", "Authentication required."
 	case errors.Is(err, domain.ErrForbidden):

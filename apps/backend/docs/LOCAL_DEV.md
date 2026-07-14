@@ -55,13 +55,14 @@ SMTP_PASSWORD=re_your_resend_sending_key
 SMTP_FROM=sauna@mail.wrenzeal.top
 SMTP_FROM_NAME=Sauna
 SMTP_SECURITY=starttls
+AUTH_RESEND_COOLDOWN=60s
 AUTH_EMAIL_LIMIT_PER_HOUR=5
 AUTH_IP_LIMIT_PER_HOUR=20
 ```
 
 For the current deployment, add `mail.wrenzeal.top` to Resend and copy the exact SPF and DKIM records from the Resend dashboard into the `myhostadmin.net` DNS console. Wait until Resend marks the domain as verified before setting `APP_ENV=production`. Create a sending-only API key restricted to that domain and store it as `SMTP_PASSWORD` only in the ignored server `.env.local` file.
 
-Resend SMTP uses `smtp.resend.com`, username `resend`, and the API key as the password. Port 587 uses STARTTLS. The sending address does not need a real inbox; `sauna@mail.wrenzeal.top` is only the authenticated From identity. Keep SMTP credentials only on the backend server, never in Vercel frontend variables or Git.
+Resend SMTP uses `smtp.resend.com`, username `resend`, and the API key as the password. Port 587 uses STARTTLS. `AUTH_RESEND_COOLDOWN=60s` enforces the resend interval in DragonFlyDB; the frontend countdown uses the retry value returned by the backend. The sending address does not need a real inbox; `sauna@mail.wrenzeal.top` is only the authenticated From identity. Keep SMTP credentials only on the backend server, never in Vercel frontend variables or Git.
 
 After configuration, restart the backend and confirm `/api/v1/auth/email/start` returns `email` plus `expires_in_seconds` without `dev_code`. Send real test messages to at least QQ, 163, and Gmail addresses and check delivery in the Resend dashboard.
 

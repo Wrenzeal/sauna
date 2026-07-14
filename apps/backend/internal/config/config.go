@@ -19,6 +19,7 @@ type Config struct {
 	SecretKey             string
 	EmailCodeTTL          time.Duration
 	AuthSessionTTL        time.Duration
+	AuthResendCooldown    time.Duration
 	AuthEmailDriver       string
 	AuthEmailLimitPerHour int
 	AuthIPLimitPerHour    int
@@ -45,6 +46,7 @@ func Load() Config {
 		SecretKey:             env("SAUNA_SECRET_KEY", "dev-only-sauna-secret-change-me-32-bytes"),
 		EmailCodeTTL:          durationEnv("EMAIL_CODE_TTL", 10*time.Minute),
 		AuthSessionTTL:        durationEnv("AUTH_SESSION_TTL", 30*24*time.Hour),
+		AuthResendCooldown:    durationEnv("AUTH_RESEND_COOLDOWN", time.Minute),
 		AuthEmailDriver:       env("AUTH_EMAIL_DRIVER", defaultAuthEmailDriver(appEnv)),
 		AuthEmailLimitPerHour: intEnv("AUTH_EMAIL_LIMIT_PER_HOUR", 5),
 		AuthIPLimitPerHour:    intEnv("AUTH_IP_LIMIT_PER_HOUR", 20),
@@ -69,6 +71,9 @@ func (c Config) Validate() error {
 	}
 	if len(c.SecretKey) < 16 {
 		return errors.New("SAUNA_SECRET_KEY must be at least 16 characters")
+	}
+	if c.AuthResendCooldown < time.Second {
+		return errors.New("AUTH_RESEND_COOLDOWN must be at least 1s")
 	}
 	driver := strings.ToLower(strings.TrimSpace(c.AuthEmailDriver))
 	switch driver {

@@ -24,12 +24,14 @@ type AuthService struct {
 	appEnv                string
 	authEmailLimitPerHour int
 	authIPLimitPerHour    int
+	resendCooldown        time.Duration
 }
 
 type AuthStartResult struct {
-	Email     string `json:"email"`
-	DevCode   string `json:"dev_code,omitempty"`
-	ExpiresIn int64  `json:"expires_in_seconds"`
+	Email       string `json:"email"`
+	DevCode     string `json:"dev_code,omitempty"`
+	ExpiresIn   int64  `json:"expires_in_seconds"`
+	ResendAfter int64  `json:"resend_after_seconds"`
 }
 
 type AuthVerifyResult struct {
@@ -38,7 +40,7 @@ type AuthVerifyResult struct {
 	ExpiresAt time.Time           `json:"expires_at"`
 }
 
-func NewAuthService(repo AuthRepository, codes cache.EmailCodeCache, rate cache.RateLimiter, emailSender EmailSender, codeTTL time.Duration, sessionTTL time.Duration, appEnv string, authEmailLimitPerHour int, authIPLimitPerHour int) *AuthService {
+func NewAuthService(repo AuthRepository, codes cache.EmailCodeCache, rate cache.RateLimiter, emailSender EmailSender, codeTTL time.Duration, sessionTTL time.Duration, resendCooldown time.Duration, appEnv string, authEmailLimitPerHour int, authIPLimitPerHour int) *AuthService {
 	appEnv = strings.ToLower(strings.TrimSpace(appEnv))
 	return &AuthService{
 		repo:                  repo,
@@ -50,6 +52,7 @@ func NewAuthService(repo AuthRepository, codes cache.EmailCodeCache, rate cache.
 		appEnv:                appEnv,
 		authEmailLimitPerHour: authEmailLimitPerHour,
 		authIPLimitPerHour:    authIPLimitPerHour,
+		resendCooldown:        resendCooldown,
 	}
 }
 
@@ -57,9 +60,6 @@ func (s *AuthService) StartEmail(ctx context.Context, email string, clientIP str
 	email = normalizeEmail(email)
 	if email == "" || !strings.Contains(email, "@") {
 		return AuthStartResult{}, domain.ErrInvalidInput
-	}
-	if err := s.allowAuthStart(ctx, email, clientIP); err != nil {
-		return AuthStartResult{}, err
 	}
 	sender := s.emailSender
 	if sender == nil {
@@ -72,17 +72,38 @@ func (s *AuthService) StartEmail(ctx context.Context, email string, clientIP str
 	if err != nil {
 		return AuthStartResult{}, err
 	}
+	cooldownScope := "auth_email:" + email
+	acquired, retryAfter, err := s.rate.AcquireCooldown(ctx, cooldownScope, code, s.resendCooldown)
+	if err != nil {
+		return AuthStartResult{}, err
+	}
+	if !acquired {
+		return AuthStartResult{}, &domain.VerificationCooldownError{RetryAfter: retryAfter}
+	}
+	releaseCooldown := func() {
+		_ = s.rate.ReleaseCooldownIfMatches(context.WithoutCancel(ctx), cooldownScope, code)
+	}
+	if err := s.allowAuthStart(ctx, email, clientIP); err != nil {
+		releaseCooldown()
+		return AuthStartResult{}, err
+	}
 	if err := s.codes.PutEmailCode(ctx, email, code, s.codeTTL); err != nil {
+		releaseCooldown()
 		return AuthStartResult{}, err
 	}
 	if err := sender.SendVerificationCode(ctx, email, code, s.codeTTL); err != nil {
-		cleanupErr := s.codes.DeleteEmailCodeIfMatches(ctx, email, code)
+		cleanupErr := s.codes.DeleteEmailCodeIfMatches(context.WithoutCancel(ctx), email, code)
+		releaseCooldown()
 		if cleanupErr != nil {
 			return AuthStartResult{}, fmt.Errorf("%w: %v; verification code cleanup failed: %v", domain.ErrEmailDelivery, err, cleanupErr)
 		}
 		return AuthStartResult{}, fmt.Errorf("%w: %v", domain.ErrEmailDelivery, err)
 	}
-	result := AuthStartResult{Email: email, ExpiresIn: int64(s.codeTTL.Seconds())}
+	result := AuthStartResult{
+		Email:       email,
+		ExpiresIn:   int64(s.codeTTL.Seconds()),
+		ResendAfter: durationSecondsCeil(s.resendCooldown),
+	}
 	if s.appEnv != "production" {
 		result.DevCode = code
 	}
@@ -96,7 +117,7 @@ func (s *AuthService) VerifyEmail(ctx context.Context, email string, code string
 		return AuthVerifyResult{}, err
 	}
 	if !ok {
-		return AuthVerifyResult{}, domain.ErrUnauthorized
+		return AuthVerifyResult{}, domain.ErrInvalidVerificationCode
 	}
 	identity, err := s.repo.UpsertUserWorkspace(ctx, email)
 	if err != nil {
@@ -151,6 +172,13 @@ func (s *AuthService) allowAuthStart(ctx context.Context, email string, clientIP
 		}
 	}
 	return nil
+}
+
+func durationSecondsCeil(value time.Duration) int64 {
+	if value <= 0 {
+		return 0
+	}
+	return int64((value + time.Second - 1) / time.Second)
 }
 
 func HashToken(token string) string {

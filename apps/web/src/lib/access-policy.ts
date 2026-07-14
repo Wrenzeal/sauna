@@ -46,3 +46,8 @@ export function migrateSaunaPersistedState(value: unknown): PersistedSaunaStateV
   const token = (value as { token?: unknown }).token;
   return typeof token === "string" && token.trim() ? { token } : {};
 }
+
+export function resendSecondsRemaining(availableAt: number | undefined, now: number): number {
+  if (!availableAt || availableAt <= now) return 0;
+  return Math.ceil((availableAt - now) / 1000);
+}

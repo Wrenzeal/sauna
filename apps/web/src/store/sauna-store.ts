@@ -2,7 +2,7 @@
 
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
-import { classifySaunaApiError, createSaunaApiClient, humanizeApiError, streamTurn } from "@/lib/sauna-api";
+import { SaunaApiError, classifySaunaApiError, createSaunaApiClient, humanizeApiError, streamTurn } from "@/lib/sauna-api";
 import { migrateSaunaPersistedState } from "@/lib/access-policy";
 import type {
   AgentProfile,
@@ -27,6 +27,7 @@ import type {
 
 type LoadStatus = "idle" | "loading" | "ready" | "error";
 type ActionStatus = "idle" | "loading" | "streaming" | "ready" | "error";
+type AuthOperation = "idle" | "sending_code" | "verifying_code" | "logging_out";
 
 const accents = ["emerald", "cyan", "amber", "rose"];
 
@@ -145,6 +146,8 @@ interface SaunaState {
   messagesBySession: Record<string, Message[]>;
   devCode?: string;
   authCodeSentEmail?: string;
+  authResendAvailableAt?: number;
+  authOperation: AuthOperation;
   apiStatus: LoadStatus;
   authStatus: ActionStatus;
   providerStatus: ActionStatus;
@@ -153,16 +156,19 @@ interface SaunaState {
   streamStatus: ActionStatus;
   apiError?: string;
   authError?: string;
+  authErrorCode?: string;
   providerError?: string;
   distillationError?: string;
   focusError?: string;
   setSelectedAgentId: (agentId: string) => void;
   clearFocusError: () => void;
+  clearAuthError: () => void;
   loadPublicAgents: () => Promise<void>;
   loadWorkspaceAgents: (tokenOverride?: string) => Promise<void>;
   loadIdentity: () => Promise<void>;
   startEmail: (email: string) => Promise<AuthStartResult>;
   verifyEmail: (email: string, code: string) => Promise<void>;
+  resetEmailChallenge: () => void;
   logout: () => Promise<void>;
   invalidateSession: () => void;
   loadProviders: (tokenOverride?: string) => Promise<void>;
@@ -201,12 +207,14 @@ export const useSaunaStore = create<SaunaState>()(
       messagesBySession: {},
       apiStatus: "idle",
       authStatus: "idle",
+      authOperation: "idle",
       providerStatus: "idle",
       distillationStatus: "idle",
       sessionStatus: "idle",
       streamStatus: "idle",
       setSelectedAgentId: (agentId) => set({ selectedAgentId: agentId }),
       clearFocusError: () => set({ focusError: undefined }),
+      clearAuthError: () => set({ authError: undefined, authErrorCode: undefined }),
       loadPublicAgents: async () => {
         set({ apiStatus: "loading", apiError: undefined });
         try {
@@ -264,39 +272,77 @@ export const useSaunaStore = create<SaunaState>()(
           await get().loadFocusSessions(token);
         } catch (error) {
           if (classifySaunaApiError(error) === "unauthorized") {
-            set({ token: undefined, identity: undefined, providers: [], distillationJobs: [], activeSession: undefined, messagesBySession: {}, sessions: [], authCodeSentEmail: undefined, devCode: undefined, authStatus: "error", authError: humanizeApiError(error), agents: (get().agents ?? []).filter((agent) => agent.sourceKind === "public"), selectedAgentId: "" });
+            set({ token: undefined, identity: undefined, providers: [], distillationJobs: [], activeSession: undefined, messagesBySession: {}, sessions: [], authCodeSentEmail: undefined, authResendAvailableAt: undefined, devCode: undefined, authStatus: "error", authOperation: "idle", authError: humanizeApiError(error), authErrorCode: "unauthorized", agents: (get().agents ?? []).filter((agent) => agent.sourceKind === "public"), selectedAgentId: "" });
             throw error;
           }
           set({ authStatus: "error", authError: humanizeApiError(error) });
         }
       },
       startEmail: async (email) => {
-        set({ authStatus: "loading", authError: undefined, devCode: undefined, authCodeSentEmail: undefined });
+        const normalizedEmail = email.trim().toLowerCase();
+        set({ authStatus: "loading", authOperation: "sending_code", authError: undefined, authErrorCode: undefined, devCode: undefined });
         try {
-          const result = await createSaunaApiClient().startEmail(email);
-          set({ authStatus: "ready", devCode: result.dev_code, authCodeSentEmail: result.email });
+          const result = await createSaunaApiClient().startEmail(normalizedEmail);
+          set({
+            authStatus: "ready",
+            authOperation: "idle",
+            devCode: result.dev_code,
+            authCodeSentEmail: result.email,
+            authResendAvailableAt: Date.now() + result.resend_after_seconds * 1000,
+          });
           return result;
         } catch (error) {
           const message = humanizeApiError(error);
-          set({ authStatus: "error", authError: message });
+          const cooldown = error instanceof SaunaApiError && error.code === "verification_code_cooldown";
+          set({
+            authStatus: "error",
+            authOperation: "idle",
+            authError: message,
+            authErrorCode: error instanceof SaunaApiError ? error.code : undefined,
+            ...(cooldown
+              ? {
+                  authCodeSentEmail: normalizedEmail,
+                  authResendAvailableAt: Date.now() + (error.retryAfterSeconds ?? 60) * 1000,
+                }
+              : {}),
+          });
           throw error;
         }
       },
       verifyEmail: async (email, code) => {
-        set({ authStatus: "loading", authError: undefined });
+        set({ authStatus: "loading", authOperation: "verifying_code", authError: undefined, authErrorCode: undefined });
         try {
           const result = await createSaunaApiClient().verifyEmail(email, code);
-          set({ token: result.token, identity: result.identity, authStatus: "ready", devCode: undefined, authCodeSentEmail: undefined });
+          set({
+            token: result.token,
+            identity: result.identity,
+            authStatus: "ready",
+            authOperation: "idle",
+            devCode: undefined,
+            authCodeSentEmail: undefined,
+            authResendAvailableAt: undefined,
+            authError: undefined,
+            authErrorCode: undefined,
+          });
           await get().loadProviders(result.token);
           await get().loadWorkspaceAgents(result.token);
           await get().loadDistillationJobs(result.token);
           await get().loadFocusSessions(result.token);
         } catch (error) {
           const message = humanizeApiError(error);
-          set({ authStatus: "error", authError: message });
+          set({ authStatus: "error", authOperation: "idle", authError: message, authErrorCode: error instanceof SaunaApiError ? error.code : undefined });
           throw error;
         }
       },
+      resetEmailChallenge: () => set({
+        authCodeSentEmail: undefined,
+        authResendAvailableAt: undefined,
+        devCode: undefined,
+        authError: undefined,
+        authErrorCode: undefined,
+        authStatus: "idle",
+        authOperation: "idle",
+      }),
       invalidateSession: () => set({
         token: undefined,
         identity: undefined,
@@ -311,17 +357,24 @@ export const useSaunaStore = create<SaunaState>()(
         agents: (get().agents ?? []).filter((agent) => agent.sourceKind === "public"),
         selectedAgentId: "",
         authStatus: "error",
+        authOperation: "idle",
+        authResendAvailableAt: undefined,
         authError: "登录已过期，请重新登录。",
+        authErrorCode: "unauthorized",
       }),
       logout: async () => {
         const token = get().token;
-        set({ authStatus: "loading" });
+        set({ authStatus: "loading", authOperation: "logging_out", authError: undefined, authErrorCode: undefined });
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 5000);
         try {
           if (token) {
-            await createSaunaApiClient(token).logout();
+            await createSaunaApiClient(token).logout(controller.signal);
           }
         } catch {
-          // Local state must clear even when the remote session is already expired.
+          // Logout is local-first in outcome: stale or unreachable remote sessions must not trap the user.
+        } finally {
+          clearTimeout(timeout);
         }
         set({
           token: undefined,
@@ -334,8 +387,12 @@ export const useSaunaStore = create<SaunaState>()(
           initialPromptsBySession: {},
           turnsInFlightBySession: {},
           authCodeSentEmail: undefined,
+          authResendAvailableAt: undefined,
           devCode: undefined,
           authStatus: "idle",
+          authOperation: "idle",
+          authError: undefined,
+          authErrorCode: undefined,
           providerStatus: "idle",
           agents: (get().agents ?? []).filter((agent) => agent.sourceKind === "public"),
           selectedAgentId: "",

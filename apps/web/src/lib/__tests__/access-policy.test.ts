@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { decideModelAction, decidePrivateRoute, migrateSaunaPersistedState } from "../access-policy.ts";
-import { SaunaApiError, classifySaunaApiError } from "../sauna-api.ts";
+import { decideModelAction, decidePrivateRoute, migrateSaunaPersistedState, resendSecondsRemaining } from "../access-policy.ts";
+import { SaunaApiError, classifySaunaApiError, humanizeApiError } from "../sauna-api.ts";
 
 const draft = { kind: "consultation" as const, draft: { agentId: "agent-1", content: "一个问题", sourceRoute: "/lobby" } };
 
@@ -33,5 +33,24 @@ test("structured API errors map to access recovery paths", () => {
   assert.equal(classifySaunaApiError(new SaunaApiError(409, "provider_config_required", "missing")), "provider_required");
   assert.equal(classifySaunaApiError(new SaunaApiError(502, "provider_request_failed", "bad upstream")), "provider_failure");
   assert.equal(classifySaunaApiError(new SaunaApiError(502, "request_failed", "bad gateway")), "ordinary");
+  assert.equal(classifySaunaApiError(new SaunaApiError(400, "invalid_verification_code", "invalid")), "ordinary");
   assert.equal(classifySaunaApiError(new TypeError("network")), "ordinary");
+});
+
+test("verification feedback uses dedicated copy and retry metadata", () => {
+  assert.equal(
+    humanizeApiError(new SaunaApiError(400, "invalid_verification_code", "invalid")),
+    "验证码错误或已失效，请检查后重试。",
+  );
+  assert.equal(
+    humanizeApiError(new SaunaApiError(429, "verification_code_cooldown", "wait", 42)),
+    "验证码已发送，请在 42 秒后重试。",
+  );
+});
+
+test("resend countdown rounds up and stops at zero", () => {
+  assert.equal(resendSecondsRemaining(61_001, 1_001), 60);
+  assert.equal(resendSecondsRemaining(2_001, 1_001), 1);
+  assert.equal(resendSecondsRemaining(1_001, 1_001), 0);
+  assert.equal(resendSecondsRemaining(undefined, 1_001), 0);
 });

@@ -2,14 +2,28 @@
 
 import { FormEvent, ReactNode, useEffect, useId, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { ArrowRight, CheckCircle, Key, SignOut, UserCircle, X } from "@phosphor-icons/react";
+import { ArrowClockwise, ArrowRight, CheckCircle, Key, PencilSimple, SignOut, UserCircle, X } from "@phosphor-icons/react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useAccessUIStore } from "@/store/access-ui-store";
 import { useSaunaStore } from "@/store/sauna-store";
 import { saunaEase } from "@/lib/motion-system";
+import { SaunaApiError } from "@/lib/sauna-api";
+import { resendSecondsRemaining } from "@/lib/access-policy";
 
 const fieldClass = "h-12 rounded-[18px] border border-[color:var(--sauna-line)] bg-[var(--sauna-soft)] px-4 text-sm text-[var(--sauna-text)] outline-none transition focus:border-[var(--sauna-accent)] focus:bg-[var(--sauna-panel-strong)]";
 const primaryClass = "inline-flex h-11 items-center justify-center gap-2 rounded-full bg-[var(--sauna-primary)] px-5 text-sm font-semibold text-[var(--sauna-primary-contrast)] transition hover:bg-[var(--sauna-primary-hover)] disabled:opacity-45";
+
+function OperationSpinner({ reduce, size = 16 }: { reduce?: boolean | null; size?: number }) {
+  return (
+    <motion.span
+      aria-hidden="true"
+      className="block rounded-full border-2 border-current border-r-transparent"
+      style={{ width: size, height: size }}
+      animate={reduce ? undefined : { rotate: 360 }}
+      transition={{ duration: 0.8, repeat: Infinity, ease: "linear" }}
+    />
+  );
+}
 
 function ModalFrame({ title, eyebrow, children, onClose }: { title: string; eyebrow: string; children: ReactNode; onClose: () => void }) {
   const reduce = useReducedMotion();
@@ -69,19 +83,77 @@ function ModalFrame({ title, eyebrow, children, onClose }: { title: string; eyeb
 }
 
 function AuthModal() {
+  const reduce = useReducedMotion();
   const { auth, closeAuth, clearAuthIntent, openProvider } = useAccessUIStore();
-  const { authStatus, authError, devCode, authCodeSentEmail, startEmail, verifyEmail } = useSaunaStore();
+  const {
+    authOperation,
+    authError,
+    authErrorCode,
+    devCode,
+    authCodeSentEmail,
+    authResendAvailableAt,
+    startEmail,
+    verifyEmail,
+    resetEmailChallenge,
+    clearAuthError,
+  } = useSaunaStore();
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
-  async function sendCode(event: FormEvent) { event.preventDefault(); await startEmail(email); }
+  const [clock, setClock] = useState(() => Date.now());
+  const emailInputRef = useRef<HTMLInputElement>(null);
+  const codeInputRef = useRef<HTMLInputElement>(null);
+  const sendBusy = authOperation === "sending_code";
+  const verifyBusy = authOperation === "verifying_code";
+  const resendSeconds = resendSecondsRemaining(authResendAvailableAt, clock);
+
+  useEffect(() => {
+    if (!authResendAvailableAt || authResendAvailableAt <= Date.now()) return;
+    const interval = window.setInterval(() => {
+      const now = Date.now();
+      setClock(now);
+      if (now >= authResendAvailableAt) {
+        window.clearInterval(interval);
+        if (authErrorCode === "verification_code_cooldown") clearAuthError();
+      }
+    }, 250);
+    return () => window.clearInterval(interval);
+  }, [authErrorCode, authResendAvailableAt, clearAuthError]);
+
+  async function sendCode(event: FormEvent) {
+    event.preventDefault();
+    try {
+      const result = await startEmail(authCodeSentEmail ?? email);
+      setEmail(result.email);
+      setCode("");
+      setClock(Date.now());
+      window.requestAnimationFrame(() => codeInputRef.current?.focus());
+    } catch {
+      setClock(Date.now());
+    }
+  }
+
   async function confirmCode(event: FormEvent) {
     event.preventDefault();
-    await verifyEmail(authCodeSentEmail ?? email, code);
-    const intent = auth.intent;
-    window.dispatchEvent(new CustomEvent("sauna-auth-complete", { detail: intent }));
-    clearAuthIntent();
-    closeAuth();
-    if (intent.kind === "consultation" && useSaunaStore.getState().providers.length === 0) openProvider("create", "provider_missing");
+    try {
+      await verifyEmail(authCodeSentEmail ?? email, code);
+      const intent = auth.intent;
+      window.dispatchEvent(new CustomEvent("sauna-auth-complete", { detail: intent }));
+      clearAuthIntent();
+      closeAuth();
+      if (intent.kind === "consultation" && useSaunaStore.getState().providers.length === 0) openProvider("create", "provider_missing");
+    } catch (error) {
+      if (error instanceof SaunaApiError && error.code === "invalid_verification_code") {
+        setCode("");
+        window.requestAnimationFrame(() => codeInputRef.current?.focus());
+      }
+    }
+  }
+
+  function changeEmail() {
+    resetEmailChallenge();
+    setEmail("");
+    setCode("");
+    window.requestAnimationFrame(() => emailInputRef.current?.focus());
   }
 
   return (
@@ -89,16 +161,39 @@ function AuthModal() {
       {auth.open ? <ModalFrame title="登录或创建账号" eyebrow="YOUR PRIVATE WORKSPACE" onClose={closeAuth}>
         <p className="mt-4 text-sm leading-7 text-[var(--sauna-muted-strong)]">用邮箱验证码继续。第一次验证会自动为你创建私人工作区。</p>
         <div className="mt-7 grid gap-4">
-          <form className="grid gap-3" onSubmit={sendCode}>
-            <input autoFocus className={fieldClass} type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="你的邮箱" autoComplete="email" required />
-            <button className={primaryClass} disabled={authStatus === "loading"}>{authCodeSentEmail ? "重新发送验证码" : "发送验证码"}<ArrowRight size={15} /></button>
-          </form>
-          {authCodeSentEmail ? <form className="grid gap-3" onSubmit={confirmCode}>
-            <div className="rounded-[18px] bg-[var(--sauna-accent-soft)] px-4 py-3 text-sm text-[var(--sauna-accent-strong)]">{devCode ? `开发验证码 ${devCode}` : `验证码已发送至 ${authCodeSentEmail}`}</div>
-            <input className={fieldClass} value={code} onChange={(event) => setCode(event.target.value)} placeholder="输入验证码" inputMode="numeric" required />
-            <button className={primaryClass} disabled={authStatus === "loading"}>进入私人工作区</button>
-          </form> : null}
-          {authError ? <p role="alert" className="text-sm text-[var(--sauna-danger)]">{authError}</p> : null}
+          {!authCodeSentEmail ? (
+            <form className="grid gap-3" onSubmit={sendCode}>
+              <input ref={emailInputRef} autoFocus className={fieldClass} type="email" value={email} onChange={(event) => { setEmail(event.target.value); clearAuthError(); }} placeholder="你的邮箱" autoComplete="email" disabled={sendBusy} required />
+              <button className={primaryClass} disabled={sendBusy}>
+                {sendBusy ? <><OperationSpinner reduce={reduce} /> 正在发送验证码…</> : <>发送验证码 <ArrowRight size={15} /></>}
+              </button>
+            </form>
+          ) : (
+            <>
+              <motion.div initial={reduce ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="rounded-[22px] border border-[color:var(--sauna-line)] bg-[var(--sauna-accent-soft)] p-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="min-w-0">
+                    <p className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--sauna-accent-strong)]"><CheckCircle size={17} weight="fill" /> 验证码已发送</p>
+                    <p className="mt-1 truncate text-xs text-[var(--sauna-muted-strong)]">{authCodeSentEmail}</p>
+                  </div>
+                  <button type="button" onClick={sendCode} disabled={sendBusy || resendSeconds > 0} className="inline-flex h-9 shrink-0 items-center gap-2 rounded-full bg-[var(--sauna-panel-strong)] px-3 text-xs font-semibold text-[var(--sauna-accent-strong)] transition disabled:cursor-not-allowed disabled:opacity-55">
+                    {sendBusy ? <><OperationSpinner reduce={reduce} size={13} /> 发送中</> : resendSeconds > 0 ? `重新发送 ${resendSeconds}s` : <><ArrowClockwise size={14} /> 重新发送</>}
+                  </button>
+                </div>
+                <button type="button" onClick={changeEmail} disabled={sendBusy || verifyBusy} className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-[var(--sauna-muted)] transition hover:text-[var(--sauna-text)] disabled:opacity-50"><PencilSimple size={13} /> 更换邮箱</button>
+              </motion.div>
+              <form className="grid gap-3" onSubmit={confirmCode}>
+                {devCode ? <div className="rounded-[18px] bg-[var(--sauna-accent-soft)] px-4 py-3 text-sm text-[var(--sauna-accent-strong)]">开发验证码 {devCode}</div> : null}
+                <input ref={codeInputRef} autoFocus className={fieldClass} value={code} onChange={(event) => { setCode(event.target.value.replace(/\D/g, "").slice(0, 6)); clearAuthError(); }} placeholder="输入 6 位验证码" inputMode="numeric" autoComplete="one-time-code" maxLength={6} aria-invalid={Boolean(authError)} disabled={sendBusy || verifyBusy} required />
+                <button className={primaryClass} disabled={sendBusy || verifyBusy || code.trim().length !== 6}>
+                  {verifyBusy ? <><OperationSpinner reduce={reduce} /> 正在验证…</> : "进入私人工作区"}
+                </button>
+              </form>
+            </>
+          )}
+          <AnimatePresence mode="wait">
+            {authError ? <motion.p key={authError} role="alert" initial={reduce ? false : { opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }} className="text-sm text-[var(--sauna-danger)]">{authError}</motion.p> : null}
+          </AnimatePresence>
         </div>
       </ModalFrame> : null}
     </AnimatePresence>
@@ -169,9 +264,10 @@ export function AccessCoordinatorProvider({ children }: { children: ReactNode })
 }
 
 export function AccountMenu() {
+  const reduce = useReducedMotion();
   const router = useRouter();
   const pathname = usePathname();
-  const { token, identity, logout } = useSaunaStore();
+  const { token, identity, authOperation, logout } = useSaunaStore();
   const openAuth = useAccessUIStore((state) => state.openAuth);
   const resetAccess = useAccessUIStore((state) => state.reset);
   const [open, setOpen] = useState(false);
@@ -195,14 +291,15 @@ export function AccountMenu() {
 
   if (!token || !identity) return <button type="button" onClick={() => openAuth("entry_login", { kind: "route", returnTo: pathname })} className="inline-flex h-10 items-center justify-center rounded-full px-4 text-sm font-semibold text-[var(--sauna-muted-strong)] transition hover:bg-[var(--sauna-soft)]"><UserCircle size={17} className="mr-2" /> 登录</button>;
 
-  async function signOut() { await logout(); resetAccess(); setOpen(false); router.push("/lobby"); }
+  async function signOut() { await logout(); resetAccess(); setOpen(false); }
+  const loggingOut = authOperation === "logging_out";
   const initial = identity.user.email.slice(0, 1).toUpperCase();
   return <div ref={menuRef} className="relative"><button type="button" onClick={() => setOpen((value) => !value)} className="grid size-10 place-items-center rounded-full bg-[var(--sauna-primary)] text-sm font-semibold text-[var(--sauna-primary-contrast)]" aria-label="账号菜单" aria-haspopup="menu" aria-expanded={open}>{initial}</button>
     <AnimatePresence>{open ? <motion.div initial={{ opacity: 0, y: 8, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 6 }} role="menu" className="absolute right-0 top-12 z-[90] w-64 rounded-[24px] border border-[color:var(--sauna-line)] bg-[var(--sauna-panel-strong)] p-3 shadow-[var(--sauna-shadow)]">
       <div className="rounded-[18px] bg-[var(--sauna-soft)] p-3"><p className="truncate text-sm font-semibold">{identity.user.email}</p><p className="mt-1 text-xs text-[var(--sauna-muted)]">{identity.workspace.name}</p></div>
       <button onClick={() => { setOpen(false); router.push("/lobby#my-advisors"); }} className="mt-2 flex h-10 w-full items-center rounded-full px-3 text-sm hover:bg-[var(--sauna-soft)]">我的智囊</button>
       <button onClick={() => { setOpen(false); router.push("/settings"); }} className="flex h-10 w-full items-center rounded-full px-3 text-sm hover:bg-[var(--sauna-soft)]">模型设置</button>
-      <button onClick={() => void signOut()} className="flex h-10 w-full items-center gap-2 rounded-full px-3 text-sm text-[var(--sauna-danger)] hover:bg-[var(--sauna-danger-soft)]"><SignOut size={15} /> 退出登录</button>
+      <button onClick={() => void signOut()} disabled={loggingOut} className="flex h-10 w-full items-center gap-2 rounded-full px-3 text-sm text-[var(--sauna-danger)] hover:bg-[var(--sauna-danger-soft)] disabled:cursor-wait disabled:opacity-60">{loggingOut ? <OperationSpinner reduce={reduce} size={14} /> : <SignOut size={15} />} {loggingOut ? "正在退出…" : "退出登录"}</button>
     </motion.div> : null}</AnimatePresence>
   </div>;
 }
