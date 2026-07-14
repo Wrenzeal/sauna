@@ -57,11 +57,11 @@ export function LobbyOverview() {
   const providerReady = safeProviders.length > 0;
   const apiUnavailable = apiStatus === "error";
 
-  function handleOpen(agentId: string, prompt?: string) {
+  function handleOpen(agentId: string, prompt?: string, requestAutoSend = false) {
     if (!agentId) return;
     const promptText = prompt?.trim() ?? "";
     if (promptText) {
-      queueInitialPrompt(focusDraftKey(agentId), { content: promptText, autoSend: Boolean(token && providerReady) });
+      queueInitialPrompt(focusDraftKey(agentId), { content: promptText, autoSend: Boolean(requestAutoSend && token && providerReady) });
     }
     setOpeningAgentId(agentId);
     router.push(`/focus-room/new?agentId=${encodeURIComponent(agentId)}`);
@@ -71,7 +71,7 @@ export function LobbyOverview() {
   function submitQuestion(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!activeAgentId || !question.trim()) return;
-    void handleOpen(activeAgentId, question);
+    handleOpen(activeAgentId, question, true);
   }
 
   return (
@@ -118,7 +118,7 @@ export function LobbyOverview() {
               </div>
               <div className="flex items-end gap-3 rounded-[21px] bg-[var(--sauna-soft)] px-4 py-3">
                 <textarea value={question} onChange={(event) => setQuestion(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); event.currentTarget.form?.requestSubmit(); } }} rows={1} className="max-h-32 min-h-6 min-w-0 flex-1 resize-none bg-transparent text-sm leading-6 text-[var(--sauna-text)] outline-none placeholder:text-[var(--sauna-muted)]" placeholder={token && providerReady ? "今天最想和他聊什么？" : "选择后继续完成登录或模型配置"} />
-                <button type="button" onClick={() => handleOpen(activeAgent.id)} disabled={sessionStatus === "loading"} className="inline-flex h-10 shrink-0 items-center gap-2 rounded-full border border-[color:var(--sauna-line-strong)] bg-[var(--sauna-panel-strong)] px-4 text-sm font-semibold text-[var(--sauna-muted-strong)] transition hover:bg-[var(--sauna-soft-strong)] disabled:opacity-40">进入咨询室 <ArrowRight size={14} /></button>
+                <button type="button" onClick={() => handleOpen(activeAgent.id, question, false)} disabled={sessionStatus === "loading"} className="inline-flex h-10 shrink-0 items-center gap-2 rounded-full border border-[color:var(--sauna-line-strong)] bg-[var(--sauna-panel-strong)] px-4 text-sm font-semibold text-[var(--sauna-muted-strong)] transition hover:bg-[var(--sauna-soft-strong)] disabled:opacity-40">进入咨询室 <ArrowRight size={14} /></button>
                 <button type="submit" disabled={sessionStatus === "loading" || !question.trim()} className="grid size-10 shrink-0 place-items-center rounded-full bg-[var(--sauna-primary)] text-[var(--sauna-primary-contrast)] transition hover:bg-[var(--sauna-primary-hover)] disabled:cursor-not-allowed disabled:opacity-40" aria-label="开始咨询"><PaperPlaneTilt size={17} weight="fill" /></button>
               </div>
             </motion.form>

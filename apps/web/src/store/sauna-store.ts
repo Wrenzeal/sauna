@@ -31,6 +31,29 @@ type ActionStatus = "idle" | "loading" | "streaming" | "ready" | "error";
 
 const accents = ["emerald", "cyan", "amber", "rose"];
 
+const consultationDraftStoragePrefix = "sauna:consultation-draft:";
+
+function writeConsultationDraft(key: string, draft: InitialConsultationDraft) {
+  if (typeof window === "undefined") return;
+  window.sessionStorage.setItem(`${consultationDraftStoragePrefix}${key}`, JSON.stringify(draft));
+}
+
+function readConsultationDraft(key: string): InitialConsultationDraft | undefined {
+  if (typeof window === "undefined") return undefined;
+  const storageKey = `${consultationDraftStoragePrefix}${key}`;
+  const raw = window.sessionStorage.getItem(storageKey);
+  window.sessionStorage.removeItem(storageKey);
+  if (!raw) return undefined;
+  try {
+    const parsed = JSON.parse(raw) as Partial<InitialConsultationDraft>;
+    const content = typeof parsed.content === "string" ? parsed.content.trim() : "";
+    return content ? { content, autoSend: parsed.autoSend === true } : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+
 const statusMap: Record<string, AgentStatus> = {
   idle: "idle",
   thinking: "thinking",
@@ -646,14 +669,16 @@ export const useSaunaStore = create<SaunaState>()(
       queueInitialPrompt: (key, draft) => {
         const content = draft.content.trim();
         if (!key || !content) return;
+        const queued = { content, autoSend: draft.autoSend };
+        writeConsultationDraft(key, queued);
         set((state) => ({
-          initialPromptsBySession: { ...(state.initialPromptsBySession ?? {}), [key]: { content, autoSend: draft.autoSend } },
+          initialPromptsBySession: { ...(state.initialPromptsBySession ?? {}), [key]: queued },
         }));
       },
       consumeInitialPrompt: (key, fallbackPrompt = "") => {
-        const queued = (get().initialPromptsBySession ?? {})[key];
+        const stored = readConsultationDraft(key);
+        const queued = (get().initialPromptsBySession ?? {})[key] ?? stored;
         const result = queued ?? { content: fallbackPrompt.trim(), autoSend: false };
-        if (!queued) return result;
         set((state) => {
           const copy = { ...(state.initialPromptsBySession ?? {}) };
           delete copy[key];

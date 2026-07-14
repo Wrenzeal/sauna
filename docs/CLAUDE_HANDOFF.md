@@ -504,3 +504,9 @@ Production backend has been restarted with the new sender/template. A public aut
 - Failed assistant messages use `status=failed` and store the provider reason in `messages.metadata.error`; list APIs expose it as `Message.error` and failed partial answers are excluded from future LLM context.
 - Retry API: `POST /focus-room/sessions/:session_id/turns/:turn_id/retry`. It only accepts failed turns, deletes old assistant/SSE artifacts, resets the same turn to created and preserves the original user message.
 - Production backend has been restarted. Backend tests/vet and web tests/typecheck/lint/build pass.
+
+## 2026-07-14 Reliable lobby prompt transport
+
+- Lobby prompt handoff is dual-backed: Zustand memory plus `sessionStorage` under an advisor-scoped key. Do not move prompt content into query parameters.
+- “进入咨询室” carries the current prompt as `autoSend=false`; Enter/the send icon uses `autoSend=true` only when auth and provider were already ready.
+- FocusRoom consumes and deletes the handoff once. This protects prompts from route reconstruction while preventing duplicate first sends.
