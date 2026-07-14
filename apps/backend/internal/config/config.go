@@ -33,7 +33,7 @@ type Config struct {
 }
 
 func Load() Config {
-	appEnv := env("APP_ENV", "development")
+	appEnv := strings.ToLower(strings.TrimSpace(env("APP_ENV", "development")))
 	return Config{
 		AppEnv:                appEnv,
 		HTTPAddr:              env("HTTP_ADDR", ":19588"),
@@ -60,6 +60,7 @@ func Load() Config {
 }
 
 func (c Config) Validate() error {
+	appEnv := strings.ToLower(strings.TrimSpace(c.AppEnv))
 	if strings.TrimSpace(c.DatabaseURL) == "" {
 		return errors.New("DATABASE_URL is required")
 	}
@@ -72,12 +73,18 @@ func (c Config) Validate() error {
 	driver := strings.ToLower(strings.TrimSpace(c.AuthEmailDriver))
 	switch driver {
 	case "dev", "log":
-		if c.AppEnv == "production" {
+		if appEnv == "production" {
 			return errors.New("AUTH_EMAIL_DRIVER=dev is not allowed in production")
 		}
 	case "smtp":
 		if strings.TrimSpace(c.SMTPHost) == "" {
 			return errors.New("SMTP_HOST is required when AUTH_EMAIL_DRIVER=smtp")
+		}
+		if strings.TrimSpace(c.SMTPUsername) == "" {
+			return errors.New("SMTP_USERNAME is required when AUTH_EMAIL_DRIVER=smtp")
+		}
+		if strings.TrimSpace(c.SMTPPassword) == "" {
+			return errors.New("SMTP_PASSWORD is required when AUTH_EMAIL_DRIVER=smtp")
 		}
 		if strings.TrimSpace(c.SMTPFrom) == "" {
 			return errors.New("SMTP_FROM is required when AUTH_EMAIL_DRIVER=smtp")

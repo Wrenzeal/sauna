@@ -105,7 +105,7 @@ NEXT_PUBLIC_SAUNA_API_BASE_URL=http://127.0.0.1:19588/api/v1
 SAUNA_BACKEND_INTERNAL_URL=http://127.0.0.1:19588
 ```
 
-生产环境邮件登录还需要配置 `SMTP_HOST`、`SMTP_PORT`、`SMTP_USERNAME`、`SMTP_PASSWORD`、`SMTP_FROM` 和 `SMTP_SECURITY`。不要把真实数据库密码、SMTP 密码或模型 Key 提交到 Git。
+生产验证码推荐使用 Resend 事务邮件：先验证 `mail.wrenzeal.top`，再在后端设置 `APP_ENV=production`、`AUTH_EMAIL_DRIVER=smtp`、`SMTP_HOST=smtp.resend.com`、`SMTP_USERNAME=resend`，并将仅发送权限的 Resend API Key 保存为 `SMTP_PASSWORD`。发件地址使用 `sauna@mail.wrenzeal.top`，无需创建真实收件箱。不要把数据库密码、SMTP/API Key 或模型 Key 提交到 Git或放入 Vercel。
 
 ## 安装与运行
 

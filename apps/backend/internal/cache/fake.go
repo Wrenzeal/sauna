@@ -9,6 +9,7 @@ import (
 type EmailCodeCache interface {
 	PutEmailCode(ctx context.Context, email string, code string, ttl time.Duration) error
 	VerifyEmailCode(ctx context.Context, email string, code string) (bool, error)
+	DeleteEmailCodeIfMatches(ctx context.Context, email string, code string) error
 }
 
 type RateLimiter interface {
@@ -41,6 +42,16 @@ func (f *FakeStore) VerifyEmailCode(_ context.Context, email string, code string
 		delete(f.codes, key)
 	}
 	return ok, nil
+}
+
+func (f *FakeStore) DeleteEmailCodeIfMatches(_ context.Context, email string, code string) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	key := normalizeEmail(email)
+	if f.codes[key] == codeHash(code) {
+		delete(f.codes, key)
+	}
+	return nil
 }
 
 func (f *FakeStore) AllowFixedWindow(_ context.Context, scope string, limit int, _ time.Duration) (bool, int, error) {

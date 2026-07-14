@@ -105,7 +105,7 @@ NEXT_PUBLIC_SAUNA_API_BASE_URL=http://127.0.0.1:19588/api/v1
 SAUNA_BACKEND_INTERNAL_URL=http://127.0.0.1:19588
 ```
 
-Production email login also requires `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_FROM`, and `SMTP_SECURITY`. Never commit real database credentials, SMTP passwords, or model keys.
+For production verification email, use Resend transactional mail: verify `mail.wrenzeal.top`, then set `APP_ENV=production`, `AUTH_EMAIL_DRIVER=smtp`, `SMTP_HOST=smtp.resend.com`, and `SMTP_USERNAME=resend` on the backend. Store a sending-only Resend API key as `SMTP_PASSWORD`; use `sauna@mail.wrenzeal.top` as the sender without creating a mailbox. Never commit database credentials, SMTP/API keys, or model keys, and never place them in Vercel.
 
 ## Install and run
 

@@ -443,3 +443,25 @@ Routes, API integrations, Zustand state, authentication, provider settings, SSE 
 ### Verification
 - Frontend policy tests, typecheck, lint, production build, backend Go tests, diff check, and removed-trial scan all pass.
 - Next build still reports the pre-existing multiple-lockfile workspace-root warning.
+
+## 2026-07-13 Resend verification email hardening
+
+The Go auth flow already supports SMTP and is now hardened for real delivery. Recommended production settings are `smtp.resend.com:587`, username `resend`, STARTTLS, and `SMTP_FROM=sauna@mail.wrenzeal.top`. The password must be a sending-only Resend API key stored only in the ignored VPS `.env.local`.
+
+Before activation, verify `mail.wrenzeal.top` in Resend and copy its exact SPF/DKIM records into the `myhostadmin.net` DNS console. Then set `APP_ENV=production` and `AUTH_EMAIL_DRIVER=smtp`; production responses omit `dev_code`. Do not add SMTP secrets to Vercel or Git.
+
+Delivery failure removes only the matching cached code through an atomic DragonFlyDB compare-delete, preserving newer concurrent codes. A missing production sender returns before caching. SMTP DATA close is treated as accepted delivery; QUIT failures are logged without invalidating the code.
+
+All backend/frontend validation and independent review pass. Real SMTP delivery is not yet activated because the Resend domain and API key are external prerequisites.
+
+## 2026-07-14 Production Resend activation
+
+The VPS backend is now running in production SMTP mode. The ignored `.env.local` uses Resend SMTP at `smtp.resend.com:587`, STARTTLS, sender `sauna@mail.wrenzeal.top`, and a configured sending key. The original local host typo `smtp.resent.com` was corrected.
+
+Verification evidence: local/public health are 200; the public auth-start request returned 200 without `dev_code`; production logs contained no verification code; wrong-code verification returned 401; CORS preflight allows `https://sauna.wrenzeal.top`. A real message was accepted by Resend SMTP for the configured test recipient. Manual inbox receipt and successful-code login are the only remaining human checks.
+
+## 2026-07-14 Productized verification email
+
+Verification email now uses MIME `multipart/alternative`: a complete text fallback plus a table-based inline-style HTML template using the current cream, walnut and amber brand system. The HTML includes the public `https://sauna.wrenzeal.top/sauna-mark.png` asset but remains readable when images are blocked. Sender is `Sauna <sauna@mail.wrenzeal.top>`.
+
+Production backend has been restarted with the new sender/template. A public auth-start request returned 200 without `dev_code`, the SMTP message was accepted, and backend logs contain no code. The recipient should visually inspect the newest email in QQ Mail; no code change is required unless a specific client rendering issue is reported.

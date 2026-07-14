@@ -32,12 +32,11 @@ func (s *Store) Ping(ctx context.Context) error {
 }
 
 func (s *Store) PutEmailCode(ctx context.Context, email string, code string, ttl time.Duration) error {
-	key := "email_code:" + normalizeEmail(email)
-	return s.client.Set(ctx, key, codeHash(code), ttl).Err()
+	return s.client.Set(ctx, emailCodeKey(email), codeHash(code), ttl).Err()
 }
 
 func (s *Store) VerifyEmailCode(ctx context.Context, email string, code string) (bool, error) {
-	key := "email_code:" + normalizeEmail(email)
+	key := emailCodeKey(email)
 	value, err := s.client.Get(ctx, key).Result()
 	if err == redis.Nil {
 		return false, nil
@@ -50,6 +49,15 @@ func (s *Store) VerifyEmailCode(ctx context.Context, email string, code string) 
 		_ = s.client.Del(ctx, key).Err()
 	}
 	return ok, nil
+}
+
+func (s *Store) DeleteEmailCodeIfMatches(ctx context.Context, email string, code string) error {
+	const compareAndDelete = `
+if redis.call("GET", KEYS[1]) == ARGV[1] then
+  return redis.call("DEL", KEYS[1])
+end
+return 0`
+	return s.client.Eval(ctx, compareAndDelete, []string{emailCodeKey(email)}, codeHash(code)).Err()
 }
 
 func (s *Store) AllowFixedWindow(ctx context.Context, scope string, limit int, window time.Duration) (bool, int, error) {
@@ -70,6 +78,10 @@ func (s *Store) AllowFixedWindow(ctx context.Context, scope string, limit int, w
 		remaining = 0
 	}
 	return int(count) <= limit, remaining, nil
+}
+
+func emailCodeKey(email string) string {
+	return "email_code:" + normalizeEmail(email)
 }
 
 func normalizeEmail(email string) string {

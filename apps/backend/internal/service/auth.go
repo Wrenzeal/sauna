@@ -39,6 +39,7 @@ type AuthVerifyResult struct {
 }
 
 func NewAuthService(repo AuthRepository, codes cache.EmailCodeCache, rate cache.RateLimiter, emailSender EmailSender, codeTTL time.Duration, sessionTTL time.Duration, appEnv string, authEmailLimitPerHour int, authIPLimitPerHour int) *AuthService {
+	appEnv = strings.ToLower(strings.TrimSpace(appEnv))
 	return &AuthService{
 		repo:                  repo,
 		codes:                 codes,
@@ -60,13 +61,6 @@ func (s *AuthService) StartEmail(ctx context.Context, email string, clientIP str
 	if err := s.allowAuthStart(ctx, email, clientIP); err != nil {
 		return AuthStartResult{}, err
 	}
-	code, err := randomDigits(6)
-	if err != nil {
-		return AuthStartResult{}, err
-	}
-	if err := s.codes.PutEmailCode(ctx, email, code, s.codeTTL); err != nil {
-		return AuthStartResult{}, err
-	}
 	sender := s.emailSender
 	if sender == nil {
 		if s.appEnv == "production" {
@@ -74,7 +68,18 @@ func (s *AuthService) StartEmail(ctx context.Context, email string, clientIP str
 		}
 		sender = DevEmailSender{}
 	}
+	code, err := randomDigits(6)
+	if err != nil {
+		return AuthStartResult{}, err
+	}
+	if err := s.codes.PutEmailCode(ctx, email, code, s.codeTTL); err != nil {
+		return AuthStartResult{}, err
+	}
 	if err := sender.SendVerificationCode(ctx, email, code, s.codeTTL); err != nil {
+		cleanupErr := s.codes.DeleteEmailCodeIfMatches(ctx, email, code)
+		if cleanupErr != nil {
+			return AuthStartResult{}, fmt.Errorf("%w: %v; verification code cleanup failed: %v", domain.ErrEmailDelivery, err, cleanupErr)
+		}
 		return AuthStartResult{}, fmt.Errorf("%w: %v", domain.ErrEmailDelivery, err)
 	}
 	result := AuthStartResult{Email: email, ExpiresIn: int64(s.codeTTL.Seconds())}

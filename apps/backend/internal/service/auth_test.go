@@ -1,8 +1,13 @@
 package service
 
 import (
+	"bytes"
 	"context"
 	"errors"
+	"io"
+	"mime"
+	"mime/multipart"
+	"net/mail"
 	"strings"
 	"testing"
 	"time"
@@ -60,6 +65,66 @@ func TestStartEmailDeliveryFailureReturnsDomainError(t *testing.T) {
 	if !errors.Is(err, domain.ErrEmailDelivery) {
 		t.Fatalf("expected email delivery error, got %v", err)
 	}
+	ok, verifyErr := store.VerifyEmailCode(context.Background(), "user@example.com", svc.emailSender.(*fakeEmailSender).code)
+	if verifyErr != nil {
+		t.Fatalf("VerifyEmailCode after delivery failure: %v", verifyErr)
+	}
+	if ok {
+		t.Fatal("verification code must be removed when email delivery fails")
+	}
+}
+
+func TestStartEmailDeliveryFailureDoesNotDeleteNewerCode(t *testing.T) {
+	store := cache.NewFakeStore()
+	sender := &fakeEmailSender{err: errors.New("smtp down")}
+	sender.onSend = func(email string) {
+		if err := store.PutEmailCode(context.Background(), email, "654321", time.Minute); err != nil {
+			t.Fatalf("store newer code: %v", err)
+		}
+	}
+	svc := NewAuthService(&fakeAuthRepo{}, store, store, sender, time.Minute, time.Hour, "production", 5, 20)
+
+	_, err := svc.StartEmail(context.Background(), "user@example.com", "203.0.113.10")
+	if !errors.Is(err, domain.ErrEmailDelivery) {
+		t.Fatalf("expected email delivery error, got %v", err)
+	}
+	ok, verifyErr := store.VerifyEmailCode(context.Background(), "user@example.com", "654321")
+	if verifyErr != nil || !ok {
+		t.Fatalf("newer code must survive older request cleanup, ok=%v err=%v", ok, verifyErr)
+	}
+}
+
+func TestStartEmailProductionNilSenderDoesNotStoreCode(t *testing.T) {
+	store := cache.NewFakeStore()
+	svc := NewAuthService(&fakeAuthRepo{}, store, store, nil, time.Minute, time.Hour, "Production", 5, 20)
+
+	_, err := svc.StartEmail(context.Background(), "user@example.com", "203.0.113.10")
+	if !errors.Is(err, domain.ErrEmailDelivery) {
+		t.Fatalf("expected email delivery error, got %v", err)
+	}
+	ok, verifyErr := store.VerifyEmailCode(context.Background(), "user@example.com", "123456")
+	if verifyErr != nil {
+		t.Fatalf("VerifyEmailCode after nil sender: %v", verifyErr)
+	}
+	if ok {
+		t.Fatal("production without a sender must not store a verification code")
+	}
+}
+
+func TestVerifyEmailCodeIsSingleUse(t *testing.T) {
+	store := cache.NewFakeStore()
+	sender := &fakeEmailSender{}
+	svc := NewAuthService(&fakeAuthRepo{}, store, store, sender, time.Minute, time.Hour, "production", 5, 20)
+
+	if _, err := svc.StartEmail(context.Background(), "user@example.com", "203.0.113.10"); err != nil {
+		t.Fatalf("StartEmail: %v", err)
+	}
+	if _, err := svc.VerifyEmail(context.Background(), "user@example.com", sender.code); err != nil {
+		t.Fatalf("first VerifyEmail: %v", err)
+	}
+	if _, err := svc.VerifyEmail(context.Background(), "user@example.com", sender.code); !errors.Is(err, domain.ErrUnauthorized) {
+		t.Fatalf("expected reused code to be unauthorized, got %v", err)
+	}
 }
 
 func TestStartEmailRateLimitsEmailAndIP(t *testing.T) {
@@ -84,30 +149,100 @@ func TestNewEmailSenderRejectsDevDriverInProduction(t *testing.T) {
 	}
 }
 
-func TestBuildVerificationEmailContainsHeadersAndCode(t *testing.T) {
-	message, err := buildVerificationEmail("noreply@example.com", "Sauna", "user@example.com", "123456", 10*time.Minute)
+func TestNewEmailSenderTreatsProductionCaseInsensitively(t *testing.T) {
+	_, err := NewEmailSender("dev", SMTPEmailConfig{}, " Production ")
+	if err == nil || !strings.Contains(err.Error(), "not allowed") {
+		t.Fatalf("expected case-insensitive production rejection, got %v", err)
+	}
+}
+
+func TestBuildVerificationEmailContainsMultipartBrandContent(t *testing.T) {
+	message, err := buildVerificationEmail("sauna@mail.wrenzeal.top", "Sauna", "user@example.com", "123456", 10*time.Minute)
 	if err != nil {
 		t.Fatalf("buildVerificationEmail: %v", err)
 	}
-	body := string(message)
-	for _, want := range []string{"From:", "Sauna", "noreply@example.com", "To: <user@example.com>", "Subject:", "123456", "10 分钟内有效"} {
-		if !strings.Contains(body, want) {
-			t.Fatalf("email missing %q in:\n%s", want, body)
+	parsed, err := mail.ReadMessage(bytes.NewReader(message))
+	if err != nil {
+		t.Fatalf("parse verification email: %v", err)
+	}
+	if got := parsed.Header.Get("From"); !strings.Contains(got, "Sauna") || !strings.Contains(got, "sauna@mail.wrenzeal.top") {
+		t.Fatalf("unexpected From header %q", got)
+	}
+	subject, err := new(mime.WordDecoder).DecodeHeader(parsed.Header.Get("Subject"))
+	if err != nil {
+		t.Fatalf("decode Subject header: %v", err)
+	}
+	if !strings.Contains(subject, "Sauna") || !strings.Contains(subject, "123456") {
+		t.Fatalf("unexpected Subject header %q", subject)
+	}
+	mediaType, params, err := mime.ParseMediaType(parsed.Header.Get("Content-Type"))
+	if err != nil {
+		t.Fatalf("parse Content-Type: %v", err)
+	}
+	if mediaType != "multipart/alternative" || params["boundary"] == "" {
+		t.Fatalf("expected multipart/alternative with boundary, got %q %#v", mediaType, params)
+	}
+
+	parts := map[string]string{}
+	reader := multipart.NewReader(parsed.Body, params["boundary"])
+	for {
+		part, err := reader.NextPart()
+		if errors.Is(err, io.EOF) {
+			break
+		}
+		if err != nil {
+			t.Fatalf("read MIME part: %v", err)
+		}
+		partType, _, err := mime.ParseMediaType(part.Header.Get("Content-Type"))
+		if err != nil {
+			t.Fatalf("parse part Content-Type: %v", err)
+		}
+		content, err := io.ReadAll(part)
+		if err != nil {
+			t.Fatalf("read %s part: %v", partType, err)
+		}
+		parts[partType] = string(content)
+	}
+
+	plain := parts["text/plain"]
+	html := parts["text/html"]
+	for _, want := range []string{"你的私人桑拿房已准备好", "123456", "10 分钟", "https://sauna.wrenzeal.top"} {
+		if !strings.Contains(plain, want) {
+			t.Fatalf("plain email missing %q in:\n%s", want, plain)
+		}
+	}
+	for _, want := range []string{"<!doctype html>", "使用此验证码登录你的 Sauna 私人智囊工作区", "sauna-mark.png", "你的私人桑拿房", "123456", "10 分钟", "#f4efe6", "#513426"} {
+		if !strings.Contains(html, want) {
+			t.Fatalf("HTML email missing %q in:\n%s", want, html)
 		}
 	}
 }
 
+func TestVerificationEmailHTMLEscapesCode(t *testing.T) {
+	plain, htmlBody := verificationEmailBodies("<123456>", 5)
+	if !strings.Contains(plain, "<123456>") {
+		t.Fatalf("plain fallback must retain the readable code: %s", plain)
+	}
+	if strings.Contains(htmlBody, "> <123456> <") || !strings.Contains(htmlBody, "&lt;123456&gt;") {
+		t.Fatalf("HTML code must be escaped: %s", htmlBody)
+	}
+}
+
 type fakeEmailSender struct {
-	email string
-	code  string
-	ttl   time.Duration
-	err   error
+	email  string
+	code   string
+	ttl    time.Duration
+	err    error
+	onSend func(email string)
 }
 
 func (f *fakeEmailSender) SendVerificationCode(_ context.Context, email string, code string, ttl time.Duration) error {
 	f.email = email
 	f.code = code
 	f.ttl = ttl
+	if f.onSend != nil {
+		f.onSend(email)
+	}
 	return f.err
 }
 
