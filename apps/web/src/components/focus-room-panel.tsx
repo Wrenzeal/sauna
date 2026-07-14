@@ -757,16 +757,15 @@ export function FocusRoomPanel({
     resumeSession,
     sendTurn,
     retryTurn,
+    consumeInitialPrompt,
   } = useSaunaStore();
   const [sessionView, setSessionView] = useState(() => ({
     routeSessionId: sessionId,
     currentSessionId: sessionId,
   }));
-  const [initialConsultation] = useState(() => sessionId === "new" && draftAgentId
-    ? useSaunaStore.getState().consumeInitialPrompt(focusDraftKey(draftAgentId), initialPrompt)
-    : { content: initialPrompt, autoSend: false });
-  const [draft, setDraft] = useState(initialConsultation.content);
-  const autoPromptRef = useRef(initialConsultation.autoSend ? initialConsultation.content : "");
+  const [draft, setDraft] = useState(initialPrompt);
+  const [pendingAutoPrompt, setPendingAutoPrompt] = useState<string>();
+  const draftHandoffConsumedRef = useRef(false);
   const autoSendStartedRef = useRef(false);
   const [editingSessionId, setEditingSessionId] = useState<string>();
   const [editingTitle, setEditingTitle] = useState("");
@@ -795,6 +794,31 @@ export function FocusRoomPanel({
     void loadPublicAgents();
     void loadIdentity().catch(() => undefined);
   }, [loadIdentity, loadPublicAgents]);
+
+  useEffect(() => {
+    if (
+      draftHandoffConsumedRef.current ||
+      sessionId !== "new" ||
+      !draftAgentId
+    ) {
+      return;
+    }
+
+    draftHandoffConsumedRef.current = true;
+    const queued = consumeInitialPrompt(
+      focusDraftKey(draftAgentId),
+      initialPrompt,
+    );
+
+    if (!queued.content) {
+      return;
+    }
+
+    queueMicrotask(() => {
+      setDraft(queued.content);
+      setPendingAutoPrompt(queued.autoSend ? queued.content : undefined);
+    });
+  }, [consumeInitialPrompt, draftAgentId, initialPrompt, sessionId]);
 
   useEffect(() => {
     if (isDraftSession) {
@@ -903,10 +927,20 @@ export function FocusRoomPanel({
   }, [agent, busy, currentSessionId, draftAgentId, isDraftSession, openAuth, openProvider, providers.length, selectedAgentId, sendTurn, sessionId, startConsultation, token]);
 
   useEffect(() => {
-    if (!autoPromptRef.current || autoSendStartedRef.current || busy || !token || providers.length === 0 || !isDraftSession) return;
+    if (
+      !pendingAutoPrompt ||
+      autoSendStartedRef.current ||
+      busy ||
+      !token ||
+      providers.length === 0 ||
+      !isDraftSession
+    ) {
+      return;
+    }
+
     autoSendStartedRef.current = true;
-    void sendContent(autoPromptRef.current);
-  }, [busy, isDraftSession, providers.length, sendContent, token]);
+    void sendContent(pendingAutoPrompt);
+  }, [busy, isDraftSession, pendingAutoPrompt, providers.length, sendContent, token]);
 
   async function submitMessage(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

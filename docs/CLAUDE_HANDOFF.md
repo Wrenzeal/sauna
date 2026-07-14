@@ -510,3 +510,10 @@ Production backend has been restarted with the new sender/template. A public aut
 - Lobby prompt handoff is dual-backed: Zustand memory plus `sessionStorage` under an advisor-scoped key. Do not move prompt content into query parameters.
 - “进入咨询室” carries the current prompt as `autoSend=false`; Enter/the send icon uses `autoSend=true` only when auth and provider were already ready.
 - FocusRoom consumes and deletes the handoff once. This protects prompts from route reconstruction while preventing duplicate first sends.
+
+## 2026-07-14 Hydration-safe lobby prompt consumption
+
+- Do not consume `sessionStorage` consultation drafts in a `useState` initializer: Client Components are still server-rendered, so the server sees no browser storage and hydration retains the empty initial state.
+- `FocusRoomPanel` now consumes `draft:{agentId}` in a client effect, restores the composer text, and gates automatic submission with a ref so React Strict Mode or store updates cannot send it twice.
+- Missing/wrong provider configuration can make the later model request fail, but it cannot explain a prompt disappearing before `POST /focus-room/consultations`; keep these failure stages distinct when debugging.
+- Verification: web tests 9/9, typecheck, lint, production build, and diff check pass. No backend restart is required.
