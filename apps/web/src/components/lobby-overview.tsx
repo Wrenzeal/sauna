@@ -5,9 +5,9 @@ import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { motionDuration, saunaEase } from "@/lib/motion-system";
-import { decideModelAction } from "@/lib/access-policy";
+import { focusDraftKey } from "@/lib/access-policy";
 import { useAccessUIStore } from "@/store/access-ui-store";
-import { ArrowRight, GearSix, PaperPlaneTilt, Plus, WarningCircle } from "@phosphor-icons/react";
+import { ArrowRight, PaperPlaneTilt, Plus, WarningCircle } from "@phosphor-icons/react";
 import { AgentCard } from "@/components/agent-card";
 import { useSaunaStore } from "@/store/sauna-store";
 
@@ -26,11 +26,10 @@ export function LobbyOverview() {
     loadPublicAgents,
     loadIdentity,
     loadProviders,
+    queueInitialPrompt,
   } = useSaunaStore();
   const [question, setQuestion] = useState("");
   const [openingAgentId, setOpeningAgentId] = useState<string>();
-  const openAuth = useAccessUIStore((state) => state.openAuth);
-  const openProvider = useAccessUIStore((state) => state.openProvider);
   const pendingIntent = useAccessUIStore((state) => state.auth.intent);
 
   useEffect(() => {
@@ -58,16 +57,15 @@ export function LobbyOverview() {
   const providerReady = safeProviders.length > 0;
   const apiUnavailable = apiStatus === "error";
 
-  async function handleOpen(agentId: string, prompt?: string) {
+  function handleOpen(agentId: string, prompt?: string) {
     if (!agentId) return;
     const promptText = prompt?.trim() ?? "";
-    const intent = { kind: "consultation" as const, draft: { agentId, content: promptText, sourceRoute: "/lobby" } };
-    const decision = decideModelAction({ authenticated: Boolean(token), providerReady, intent });
-    if (decision.kind === "open_auth") { openAuth(decision.reason, decision.intent); return; }
-    if (decision.kind === "open_provider") { openProvider(decision.mode, decision.reason); return; }
+    if (promptText) {
+      queueInitialPrompt(focusDraftKey(agentId), { content: promptText, autoSend: Boolean(token && providerReady) });
+    }
     setOpeningAgentId(agentId);
     router.push(`/focus-room/new?agentId=${encodeURIComponent(agentId)}`);
-    setQuestion("");
+    if (promptText) setQuestion("");
   }
 
   function submitQuestion(event: FormEvent<HTMLFormElement>) {
@@ -120,11 +118,8 @@ export function LobbyOverview() {
               </div>
               <div className="flex items-end gap-3 rounded-[21px] bg-[var(--sauna-soft)] px-4 py-3">
                 <textarea value={question} onChange={(event) => setQuestion(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); event.currentTarget.form?.requestSubmit(); } }} rows={1} className="max-h-32 min-h-6 min-w-0 flex-1 resize-none bg-transparent text-sm leading-6 text-[var(--sauna-text)] outline-none placeholder:text-[var(--sauna-muted)]" placeholder={token && providerReady ? "今天最想和他聊什么？" : "选择后继续完成登录或模型配置"} />
-                {token && !providerReady ? (
-                  <button type="button" onClick={() => openProvider("create", "provider_missing")} className="inline-flex h-10 items-center gap-2 rounded-full bg-[var(--sauna-primary)] px-4 text-sm font-semibold text-[var(--sauna-primary-contrast)]"><GearSix size={16} /> 配置模型</button>
-                ) : (
-                  <button type="submit" disabled={sessionStatus === "loading" || !question.trim()} className="grid size-10 place-items-center rounded-full bg-[var(--sauna-primary)] text-[var(--sauna-primary-contrast)] transition hover:bg-[var(--sauna-primary-hover)] disabled:cursor-not-allowed disabled:opacity-40" aria-label="开始咨询"><PaperPlaneTilt size={17} weight="fill" /></button>
-                )}
+                <button type="button" onClick={() => handleOpen(activeAgent.id)} disabled={sessionStatus === "loading"} className="inline-flex h-10 shrink-0 items-center gap-2 rounded-full border border-[color:var(--sauna-line-strong)] bg-[var(--sauna-panel-strong)] px-4 text-sm font-semibold text-[var(--sauna-muted-strong)] transition hover:bg-[var(--sauna-soft-strong)] disabled:opacity-40">进入咨询室 <ArrowRight size={14} /></button>
+                <button type="submit" disabled={sessionStatus === "loading" || !question.trim()} className="grid size-10 shrink-0 place-items-center rounded-full bg-[var(--sauna-primary)] text-[var(--sauna-primary-contrast)] transition hover:bg-[var(--sauna-primary-hover)] disabled:cursor-not-allowed disabled:opacity-40" aria-label="开始咨询"><PaperPlaneTilt size={17} weight="fill" /></button>
               </div>
             </motion.form>
           ) : (

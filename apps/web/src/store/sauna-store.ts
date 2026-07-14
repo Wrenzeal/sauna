@@ -4,6 +4,7 @@ import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { SaunaApiError, classifySaunaApiError, createSaunaApiClient, humanizeApiError, streamTurn } from "@/lib/sauna-api";
 import { migrateSaunaPersistedState } from "@/lib/access-policy";
+import type { AuthOperation, InitialConsultationDraft } from "@/lib/access-policy";
 import type {
   AgentProfile,
   AgentStatus,
@@ -27,7 +28,6 @@ import type {
 
 type LoadStatus = "idle" | "loading" | "ready" | "error";
 type ActionStatus = "idle" | "loading" | "streaming" | "ready" | "error";
-type AuthOperation = "idle" | "sending_code" | "verifying_code" | "logging_out";
 
 const accents = ["emerald", "cyan", "amber", "rose"];
 
@@ -135,7 +135,7 @@ interface SaunaState {
   agents: AgentProfile[];
   sessions: SessionSummary[];
   streamEvents: StreamEventShape[];
-  initialPromptsBySession: Record<string, string>;
+  initialPromptsBySession: Record<string, InitialConsultationDraft>;
   turnsInFlightBySession: Record<string, boolean>;
   selectedAgentId: string;
   token?: string;
@@ -169,6 +169,7 @@ interface SaunaState {
   startEmail: (email: string) => Promise<AuthStartResult>;
   verifyEmail: (email: string, code: string) => Promise<void>;
   resetEmailChallenge: () => void;
+  completeAuthSuccess: () => void;
   logout: () => Promise<void>;
   invalidateSession: () => void;
   loadProviders: (tokenOverride?: string) => Promise<void>;
@@ -184,13 +185,14 @@ interface SaunaState {
   loadFocusSessions: (tokenOverride?: string) => Promise<void>;
   openAgentSession: (agentId: string, title?: string) => Promise<FocusSession>;
   startConsultation: (agentId: string, content: string, title?: string) => Promise<FocusSession>;
-  queueInitialPrompt: (sessionId: string, prompt: string) => void;
-  consumeInitialPrompt: (sessionId: string, fallbackPrompt?: string) => string;
+  queueInitialPrompt: (key: string, draft: InitialConsultationDraft) => void;
+  consumeInitialPrompt: (key: string, fallbackPrompt?: string) => InitialConsultationDraft;
   resumeSession: (sessionId: string) => Promise<void>;
   loadMessages: (sessionId: string) => Promise<void>;
   renameFocusSession: (sessionId: string, title: string) => Promise<void>;
   deleteFocusSession: (sessionId: string) => Promise<void>;
   sendTurn: (sessionId: string, content: string) => Promise<void>;
+  retryTurn: (sessionId: string, turnId: string) => Promise<void>;
 }
 
 export const useSaunaStore = create<SaunaState>()(
@@ -311,28 +313,33 @@ export const useSaunaStore = create<SaunaState>()(
       },
       verifyEmail: async (email, code) => {
         set({ authStatus: "loading", authOperation: "verifying_code", authError: undefined, authErrorCode: undefined });
+        let result;
         try {
-          const result = await createSaunaApiClient().verifyEmail(email, code);
-          set({
-            token: result.token,
-            identity: result.identity,
-            authStatus: "ready",
-            authOperation: "idle",
-            devCode: undefined,
-            authCodeSentEmail: undefined,
-            authResendAvailableAt: undefined,
-            authError: undefined,
-            authErrorCode: undefined,
-          });
-          await get().loadProviders(result.token);
-          await get().loadWorkspaceAgents(result.token);
-          await get().loadDistillationJobs(result.token);
-          await get().loadFocusSessions(result.token);
+          result = await createSaunaApiClient().verifyEmail(email, code);
         } catch (error) {
           const message = humanizeApiError(error);
           set({ authStatus: "error", authOperation: "idle", authError: message, authErrorCode: error instanceof SaunaApiError ? error.code : undefined });
           throw error;
         }
+
+        set({
+          token: result.token,
+          identity: result.identity,
+          authStatus: "ready",
+          authOperation: "login_success",
+          devCode: undefined,
+          authCodeSentEmail: undefined,
+          authResendAvailableAt: undefined,
+          authError: undefined,
+          authErrorCode: undefined,
+        });
+
+        await Promise.allSettled([
+          get().loadProviders(result.token),
+          get().loadWorkspaceAgents(result.token),
+          get().loadDistillationJobs(result.token),
+          get().loadFocusSessions(result.token),
+        ]);
       },
       resetEmailChallenge: () => set({
         authCodeSentEmail: undefined,
@@ -343,6 +350,7 @@ export const useSaunaStore = create<SaunaState>()(
         authStatus: "idle",
         authOperation: "idle",
       }),
+      completeAuthSuccess: () => set((state) => state.authOperation === "login_success" ? { authOperation: "idle" } : {}),
       invalidateSession: () => set({
         token: undefined,
         identity: undefined,
@@ -635,27 +643,23 @@ export const useSaunaStore = create<SaunaState>()(
         }
       },
 
-      queueInitialPrompt: (sessionId, prompt) => {
-        const content = prompt.trim();
-        if (!sessionId || !content) {
-          return;
-        }
+      queueInitialPrompt: (key, draft) => {
+        const content = draft.content.trim();
+        if (!key || !content) return;
         set((state) => ({
-          initialPromptsBySession: { ...(state.initialPromptsBySession ?? {}), [sessionId]: content },
+          initialPromptsBySession: { ...(state.initialPromptsBySession ?? {}), [key]: { content, autoSend: draft.autoSend } },
         }));
       },
-      consumeInitialPrompt: (sessionId, fallbackPrompt = "") => {
-        const queued = (get().initialPromptsBySession ?? {})[sessionId];
-        const content = (queued ?? fallbackPrompt).trim();
-        if (!queued) {
-          return content;
-        }
+      consumeInitialPrompt: (key, fallbackPrompt = "") => {
+        const queued = (get().initialPromptsBySession ?? {})[key];
+        const result = queued ?? { content: fallbackPrompt.trim(), autoSend: false };
+        if (!queued) return result;
         set((state) => {
           const copy = { ...(state.initialPromptsBySession ?? {}) };
-          delete copy[sessionId];
+          delete copy[key];
           return { initialPromptsBySession: copy };
         });
-        return content;
+        return result;
       },
 
       resumeSession: async (sessionId) => {
@@ -829,7 +833,7 @@ export const useSaunaStore = create<SaunaState>()(
                         if (message.id !== event.message_id) {
                           return message;
                         }
-                        return { ...message, status: event.event_type === "turn.failed" ? "failed" : "complete" };
+                        return { ...message, status: event.event_type === "turn.failed" ? "failed" : "complete", error: event.event_type === "turn.failed" ? event.error : undefined };
                       });
                     }
                     return {
@@ -919,7 +923,7 @@ export const useSaunaStore = create<SaunaState>()(
                     if (message.id !== event.message_id) {
                       return message;
                     }
-                    return { ...message, status: event.event_type === "turn.failed" ? "failed" : "complete" };
+                    return { ...message, status: event.event_type === "turn.failed" ? "failed" : "complete", error: event.event_type === "turn.failed" ? event.error : undefined };
                   });
                 }
                 return {
@@ -944,6 +948,38 @@ export const useSaunaStore = create<SaunaState>()(
             delete inFlight[sessionId];
             return { streamStatus: "error", focusError: message, turnsInFlightBySession: inFlight };
           });
+          throw error;
+        }
+      },
+      retryTurn: async (sessionId, turnId) => {
+        const token = get().token;
+        const workspaceID = get().identity?.workspace.id ?? "";
+        if (!token) throw new Error("请先登录。");
+        if ((get().turnsInFlightBySession ?? {})[sessionId]) return;
+        set((state) => ({ streamStatus: "loading", focusError: undefined, turnsInFlightBySession: { ...(state.turnsInFlightBySession ?? {}), [sessionId]: true } }));
+        try {
+          const { turn } = await createSaunaApiClient(token).retryTurn(sessionId, turnId);
+          set((state) => ({
+            messagesBySession: { ...(state.messagesBySession ?? {}), [sessionId]: ((state.messagesBySession ?? {})[sessionId] ?? []).filter((message) => !(message.turn_id === turnId && message.role === "assistant")) },
+            streamStatus: "streaming",
+          }));
+          await streamTurn(sessionId, turn.id, {
+            token,
+            onEvent: (event) => set((state) => {
+              const current = (state.messagesBySession ?? {})[sessionId] ?? [];
+              let messages = current;
+              if (event.event_type === "assistant.message.created") messages = upsertMessage(current, { id: event.message_id, workspace_id: workspaceID, session_id: sessionId, turn_id: event.turn_id, agent_id: event.agent_id, role: "assistant", content: "", status: "pending", created_at: event.timestamp });
+              if (event.event_type === "assistant.delta") messages = appendDelta(messages, event, workspaceID);
+              if (event.event_type === "turn.completed" || event.event_type === "turn.failed") messages = messages.map((message) => message.id === event.message_id ? { ...message, status: event.event_type === "turn.failed" ? "failed" : "complete", error: event.event_type === "turn.failed" ? event.error : undefined } : message);
+              return { streamEvents: [...state.streamEvents, event], messagesBySession: { ...(state.messagesBySession ?? {}), [sessionId]: messages }, focusError: event.event_type === "turn.failed" ? event.error ?? "模型调用失败。" : state.focusError };
+            }),
+          });
+          await get().loadMessages(sessionId);
+          await get().loadFocusSessions(token);
+          set((state) => { const inFlight = { ...(state.turnsInFlightBySession ?? {}) }; delete inFlight[sessionId]; return { streamStatus: "ready", turnsInFlightBySession: inFlight }; });
+        } catch (error) {
+          const message = humanizeApiError(error);
+          set((state) => { const inFlight = { ...(state.turnsInFlightBySession ?? {}) }; delete inFlight[sessionId]; return { streamStatus: "error", focusError: message, turnsInFlightBySession: inFlight }; });
           throw error;
         }
       },

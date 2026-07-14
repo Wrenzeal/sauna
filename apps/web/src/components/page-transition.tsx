@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { usePathname } from "next/navigation";
 import { motionDuration, routeDepth, saunaEase } from "@/lib/motion-system";
+import { pageTransitionKey } from "@/lib/access-policy";
 
 export function PageTransition({ children }: { children: ReactNode }) {
   const pathname = usePathname();
@@ -24,6 +25,7 @@ export function PageTransition({ children }: { children: ReactNode }) {
     }
   }, [pathname]);
 
+  const transitionKey = pageTransitionKey(pathname);
   const horizontal = pathname.startsWith("/focus-room") ? 0 : direction * 34;
   const vertical = pathname.startsWith("/focus-room") ? 28 : 0;
 
@@ -31,7 +33,7 @@ export function PageTransition({ children }: { children: ReactNode }) {
     <div className="relative">
       <AnimatePresence mode="wait" initial={false} custom={direction}>
         <motion.div
-          key={pathname}
+          key={transitionKey}
           custom={direction}
           initial={reduce ? false : { opacity: 0, x: horizontal, y: vertical, filter: "blur(8px)" }}
           animate={{ opacity: 1, x: 0, y: 0, filter: "blur(0px)" }}

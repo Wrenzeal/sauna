@@ -8,7 +8,7 @@ import { useAccessUIStore } from "@/store/access-ui-store";
 import { useSaunaStore } from "@/store/sauna-store";
 import { saunaEase } from "@/lib/motion-system";
 import { SaunaApiError } from "@/lib/sauna-api";
-import { resendSecondsRemaining } from "@/lib/access-policy";
+import { resendSecondsRemaining, resolveAuthModalStage } from "@/lib/access-policy";
 
 const fieldClass = "h-12 rounded-[18px] border border-[color:var(--sauna-line)] bg-[var(--sauna-soft)] px-4 text-sm text-[var(--sauna-text)] outline-none transition focus:border-[var(--sauna-accent)] focus:bg-[var(--sauna-panel-strong)]";
 const primaryClass = "inline-flex h-11 items-center justify-center gap-2 rounded-full bg-[var(--sauna-primary)] px-5 text-sm font-semibold text-[var(--sauna-primary-contrast)] transition hover:bg-[var(--sauna-primary-hover)] disabled:opacity-45";
@@ -25,7 +25,7 @@ function OperationSpinner({ reduce, size = 16 }: { reduce?: boolean | null; size
   );
 }
 
-function ModalFrame({ title, eyebrow, children, onClose }: { title: string; eyebrow: string; children: ReactNode; onClose: () => void }) {
+function ModalFrame({ title, eyebrow, children, onClose, closable = true }: { title: string; eyebrow: string; children: ReactNode; onClose: () => void; closable?: boolean }) {
   const reduce = useReducedMotion();
   const titleId = useId();
   const dialogRef = useRef<HTMLElement>(null);
@@ -38,7 +38,7 @@ function ModalFrame({ title, eyebrow, children, onClose }: { title: string; eyeb
     initialTarget?.focus();
 
     function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
+      if (event.key === "Escape" && closable) {
         event.preventDefault();
         onClose();
         return;
@@ -68,12 +68,12 @@ function ModalFrame({ title, eyebrow, children, onClose }: { title: string; eyeb
         if (!document.querySelector('[role="dialog"]')) previousFocus?.focus();
       });
     };
-  }, [onClose]);
+  }, [closable, onClose]);
 
   return (
-    <motion.div className="fixed inset-0 z-[100] grid place-items-center bg-[var(--sauna-scrim)] px-4 py-8 backdrop-blur-md" initial={reduce ? false : { opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onMouseDown={onClose}>
+    <motion.div className="fixed inset-0 z-[100] grid place-items-center bg-[var(--sauna-scrim)] px-4 py-8 backdrop-blur-md" initial={reduce ? false : { opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onMouseDown={closable ? onClose : undefined}>
       <motion.section ref={dialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby={titleId} className="relative max-h-[calc(100dvh-4rem)] w-full max-w-[520px] overflow-y-auto rounded-[32px] border border-[color:var(--sauna-line)] bg-[var(--sauna-panel-strong)] p-6 shadow-[var(--sauna-shadow)] sm:p-8" initial={reduce ? false : { opacity: 0, y: 18, scale: 0.985 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10, scale: 0.99 }} transition={{ duration: 0.34, ease: saunaEase }} onMouseDown={(event) => event.stopPropagation()}>
-        <button type="button" onClick={onClose} className="absolute right-5 top-5 grid size-10 place-items-center rounded-full bg-[var(--sauna-soft)] text-[var(--sauna-muted)]" aria-label="关闭"><X size={17} /></button>
+        {closable ? <button type="button" onClick={onClose} className="absolute right-5 top-5 grid size-10 place-items-center rounded-full bg-[var(--sauna-soft)] text-[var(--sauna-muted)]" aria-label="关闭"><X size={17} /></button> : null}
         <p className="text-xs font-medium tracking-[0.14em] text-[var(--sauna-accent-strong)]">{eyebrow}</p>
         <h2 id={titleId} className="sauna-display mt-3 pr-12 text-4xl tracking-[-0.05em] text-[var(--sauna-text)]">{title}</h2>
         {children}
@@ -95,6 +95,7 @@ function AuthModal() {
     startEmail,
     verifyEmail,
     resetEmailChallenge,
+    completeAuthSuccess,
     clearAuthError,
   } = useSaunaStore();
   const [email, setEmail] = useState("");
@@ -102,8 +103,11 @@ function AuthModal() {
   const [clock, setClock] = useState(() => Date.now());
   const emailInputRef = useRef<HTMLInputElement>(null);
   const codeInputRef = useRef<HTMLInputElement>(null);
+  const pendingProviderOpenRef = useRef(false);
   const sendBusy = authOperation === "sending_code";
   const verifyBusy = authOperation === "verifying_code";
+  const modalStage = resolveAuthModalStage(authOperation, Boolean(authCodeSentEmail));
+  const loginSucceeded = modalStage === "success";
   const resendSeconds = resendSecondsRemaining(authResendAvailableAt, clock);
 
   useEffect(() => {
@@ -137,15 +141,25 @@ function AuthModal() {
     try {
       await verifyEmail(authCodeSentEmail ?? email, code);
       const intent = auth.intent;
+      const { providers, providerStatus } = useSaunaStore.getState();
+      pendingProviderOpenRef.current = intent.kind === "consultation" && providerStatus !== "error" && providers.length === 0;
       window.dispatchEvent(new CustomEvent("sauna-auth-complete", { detail: intent }));
       clearAuthIntent();
+      await new Promise((resolve) => window.setTimeout(resolve, reduce ? 250 : 700));
       closeAuth();
-      if (intent.kind === "consultation" && useSaunaStore.getState().providers.length === 0) openProvider("create", "provider_missing");
     } catch (error) {
       if (error instanceof SaunaApiError && error.code === "invalid_verification_code") {
         setCode("");
         window.requestAnimationFrame(() => codeInputRef.current?.focus());
       }
+    }
+  }
+
+  function finishAuthExit() {
+    completeAuthSuccess();
+    if (pendingProviderOpenRef.current) {
+      pendingProviderOpenRef.current = false;
+      openProvider("create", "provider_missing");
     }
   }
 
@@ -157,11 +171,22 @@ function AuthModal() {
   }
 
   return (
-    <AnimatePresence>
-      {auth.open ? <ModalFrame title="登录或创建账号" eyebrow="YOUR PRIVATE WORKSPACE" onClose={closeAuth}>
+    <AnimatePresence onExitComplete={finishAuthExit}>
+      {auth.open ? <ModalFrame title={loginSucceeded ? "登录成功" : "登录或创建账号"} eyebrow={loginSucceeded ? "WELCOME TO SAUNA" : "YOUR PRIVATE WORKSPACE"} onClose={closeAuth} closable={!verifyBusy && !loginSucceeded}>
+        {loginSucceeded ? (
+          <motion.div role="status" aria-live="polite" className="grid min-h-64 place-items-center py-8 text-center" initial={reduce ? false : { opacity: 0 }} animate={{ opacity: 1 }}>
+            <div>
+              <motion.span className="mx-auto grid size-20 place-items-center rounded-full bg-[var(--sauna-accent-soft)] text-[var(--sauna-accent-strong)]" initial={reduce ? false : { scale: 0.72, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.42, ease: saunaEase }}>
+                <CheckCircle size={42} weight="fill" />
+              </motion.span>
+              <motion.p className="mt-6 text-base font-semibold text-[var(--sauna-text)]" initial={reduce ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: reduce ? 0 : 0.12, duration: 0.32 }}>欢迎回来，正在为你准备智囊团。</motion.p>
+              <p className="mt-2 text-sm text-[var(--sauna-muted-strong)]">登录已完成，请稍候。</p>
+            </div>
+          </motion.div>
+        ) : <>
         <p className="mt-4 text-sm leading-7 text-[var(--sauna-muted-strong)]">用邮箱验证码继续。第一次验证会自动为你创建私人工作区。</p>
         <div className="mt-7 grid gap-4">
-          {!authCodeSentEmail ? (
+          {modalStage === "email" ? (
             <form className="grid gap-3" onSubmit={sendCode}>
               <input ref={emailInputRef} autoFocus className={fieldClass} type="email" value={email} onChange={(event) => { setEmail(event.target.value); clearAuthError(); }} placeholder="你的邮箱" autoComplete="email" disabled={sendBusy} required />
               <button className={primaryClass} disabled={sendBusy}>
@@ -195,6 +220,7 @@ function AuthModal() {
             {authError ? <motion.p key={authError} role="alert" initial={reduce ? false : { opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }} className="text-sm text-[var(--sauna-danger)]">{authError}</motion.p> : null}
           </AnimatePresence>
         </div>
+        </>}
       </ModalFrame> : null}
     </AnimatePresence>
   );

@@ -488,3 +488,19 @@ Production backend has been restarted with the new sender/template. A public aut
 - Production smoke: first send 200, immediate resend 429 with retry metadata, wrong code 400 with dedicated copy.
 - Full backend tests, Go vet, web tests, typecheck, lint, production build, and `git diff --check` pass.
 - Browser-level pathname retention was verified statically (no logout route push/replace); run an interactive E2E check if modifying route guards or logout flows later.
+
+## 2026-07-14 Stable login success modal handoff
+
+- `AuthOperation` now includes `login_success`; this state must take precedence over whether `authCodeSentEmail` is present.
+- After `/auth/email/verify` succeeds, token/identity are committed immediately and the modal renders a non-dismissible success view. Do not clear the success operation until the modal exit animation completes.
+- Providers, workspace agents, distillation jobs and focus sessions hydrate concurrently with `Promise.allSettled`. Their failures remain module-level errors and must not turn a valid login into a verification error.
+- Consultation intent is restored after hydration. If no provider exists, provider setup opens only after the auth modal has exited; provider-load errors do not incorrectly trigger the empty-provider flow.
+- Regression coverage lives in `apps/web/src/lib/__tests__/access-policy.test.ts`; web tests, typecheck, lint and production build pass.
+
+## 2026-07-14 Consultation handoff and failed-turn retry
+
+- Lobby has two explicit paths: enter an empty room, or queue and submit a question. Drafts use `draft:{agentId}` and carry `autoSend`; only already-authenticated/provider-ready submissions auto-send.
+- `PageTransition` canonicalizes every `/focus-room/*` pathname to one transition key. Do not restore pathname-keyed remounts for session changes.
+- Failed assistant messages use `status=failed` and store the provider reason in `messages.metadata.error`; list APIs expose it as `Message.error` and failed partial answers are excluded from future LLM context.
+- Retry API: `POST /focus-room/sessions/:session_id/turns/:turn_id/retry`. It only accepts failed turns, deletes old assistant/SSE artifacts, resets the same turn to created and preserves the original user message.
+- Production backend has been restarted. Backend tests/vet and web tests/typecheck/lint/build pass.

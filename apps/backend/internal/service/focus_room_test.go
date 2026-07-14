@@ -70,6 +70,33 @@ func TestStartConsultationRejectsEmptyContent(t *testing.T) {
 	}
 }
 
+func TestRetryTurnRequiresFailedTurnAndReusesIt(t *testing.T) {
+	repo := newFakeFocusRepo(t)
+	svc := NewFocusRoomService(repo, repo.box, fakeLLM{})
+	if _, err := svc.RetryTurn(context.Background(), repo.workspaceID, repo.session.ID, repo.turn.ID); !errors.Is(err, domain.ErrTurnNotRetryable) {
+		t.Fatalf("expected turn_not_retryable, got %v", err)
+	}
+	repo.turn.Status = domain.TurnStatusFailed
+	turn, err := svc.RetryTurn(context.Background(), repo.workspaceID, repo.session.ID, repo.turn.ID)
+	if err != nil {
+		t.Fatalf("RetryTurn: %v", err)
+	}
+	if turn.ID != repo.turn.ID || turn.Status != domain.TurnStatusCreated || turn.UserMessageID != repo.userMessage.ID {
+		t.Fatalf("unexpected retried turn %#v", turn)
+	}
+}
+
+func TestStreamTurnPersistsFailureOnAssistantMessage(t *testing.T) {
+	repo := newFakeFocusRepo(t)
+	svc := NewFocusRoomService(repo, repo.box, fakeLLM{err: errors.New("upstream unavailable")})
+	if err := svc.StreamTurn(context.Background(), repo.workspaceID, repo.turn.ID, "", func(StreamFrame) error { return nil }); err != nil {
+		t.Fatalf("StreamTurn: %v", err)
+	}
+	if repo.turn.Status != domain.TurnStatusFailed || repo.assistant.Status != domain.MessageStatusFailed || repo.assistant.Error != "upstream unavailable" {
+		t.Fatalf("failure was not persisted: turn=%#v assistant=%#v", repo.turn, repo.assistant)
+	}
+}
+
 func TestStreamTurnPersistsSequencedTerminalEvents(t *testing.T) {
 	repo := newFakeFocusRepo(t)
 	svc := NewFocusRoomService(repo, repo.box, fakeLLM{chunks: []string{"先聚焦", "，再验证"}})
@@ -322,6 +349,15 @@ func (f *fakeFocusRepo) CreateTurn(_ context.Context, _ string, _ string, conten
 	return domain.TurnCreated{Turn: f.turn, UserMessage: f.userMessage}, nil
 }
 
+func (f *fakeFocusRepo) RetryTurn(_ context.Context, _ string, _ string, _ string) (domain.Turn, error) {
+	if f.turn.Status != domain.TurnStatusFailed {
+		return domain.Turn{}, domain.ErrTurnNotRetryable
+	}
+	f.turn.Status = domain.TurnStatusCreated
+	f.turn.AssistantMessageID = nil
+	return f.turn, nil
+}
+
 func (f *fakeFocusRepo) GetTurn(_ context.Context, _ string, _ string) (domain.Turn, error) {
 	return f.turn, nil
 }
@@ -348,6 +384,12 @@ func (f *fakeFocusRepo) SetTurnAssistantMessage(_ context.Context, _ string, _ s
 func (f *fakeFocusRepo) AppendAssistantContent(_ context.Context, _ string, _ string, delta string, status string) error {
 	f.assistantContent += delta
 	f.assistant.Status = status
+	return nil
+}
+
+func (f *fakeFocusRepo) MarkAssistantMessageFailed(_ context.Context, _ string, _ string, errorMessage string) error {
+	f.assistant.Status = domain.MessageStatusFailed
+	f.assistant.Error = errorMessage
 	return nil
 }
 
@@ -389,6 +431,7 @@ func (f *fakeFocusRepo) ListSSEEventsAfter(_ context.Context, _ string, afterSeq
 
 type fakeLLM struct {
 	chunks   []string
+	err      error
 	messages *[]llm.Message
 }
 
@@ -404,6 +447,9 @@ func (f fakeLLM) StreamChat(_ context.Context, request llm.ChatRequest, onDelta 
 		if err := onDelta(chunk); err != nil {
 			return llm.TokenUsage{}, err
 		}
+	}
+	if f.err != nil {
+		return llm.TokenUsage{}, f.err
 	}
 	return llm.TokenUsage{CompletionTokens: len(chunks), TotalTokens: len(chunks)}, nil
 }

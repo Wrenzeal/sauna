@@ -76,6 +76,15 @@ func (s *FocusRoomService) CreateSession(ctx context.Context, workspaceID string
 	return s.repo.CreateFocusSession(ctx, workspaceID, agent.Agent.ID, providerID, title)
 }
 
+func (s *FocusRoomService) RetryTurn(ctx context.Context, workspaceID string, sessionID string, turnID string) (domain.Turn, error) {
+	sessionID = strings.TrimSpace(sessionID)
+	turnID = strings.TrimSpace(turnID)
+	if sessionID == "" || turnID == "" {
+		return domain.Turn{}, domain.ErrInvalidInput
+	}
+	return s.repo.RetryTurn(ctx, workspaceID, sessionID, turnID)
+}
+
 func (s *FocusRoomService) CreateTurn(ctx context.Context, workspaceID string, sessionID string, request CreateTurnRequest) (domain.TurnCreated, error) {
 	content := strings.TrimSpace(request.Content)
 	if content == "" {
@@ -251,7 +260,7 @@ func (s *FocusRoomService) generateTurn(ctx context.Context, workspaceID string,
 	})
 	if err != nil {
 		_ = s.repo.UpdateTurnStatus(ctx, workspaceID, turn.ID, domain.TurnStatusFailed)
-		_ = s.repo.AppendAssistantContent(ctx, workspaceID, assistant.ID, "", domain.MessageStatusDone)
+		_ = s.repo.MarkAssistantMessageFailed(ctx, workspaceID, assistant.ID, err.Error())
 		return emitPersisted(domain.SSEEventTurnFailed, domain.SSEPayload{Error: err.Error()})
 	}
 	if err := s.repo.AppendAssistantContent(ctx, workspaceID, assistant.ID, "", domain.MessageStatusDone); err != nil {

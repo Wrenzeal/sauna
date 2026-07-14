@@ -15,6 +15,7 @@ import type {
   ProviderConfig,
   ProviderTestChatResult,
   StreamEventShape,
+  Turn,
   TurnCreated,
   UpdateProviderConfigInput,
 } from "@/types/sauna";
@@ -296,6 +297,9 @@ export function createSaunaApiClient(token?: string) {
         token,
       );
     },
+    retryTurn(sessionId: string, turnId: string) {
+      return requestJson<{ turn: Turn }>(`/focus-room/sessions/${sessionId}/turns/${turnId}/retry`, { method: "POST" }, token);
+    },
     renameFocusSession(sessionId: string, title: string) {
       return requestJson<FocusSession>(
         `/focus-room/sessions/${sessionId}`,
@@ -386,6 +390,9 @@ export function humanizeApiError(error: unknown) {
     }
     if (error.code === "invalid_input") {
       return "配置不完整，请检查 Base URL、Key 和模型名。";
+    }
+    if (error.code === "turn_not_retryable") {
+      return "这个回答当前无法重新生成，请刷新会话后重试。";
     }
     if (error.code === "not_found") {
       return "配置不存在或已删除。";

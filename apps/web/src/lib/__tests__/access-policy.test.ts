@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { decideModelAction, decidePrivateRoute, migrateSaunaPersistedState, resendSecondsRemaining } from "../access-policy.ts";
+import { decideModelAction, decidePrivateRoute, focusDraftKey, migrateSaunaPersistedState, pageTransitionKey, resendSecondsRemaining, resolveAuthModalStage } from "../access-policy.ts";
 import { SaunaApiError, classifySaunaApiError, humanizeApiError } from "../sauna-api.ts";
 
 const draft = { kind: "consultation" as const, draft: { agentId: "agent-1", content: "一个问题", sourceRoute: "/lobby" } };
@@ -53,4 +53,19 @@ test("resend countdown rounds up and stops at zero", () => {
   assert.equal(resendSecondsRemaining(2_001, 1_001), 1);
   assert.equal(resendSecondsRemaining(1_001, 1_001), 0);
   assert.equal(resendSecondsRemaining(undefined, 1_001), 0);
+});
+
+test("login success takes precedence over cleared verification challenge state", () => {
+  assert.equal(resolveAuthModalStage("idle", false), "email");
+  assert.equal(resolveAuthModalStage("idle", true), "code");
+  assert.equal(resolveAuthModalStage("verifying_code", true), "verifying");
+  assert.equal(resolveAuthModalStage("login_success", false), "success");
+  assert.equal(resolveAuthModalStage("login_success", true), "success");
+});
+
+test("focus room draft and transition helpers keep first-send state stable", () => {
+  assert.equal(focusDraftKey("agent-1"), "draft:agent-1");
+  assert.equal(pageTransitionKey("/focus-room/new"), "/focus-room");
+  assert.equal(pageTransitionKey("/focus-room/session-1"), "/focus-room");
+  assert.equal(pageTransitionKey("/lobby"), "/lobby");
 });

@@ -2,8 +2,10 @@
 
 import {
   FormEvent,
+  useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   useSyncExternalStore,
 } from "react";
@@ -29,6 +31,7 @@ import { useSaunaStore } from "@/store/sauna-store";
 import { LockedAccessShell } from "@/components/access-coordinator";
 import { useAccessUIStore } from "@/store/access-ui-store";
 import type { Message } from "@/types/sauna";
+import { focusDraftKey } from "@/lib/access-policy";
 
 const subscribeHydration = () => () => {};
 
@@ -650,6 +653,8 @@ function ChatMessagesPanel({
   busy,
   focusError,
   archiveStatus,
+  retryTurnId,
+  onRetry,
   reduce,
 }: {
   messages: Message[];
@@ -657,6 +662,8 @@ function ChatMessagesPanel({
   busy: boolean;
   focusError?: string;
   archiveStatus: string;
+  retryTurnId?: string;
+  onRetry?: (turnId: string) => void;
   reduce?: boolean | null;
 }) {
   return (
@@ -703,6 +710,7 @@ function ChatMessagesPanel({
               调用失败
             </span>
             <p className="mt-2 whitespace-pre-wrap">{focusError}</p>
+            {retryTurnId && onRetry ? <button type="button" onClick={() => onRetry(retryTurnId)} disabled={busy} className="mt-4 inline-flex h-10 items-center gap-2 rounded-full bg-[var(--sauna-danger)] px-4 text-sm font-semibold text-white disabled:opacity-50"><ArrowRight size={14} /> {busy ? "正在重新回答" : "重新回答"}</button> : null}
           </div>
         ) : null}
       </div>
@@ -748,12 +756,18 @@ export function FocusRoomPanel({
     startConsultation,
     resumeSession,
     sendTurn,
+    retryTurn,
   } = useSaunaStore();
   const [sessionView, setSessionView] = useState(() => ({
     routeSessionId: sessionId,
     currentSessionId: sessionId,
   }));
-  const [draft, setDraft] = useState(initialPrompt);
+  const [initialConsultation] = useState(() => sessionId === "new" && draftAgentId
+    ? useSaunaStore.getState().consumeInitialPrompt(focusDraftKey(draftAgentId), initialPrompt)
+    : { content: initialPrompt, autoSend: false });
+  const [draft, setDraft] = useState(initialConsultation.content);
+  const autoPromptRef = useRef(initialConsultation.autoSend ? initialConsultation.content : "");
+  const autoSendStartedRef = useRef(false);
   const [editingSessionId, setEditingSessionId] = useState<string>();
   const [editingTitle, setEditingTitle] = useState("");
   const [pendingDeleteSessionId, setPendingDeleteSessionId] =
@@ -836,18 +850,22 @@ export function FocusRoomPanel({
       ? activeSession.title
       : "VIP 桑拿房";
   const busy = streamStatus === "loading" || streamStatus === "streaming";
+  const latestFailedAssistant = [...messages].reverse().find((message) => message.role === "assistant" && message.status === "failed");
+  const latestMessageTurnId = messages.at(-1)?.turn_id;
+  const retryTurnId = latestFailedAssistant && latestFailedAssistant.turn_id === latestMessageTurnId ? latestFailedAssistant.turn_id : undefined;
+  const visibleFocusError = focusError ?? latestFailedAssistant?.error;
   const statusLabel = assistantStateLabel(
     streamStatus,
     messages,
     currentSessionId,
   );
   const statusTone =
-    streamStatus === "error" || focusError
+    streamStatus === "error" || visibleFocusError
       ? "text-[var(--sauna-danger-strong)] bg-[var(--sauna-danger-soft)]"
       : busy
         ? "text-[var(--sauna-accent-strong)] bg-[var(--sauna-accent-soft)]"
         : "text-[var(--sauna-accent-strong)] bg-[var(--sauna-panel-strong)]";
-  const archiveStatus = focusError
+  const archiveStatus = visibleFocusError
     ? "本轮未完成，请检查模型配置。"
     : busy
       ? "正在流式接收，完成后自动保存。"
@@ -855,18 +873,16 @@ export function FocusRoomPanel({
         ? "对话已记录，可在大厅继续。"
         : "开始提问后，会自动保存会话。";
 
-  async function submitMessage(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const content = draft.trim();
-    if (!content || busy) {
-      return;
-    }
+  const sendContent = useCallback(async (content: string) => {
+    const cleanContent = content.trim();
+    if (!cleanContent || busy) return;
     if (!token) {
       const agentID = draftAgentId || agent?.id || selectedAgentId;
-      openAuth("consultation_guard", { kind: "consultation", draft: { agentId: agentID, content, sourceRoute: window.location.pathname } });
+      openAuth("consultation_guard", { kind: "consultation", draft: { agentId: agentID, content: cleanContent, sourceRoute: window.location.pathname } });
       return;
     }
     if (!providers.length) {
+      setDraft(cleanContent);
       openProvider("create", "provider_missing");
       return;
     }
@@ -874,21 +890,27 @@ export function FocusRoomPanel({
     try {
       if (isDraftSession) {
         const agentID = draftAgentId || agent?.id;
-        if (!agentID) {
-          throw new Error("请选择一个智囊。");
-        }
-        const nextSession = await startConsultation(agentID, content);
-        setSessionView({
-          routeSessionId: sessionId,
-          currentSessionId: nextSession.id,
-        });
+        if (!agentID) throw new Error("请选择一个智囊。");
+        const nextSession = await startConsultation(agentID, cleanContent);
+        setSessionView({ routeSessionId: sessionId, currentSessionId: nextSession.id });
         window.history.replaceState(null, "", `/focus-room/${nextSession.id}`);
         return;
       }
-      await sendTurn(currentSessionId, content);
+      await sendTurn(currentSessionId, cleanContent);
     } catch {
-      setDraft(content);
+      setDraft(cleanContent);
     }
+  }, [agent, busy, currentSessionId, draftAgentId, isDraftSession, openAuth, openProvider, providers.length, selectedAgentId, sendTurn, sessionId, startConsultation, token]);
+
+  useEffect(() => {
+    if (!autoPromptRef.current || autoSendStartedRef.current || busy || !token || providers.length === 0 || !isDraftSession) return;
+    autoSendStartedRef.current = true;
+    void sendContent(autoPromptRef.current);
+  }, [busy, isDraftSession, providers.length, sendContent, token]);
+
+  async function submitMessage(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    await sendContent(draft);
   }
 
   function beginRename(session: {
@@ -967,7 +989,7 @@ export function FocusRoomPanel({
           </div>
         </div>
 
-        <ChatMessagesPanel messages={messages} statusLabel={statusLabel} busy={busy} focusError={focusError} archiveStatus={archiveStatus} reduce={reduce} />
+        <ChatMessagesPanel messages={messages} statusLabel={statusLabel} busy={busy} focusError={visibleFocusError} archiveStatus={archiveStatus} retryTurnId={retryTurnId} onRetry={(turnId) => void retryTurn(currentSessionId, turnId)} reduce={reduce} />
 
         <form onSubmit={submitMessage} className="relative flex items-end gap-3 rounded-[24px] border border-[color:var(--sauna-line)] bg-[var(--sauna-soft)] p-2.5 transition focus-within:border-[var(--sauna-accent)] focus-within:bg-[var(--sauna-panel-strong)]">
           <textarea value={draft} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); event.currentTarget.form?.requestSubmit(); } }} rows={1} className="max-h-36 min-h-7 min-w-0 flex-1 resize-none bg-transparent px-3 py-2 text-sm leading-6 text-[var(--sauna-text)] outline-none placeholder:text-[var(--sauna-muted)]" placeholder={token ? (busy ? "智囊正在工作" : "说出你真正想解决的问题…") : "请先在大厅登录"} disabled={!token || busy} />

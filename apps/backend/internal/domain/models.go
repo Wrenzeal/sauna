@@ -19,6 +19,7 @@ const (
 	MessageStatusPending = "pending"
 	MessageStatusPartial = "partial"
 	MessageStatusDone    = "complete"
+	MessageStatusFailed  = "failed"
 
 	SSEEventTurnCreated             = "turn.created"
 	SSEEventAssistantMessageCreated = "assistant.message.created"
@@ -40,6 +41,7 @@ var (
 	ErrEmailDelivery           = errors.New("email_delivery_failed")
 	ErrInvalidVerificationCode = errors.New("invalid_verification_code")
 	ErrVerificationCooldown    = errors.New("verification_code_cooldown")
+	ErrTurnNotRetryable        = errors.New("turn_not_retryable")
 )
 
 type VerificationCooldownError struct {
@@ -199,6 +201,7 @@ type Message struct {
 	Role        string    `json:"role"`
 	Content     string    `json:"content"`
 	Status      string    `json:"status"`
+	Error       string    `json:"error,omitempty"`
 	CreatedAt   time.Time `json:"created_at"`
 }
 

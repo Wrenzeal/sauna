@@ -51,11 +51,13 @@ type FocusRoomRepository interface {
 	RenameSession(ctx context.Context, workspaceID string, sessionID string, title string) (domain.Session, error)
 	DeleteSession(ctx context.Context, workspaceID string, sessionID string) error
 	CreateTurn(ctx context.Context, workspaceID string, sessionID string, content string) (domain.TurnCreated, error)
+	RetryTurn(ctx context.Context, workspaceID string, sessionID string, turnID string) (domain.Turn, error)
 	GetTurn(ctx context.Context, workspaceID string, turnID string) (domain.Turn, error)
 	GetMessage(ctx context.Context, workspaceID string, messageID string) (domain.Message, error)
 	CreateAssistantMessage(ctx context.Context, workspaceID string, sessionID string, turnID string, agentID string) (domain.Message, error)
 	SetTurnAssistantMessage(ctx context.Context, workspaceID string, turnID string, messageID string) error
 	AppendAssistantContent(ctx context.Context, workspaceID string, messageID string, delta string, status string) error
+	MarkAssistantMessageFailed(ctx context.Context, workspaceID string, messageID string, errorMessage string) error
 	UpdateTurnStatus(ctx context.Context, workspaceID string, turnID string, status string) error
 	ListMessages(ctx context.Context, workspaceID string, sessionID string) ([]domain.Message, error)
 	ListRecentMessages(ctx context.Context, workspaceID string, sessionID string, limit int) ([]domain.Message, error)

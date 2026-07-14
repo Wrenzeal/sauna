@@ -81,6 +81,7 @@ func NewRouter(services Services, options ...RouterOptions) *gin.Engine {
 	focus.PATCH("/sessions/:session_id", server.renameFocusSession)
 	focus.DELETE("/sessions/:session_id", server.deleteFocusSession)
 	focus.POST("/sessions/:session_id/turns", server.createTurn)
+	focus.POST("/sessions/:session_id/turns/:turn_id/retry", server.retryTurn)
 	focus.GET("/sessions/:session_id/turns/:turn_id/stream", server.streamTurn)
 	focus.GET("/sessions/:session_id/messages", server.listMessages)
 
@@ -415,6 +416,16 @@ func (s *Server) createTurn(c *gin.Context) {
 	c.JSON(http.StatusCreated, result)
 }
 
+func (s *Server) retryTurn(c *gin.Context) {
+	identity := identityFromContext(c)
+	turn, err := s.focus.RetryTurn(c.Request.Context(), identity.Workspace.ID, c.Param("session_id"), c.Param("turn_id"))
+	if err != nil {
+		respondError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"turn": turn})
+}
+
 func (s *Server) streamTurn(c *gin.Context) {
 	identity := identityFromContext(c)
 	c.Header("Content-Type", "text/event-stream")
@@ -533,6 +544,8 @@ func respondError(c *gin.Context, err error) {
 		status, code, message = http.StatusNotFound, "not_found", "Resource not found."
 	case errors.Is(err, domain.ErrProviderConfigRequired):
 		status, code, message = http.StatusConflict, "provider_config_required", "请先接入你自己的模型 provider 和 key。"
+	case errors.Is(err, domain.ErrTurnNotRetryable):
+		status, code, message = http.StatusConflict, "turn_not_retryable", "Only failed turns can be retried."
 	case errors.Is(err, domain.ErrProviderInUse):
 		status, code, message = http.StatusConflict, "provider_config_in_use", "Provider config is referenced by existing sessions."
 	case errors.Is(err, domain.ErrRateLimited):

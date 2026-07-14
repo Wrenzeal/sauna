@@ -186,6 +186,7 @@ export interface Message {
   role: MessageRole;
   content: string;
   status: MessageStatus;
+  error?: string;
   created_at: string;
 }
 

@@ -1,3 +1,25 @@
+export interface InitialConsultationDraft {
+  content: string;
+  autoSend: boolean;
+}
+
+export function focusDraftKey(agentId: string): string {
+  return `draft:${agentId}`;
+}
+
+export function pageTransitionKey(pathname: string): string {
+  return pathname.startsWith("/focus-room/") ? "/focus-room" : pathname;
+}
+
+export type AuthOperation = "idle" | "sending_code" | "verifying_code" | "login_success" | "logging_out";
+export type AuthModalStage = "email" | "code" | "verifying" | "success";
+
+export function resolveAuthModalStage(operation: AuthOperation, codeSent: boolean): AuthModalStage {
+  if (operation === "login_success") return "success";
+  if (operation === "verifying_code") return "verifying";
+  return codeSent ? "code" : "email";
+}
+
 export type AuthReason = "entry_login" | "consultation_guard" | "protected_action" | "protected_route" | "reauth";
 export type ProviderReason = "provider_missing" | "provider_required" | "provider_repair";
 

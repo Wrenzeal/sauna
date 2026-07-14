@@ -619,6 +619,44 @@ func (r *Repository) CreateTurn(ctx context.Context, workspaceID string, session
 	return domain.TurnCreated{Turn: turn, UserMessage: message}, nil
 }
 
+func (r *Repository) RetryTurn(ctx context.Context, workspaceID string, sessionID string, turnID string) (domain.Turn, error) {
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return domain.Turn{}, err
+	}
+	defer tx.Rollback(ctx)
+	var turn domain.Turn
+	err = tx.QueryRow(ctx, `SELECT id::text, workspace_id::text, session_id::text, interaction_id::text, COALESCE(user_message_id::text, ''), assistant_message_id::text, status, created_at, updated_at FROM turns WHERE workspace_id=$1::uuid AND session_id=$2::uuid AND id=$3::uuid FOR UPDATE`, workspaceID, sessionID, turnID).Scan(&turn.ID, &turn.WorkspaceID, &turn.SessionID, &turn.InteractionID, &turn.UserMessageID, &nullableStringValueScanner{dest: &turn.AssistantMessageID}, &turn.Status, &turn.CreatedAt, &turn.UpdatedAt)
+	if err != nil {
+		return domain.Turn{}, mapErr(err)
+	}
+	if turn.Status != domain.TurnStatusFailed {
+		return domain.Turn{}, domain.ErrTurnNotRetryable
+	}
+	if _, err = tx.Exec(ctx, `DELETE FROM sse_events WHERE workspace_id=$1::uuid AND session_id=$2::uuid AND turn_id=$3::uuid`, workspaceID, sessionID, turnID); err != nil {
+		return domain.Turn{}, err
+	}
+	if _, err = tx.Exec(ctx, `UPDATE turns SET assistant_message_id=NULL WHERE workspace_id=$1::uuid AND id=$2::uuid`, workspaceID, turnID); err != nil {
+		return domain.Turn{}, err
+	}
+	if turn.AssistantMessageID != nil {
+		if _, err = tx.Exec(ctx, `DELETE FROM messages WHERE workspace_id=$1::uuid AND id=$2::uuid`, workspaceID, *turn.AssistantMessageID); err != nil {
+			return domain.Turn{}, err
+		}
+	}
+	err = tx.QueryRow(ctx, `UPDATE turns SET status=$4, assistant_message_id=NULL, updated_at=now() WHERE workspace_id=$1::uuid AND session_id=$2::uuid AND id=$3::uuid RETURNING id::text, workspace_id::text, session_id::text, interaction_id::text, COALESCE(user_message_id::text, ''), assistant_message_id::text, status, created_at, updated_at`, workspaceID, sessionID, turnID, domain.TurnStatusCreated).Scan(&turn.ID, &turn.WorkspaceID, &turn.SessionID, &turn.InteractionID, &turn.UserMessageID, &nullableStringValueScanner{dest: &turn.AssistantMessageID}, &turn.Status, &turn.CreatedAt, &turn.UpdatedAt)
+	if err != nil {
+		return domain.Turn{}, err
+	}
+	if _, err = tx.Exec(ctx, `UPDATE sessions SET current_turn_id=$3::uuid, current_status='active', last_activity_at=now(), updated_at=now() WHERE workspace_id=$1::uuid AND id=$2::uuid`, workspaceID, sessionID, turnID); err != nil {
+		return domain.Turn{}, err
+	}
+	if err = tx.Commit(ctx); err != nil {
+		return domain.Turn{}, err
+	}
+	return turn, nil
+}
+
 func (r *Repository) GetTurn(ctx context.Context, workspaceID string, turnID string) (domain.Turn, error) {
 	var turn domain.Turn
 	err := r.pool.QueryRow(ctx, `
@@ -669,6 +707,11 @@ func (r *Repository) AppendAssistantContent(ctx context.Context, workspaceID str
 	return err
 }
 
+func (r *Repository) MarkAssistantMessageFailed(ctx context.Context, workspaceID string, messageID string, errorMessage string) error {
+	_, err := r.pool.Exec(ctx, `UPDATE messages SET status=$4, metadata=jsonb_set(metadata, '{error}', to_jsonb($3::text), true), updated_at=now() WHERE workspace_id=$1::uuid AND id=$2::uuid`, workspaceID, messageID, errorMessage, domain.MessageStatusFailed)
+	return err
+}
+
 func (r *Repository) UpdateTurnStatus(ctx context.Context, workspaceID string, turnID string, status string) error {
 	_, err := r.pool.Exec(ctx, `UPDATE turns SET status=$3, updated_at=now() WHERE workspace_id=$1::uuid AND id=$2::uuid`, workspaceID, turnID, status)
 	return err
@@ -676,7 +719,7 @@ func (r *Repository) UpdateTurnStatus(ctx context.Context, workspaceID string, t
 
 func (r *Repository) ListMessages(ctx context.Context, workspaceID string, sessionID string) ([]domain.Message, error) {
 	rows, err := r.pool.Query(ctx, `
-		SELECT id::text, workspace_id::text, session_id::text, COALESCE(turn_id::text, ''), agent_id::text, role, content, status, created_at
+		SELECT id::text, workspace_id::text, session_id::text, COALESCE(turn_id::text, ''), agent_id::text, role, content, status, COALESCE(metadata->>'error', ''), created_at
 		FROM messages WHERE workspace_id=$1::uuid AND session_id=$2::uuid
 		ORDER BY created_at ASC
 	`, workspaceID, sessionID)
@@ -687,7 +730,7 @@ func (r *Repository) ListMessages(ctx context.Context, workspaceID string, sessi
 	messages := make([]domain.Message, 0)
 	for rows.Next() {
 		var message domain.Message
-		if err := rows.Scan(&message.ID, &message.WorkspaceID, &message.SessionID, &message.TurnID, &nullableStringScanner{dest: &message.AgentID}, &message.Role, &message.Content, &message.Status, &message.CreatedAt); err != nil {
+		if err := rows.Scan(&message.ID, &message.WorkspaceID, &message.SessionID, &message.TurnID, &nullableStringScanner{dest: &message.AgentID}, &message.Role, &message.Content, &message.Status, &message.Error, &message.CreatedAt); err != nil {
 			return nil, err
 		}
 		messages = append(messages, message)
@@ -700,16 +743,16 @@ func (r *Repository) ListRecentMessages(ctx context.Context, workspaceID string,
 		limit = 12
 	}
 	rows, err := r.pool.Query(ctx, `
-		SELECT id::text, workspace_id::text, session_id::text, COALESCE(turn_id::text, ''), agent_id::text, role, content, status, created_at
+		SELECT id::text, workspace_id::text, session_id::text, COALESCE(turn_id::text, ''), agent_id::text, role, content, status, COALESCE(metadata->>'error', ''), created_at
 		FROM (
-			SELECT id, workspace_id, session_id, turn_id, agent_id, role, content, status, created_at
+			SELECT id, workspace_id, session_id, turn_id, agent_id, role, content, status, metadata, created_at
 			FROM messages
-			WHERE workspace_id=$1::uuid AND session_id=$2::uuid AND role IN ($3, $4) AND trim(content) <> ''
+			WHERE workspace_id=$1::uuid AND session_id=$2::uuid AND role IN ($3, $4) AND trim(content) <> '' AND NOT (role=$4 AND status=$6)
 			ORDER BY created_at DESC
 			LIMIT $5
 		) recent
 		ORDER BY created_at ASC
-	`, workspaceID, sessionID, domain.MessageRoleUser, domain.MessageRoleAssistant, limit)
+	`, workspaceID, sessionID, domain.MessageRoleUser, domain.MessageRoleAssistant, limit, domain.MessageStatusFailed)
 	if err != nil {
 		return nil, err
 	}
@@ -717,7 +760,7 @@ func (r *Repository) ListRecentMessages(ctx context.Context, workspaceID string,
 	messages := make([]domain.Message, 0)
 	for rows.Next() {
 		var message domain.Message
-		if err := rows.Scan(&message.ID, &message.WorkspaceID, &message.SessionID, &message.TurnID, &nullableStringScanner{dest: &message.AgentID}, &message.Role, &message.Content, &message.Status, &message.CreatedAt); err != nil {
+		if err := rows.Scan(&message.ID, &message.WorkspaceID, &message.SessionID, &message.TurnID, &nullableStringScanner{dest: &message.AgentID}, &message.Role, &message.Content, &message.Status, &message.Error, &message.CreatedAt); err != nil {
 			return nil, err
 		}
 		messages = append(messages, message)
