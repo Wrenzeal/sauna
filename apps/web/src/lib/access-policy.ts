@@ -39,6 +39,27 @@ export function resolveAuthModalStage(operation: AuthOperation, codeSent: boolea
 export type AuthReason = "entry_login" | "consultation_guard" | "protected_action" | "protected_route" | "reauth";
 export type ProviderReason = "provider_missing" | "provider_required" | "provider_repair";
 
+export interface ProviderModalContext {
+  providerId?: string;
+  sessionId?: string;
+  source?: "focus_error";
+}
+
+export interface ProviderRepairResult {
+  providerId: string;
+  sessionId: string;
+}
+
+export function providerRepairResultForSave(
+  context: ProviderModalContext | undefined,
+  providerId: string,
+): ProviderRepairResult | undefined {
+  if (context?.source !== "focus_error" || !context.sessionId) {
+    return undefined;
+  }
+  return { providerId, sessionId: context.sessionId };
+}
+
 export interface ConsultationDraft {
   agentId: string;
   content: string;

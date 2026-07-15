@@ -464,7 +464,7 @@ func (r *Repository) StartConsultation(ctx context.Context, workspaceID string, 
 func (r *Repository) ListFocusSessions(ctx context.Context, workspaceID string) ([]domain.FocusSessionSummary, error) {
 	rows, err := r.pool.Query(ctx, `
 		SELECT s.id::text, s.workspace_id::text, s.session_type, s.title, s.current_status,
-		       s.agent_id::text, a.display_name, a.avatar_emoji,
+		       s.agent_id::text, s.provider_config_id::text, a.display_name, a.avatar_emoji,
 		       COALESCE(last_msg.content, '') AS last_message_preview,
 		       s.last_activity_at, s.created_at, s.updated_at
 		FROM sessions s
@@ -496,7 +496,7 @@ func (r *Repository) ListFocusSessions(ctx context.Context, workspaceID string) 
 		var session domain.FocusSessionSummary
 		if err := rows.Scan(
 			&session.ID, &session.WorkspaceID, &session.SessionType, &session.Title, &session.CurrentStatus,
-			&session.AgentID, &session.AgentDisplayName, &session.AgentAvatarEmoji, &session.LastMessagePreview,
+			&session.AgentID, &session.ProviderConfigID, &session.AgentDisplayName, &session.AgentAvatarEmoji, &session.LastMessagePreview,
 			&session.LastActivityAt, &session.CreatedAt, &session.UpdatedAt,
 		); err != nil {
 			return nil, err

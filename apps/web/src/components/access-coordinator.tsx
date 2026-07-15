@@ -226,7 +226,7 @@ function AuthModal() {
   );
 }
 
-function ProviderModalForm({ current, mode, onSaved }: { current?: ReturnType<typeof useSaunaStore.getState>["providers"][number]; mode: "create" | "repair"; onSaved: () => void }) {
+function ProviderModalForm({ current, mode, onSaved, returnToFocusRoom = false }: { current?: ReturnType<typeof useSaunaStore.getState>["providers"][number]; mode: "create" | "repair"; onSaved: (providerId: string) => void; returnToFocusRoom?: boolean }) {
   const { providerStatus, providerError, createProvider, updateProvider } = useSaunaStore();
   const [name, setName] = useState(current?.provider_name ?? "OpenAI Compatible");
   const [baseURL, setBaseURL] = useState(current?.base_url ?? "https://api.openai.com/v1");
@@ -235,9 +235,14 @@ function ProviderModalForm({ current, mode, onSaved }: { current?: ReturnType<ty
 
   async function save(event: FormEvent) {
     event.preventDefault();
-    if (current && mode === "repair") await updateProvider(current.id, { provider_name: name, base_url: baseURL, api_key: apiKey, chat_model: model, embedding_model: current.embedding_model, is_default: true });
-    else await createProvider({ provider_name: name, base_url: baseURL, api_key: apiKey, chat_model: model, is_default: true });
-    onSaved();
+    try {
+      const saved = current && mode === "repair"
+        ? await updateProvider(current.id, { provider_name: name, base_url: baseURL, api_key: apiKey, chat_model: model, embedding_model: current.embedding_model, is_default: current.is_default })
+        : await createProvider({ provider_name: name, base_url: baseURL, api_key: apiKey, chat_model: model, is_default: true });
+      onSaved(saved.id);
+    } catch {
+      // Provider errors remain visible inside the modal.
+    }
   }
 
   return <form className="mt-7 grid gap-3" onSubmit={save}>
@@ -245,18 +250,56 @@ function ProviderModalForm({ current, mode, onSaved }: { current?: ReturnType<ty
     <input className={fieldClass} value={baseURL} onChange={(event) => setBaseURL(event.target.value)} placeholder="Base URL" required />
     <input className={fieldClass} value={apiKey} onChange={(event) => setApiKey(event.target.value)} placeholder={current ? "留空则保留原 Key" : "API Key"} type="password" required={!current || mode === "create"} />
     <input className={fieldClass} value={model} onChange={(event) => setModel(event.target.value)} placeholder="模型名称" required />
-    <button className={primaryClass} disabled={providerStatus === "loading"}><Key size={16} /> 保存模型配置</button>
+    <button className={primaryClass} disabled={providerStatus === "loading"}><Key size={16} /> {returnToFocusRoom ? "保存并返回会话" : "保存模型配置"}</button>
     {providerError ? <p role="alert" className="text-sm text-[var(--sauna-danger)]">{providerError}</p> : null}
   </form>;
 }
 
 function ProviderModal() {
-  const { provider, closeProvider } = useAccessUIStore();
+  const { provider, closeProvider, completeProviderSave } = useAccessUIStore();
   const providers = useSaunaStore((state) => state.providers);
-  const current = providers.find((item) => item.is_default) ?? providers[0];
+  const providerStatus = useSaunaStore((state) => state.providerStatus);
+  const token = useSaunaStore((state) => state.token);
+  const loadProviders = useSaunaStore((state) => state.loadProviders);
+  const [attemptedProviderId, setAttemptedProviderId] = useState<string>();
+  const targetProviderId = provider.context?.providerId;
+  const current = targetProviderId
+    ? providers.find((item) => item.id === targetProviderId)
+    : providers.find((item) => item.is_default) ?? providers[0];
+  const returnToFocusRoom = provider.context?.source === "focus_error";
+
+  useEffect(() => {
+    if (
+      !provider.open ||
+      provider.mode !== "repair" ||
+      !targetProviderId ||
+      current ||
+      !token ||
+      providerStatus === "loading" ||
+      attemptedProviderId === targetProviderId
+    ) {
+      return;
+    }
+    void loadProviders(token).finally(() => setAttemptedProviderId(targetProviderId));
+  }, [attemptedProviderId, current, loadProviders, provider.mode, provider.open, providerStatus, targetProviderId, token]);
+
+  const targetMissing = Boolean(
+    provider.mode === "repair" &&
+      targetProviderId &&
+      !current &&
+      attemptedProviderId === targetProviderId &&
+      providerStatus !== "loading",
+  );
+
   return <AnimatePresence>{provider.open ? <ModalFrame title={provider.mode === "repair" ? "修复模型配置" : "接入你的模型"} eyebrow="MODEL PROVIDER" onClose={closeProvider}>
-    <p className="mt-4 text-sm leading-7 text-[var(--sauna-muted-strong)]">配置只保存在你的私人工作区。保存后回到原问题，由你再次确认发送。</p>
-    <ProviderModalForm key={`${provider.mode}:${current?.id ?? "new"}`} current={current} mode={provider.mode} onSaved={closeProvider} />
+    <p className="mt-4 text-sm leading-7 text-[var(--sauna-muted-strong)]">{returnToFocusRoom ? "保存后会返回当前失败会话，请点击重新回答再次调用模型。" : "配置只保存在你的私人工作区。保存后回到原问题，由你再次确认发送。"}</p>
+    {targetMissing ? (
+      <div className="mt-6 rounded-[20px] bg-[var(--sauna-danger-soft)] px-4 py-3 text-sm leading-6 text-[var(--sauna-danger-strong)]">当前会话绑定的模型配置不存在，无法原地修复。请关闭弹窗后在模型设置中检查该配置。</div>
+    ) : current || provider.mode === "create" ? (
+      <ProviderModalForm key={`${provider.mode}:${current?.id ?? "new"}`} current={current} mode={provider.mode} onSaved={completeProviderSave} returnToFocusRoom={returnToFocusRoom} />
+    ) : (
+      <div className="mt-6 flex items-center gap-3 text-sm text-[var(--sauna-muted-strong)]"><OperationSpinner /> 正在读取当前会话的模型配置</div>
+    )}
   </ModalFrame> : null}</AnimatePresence>;
 }
 

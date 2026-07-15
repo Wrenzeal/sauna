@@ -184,6 +184,7 @@ type FocusSessionSummary struct {
 	Title              string    `json:"title"`
 	CurrentStatus      string    `json:"current_status"`
 	AgentID            string    `json:"agent_id"`
+	ProviderConfigID   string    `json:"provider_config_id"`
 	AgentDisplayName   string    `json:"agent_display_name"`
 	AgentAvatarEmoji   string    `json:"agent_avatar_emoji"`
 	LastMessagePreview string    `json:"last_message_preview"`

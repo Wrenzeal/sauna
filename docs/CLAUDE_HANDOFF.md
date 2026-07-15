@@ -537,3 +537,12 @@ Production backend has been restarted with the new sender/template. A public aut
 - A `turn.failed` SSE event is an immediate terminal UI state. Post-stream synchronization must use `loadMessages(..., { preserveStreamStatus: true })` and finalize from the persisted assistant status for that turn, never unconditionally set ready.
 - The header dots remain tied to `busy`; failed turns display “调用失败” without motion.
 - Verification: web tests 12/12, typecheck, lint, production build, backend tests, and diff check pass. No backend restart is required.
+
+## 2026-07-15 In-session provider repair
+
+- Focus-session list responses now include `provider_config_id`; keep this field mapped through `FocusSessionSummary`, `SessionSummary`, and resumed `activeSession` state.
+- A failed FocusRoom turn can open the global provider modal with `{ source: "focus_error", sessionId, providerId }`. The modal must resolve that exact provider and must not fall back to the default provider.
+- Provider repair preserves `is_default` and retains the encrypted API key when the replacement key is blank. Saving closes the modal and records a session-scoped success result; it does not navigate or retry automatically.
+- The failed session remains visible and the user manually clicks `重新回答`. Missing bound providers produce an explicit modal error.
+- No database migration is required. Restart the Go backend when deploying this response-shape change.
+- Verification: web tests 13/13, typecheck, lint, production build, backend tests, Go vet, and targeted diff check pass.

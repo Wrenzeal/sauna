@@ -20,6 +20,7 @@ import {
   CircleNotch,
   ClockCounterClockwise,
   DotsThree,
+  GearSix,
   PencilSimple,
   Trash,
   PaperPlaneRight,
@@ -658,6 +659,9 @@ function ChatMessagesPanel({
   focusError,
   archiveStatus,
   retryTurnId,
+  providerRepairSaved,
+  canRepairProvider,
+  onRepairProvider,
   onRetry,
   reduce,
 }: {
@@ -667,6 +671,9 @@ function ChatMessagesPanel({
   focusError?: string;
   archiveStatus: string;
   retryTurnId?: string;
+  providerRepairSaved?: boolean;
+  canRepairProvider?: boolean;
+  onRepairProvider?: () => void;
   onRetry?: (turnId: string) => void;
   reduce?: boolean | null;
 }) {
@@ -715,7 +722,11 @@ function ChatMessagesPanel({
               调用失败
             </span>
             <p className="mt-2 whitespace-pre-wrap">{focusError}</p>
-            {retryTurnId && onRetry ? <button type="button" onClick={() => onRetry(retryTurnId)} disabled={busy} className="mt-4 inline-flex h-10 items-center gap-2 rounded-full bg-[var(--sauna-danger)] px-4 text-sm font-semibold text-white disabled:opacity-50"><ArrowRight size={14} /> {busy ? "正在重新回答" : "重新回答"}</button> : null}
+            {providerRepairSaved ? <p className="mt-3 flex items-center gap-2 font-medium text-[var(--sauna-accent-strong)]"><CheckCircle size={16} weight="fill" /> 模型配置已保存，请重新回答。</p> : null}
+            <div className="mt-4 flex flex-wrap gap-2">
+              {canRepairProvider && onRepairProvider ? <button type="button" onClick={onRepairProvider} disabled={busy} className="inline-flex h-10 items-center gap-2 rounded-full border border-[color:var(--sauna-danger)] bg-[var(--sauna-panel-strong)] px-4 text-sm font-semibold text-[var(--sauna-danger-strong)] disabled:opacity-50"><GearSix size={15} /> 修复模型配置</button> : null}
+              {retryTurnId && onRetry ? <button type="button" onClick={() => onRetry(retryTurnId)} disabled={busy} className="inline-flex h-10 items-center gap-2 rounded-full bg-[var(--sauna-danger)] px-4 text-sm font-semibold text-white disabled:opacity-50"><ArrowRight size={14} /> {busy ? "正在重新回答" : "重新回答"}</button> : null}
+            </div>
           </div>
         ) : null}
       </div>
@@ -778,6 +789,8 @@ export function FocusRoomPanel({
   const authIntent = useAccessUIStore((state) => state.auth.intent);
   const openAuth = useAccessUIStore((state) => state.openAuth);
   const openProvider = useAccessUIStore((state) => state.openProvider);
+  const providerRepairResult = useAccessUIStore((state) => state.providerRepairResult);
+  const clearProviderRepairResult = useAccessUIStore((state) => state.clearProviderRepairResult);
   const hydrated = useHydrated();
   const currentSessionId = resolveFocusSessionId(
     sessionId,
@@ -876,6 +889,10 @@ export function FocusRoomPanel({
 
   const safeSessions = sessions ?? [];
   const historySessions = safeSessions.slice(0, 8);
+  const currentProviderConfigId = activeSession?.id === currentSessionId
+    ? activeSession.provider_config_id
+    : safeSessions.find((session) => session.id === currentSessionId)?.providerConfigId ?? "";
+  const providerRepairSaved = providerRepairResult?.sessionId === currentSessionId;
   const title = isDraftSession
     ? `${agent?.displayName ?? "智囊"} 的 VIP 桑拿房`
     : activeSession?.id === currentSessionId
@@ -918,6 +935,9 @@ export function FocusRoomPanel({
       openProvider("create", "provider_missing");
       return;
     }
+    if (!isDraftSession) {
+      clearProviderRepairResult(currentSessionId);
+    }
     setDraft("");
     try {
       if (isDraftSession) {
@@ -931,7 +951,7 @@ export function FocusRoomPanel({
     } catch {
       setDraft(cleanContent);
     }
-  }, [agent, busy, currentSessionId, draftAgentId, isDraftSession, openAuth, openProvider, providers.length, selectedAgentId, sendTurn, startConsultation, token]);
+  }, [agent, busy, clearProviderRepairResult, currentSessionId, draftAgentId, isDraftSession, openAuth, openProvider, providers.length, selectedAgentId, sendTurn, startConsultation, token]);
 
   useEffect(() => {
     if (
@@ -948,6 +968,22 @@ export function FocusRoomPanel({
     autoSendStartedRef.current = true;
     void sendContent(pendingAutoPrompt);
   }, [busy, isDraftSession, pendingAutoPrompt, providers.length, sendContent, token]);
+
+  function repairCurrentProvider() {
+    if (!currentProviderConfigId || isDraftSession) {
+      return;
+    }
+    openProvider("repair", "provider_repair", {
+      providerId: currentProviderConfigId,
+      sessionId: currentSessionId,
+      source: "focus_error",
+    });
+  }
+
+  function retryFailedTurn(turnId: string) {
+    clearProviderRepairResult(currentSessionId);
+    void retryTurn(currentSessionId, turnId);
+  }
 
   async function submitMessage(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -986,6 +1022,7 @@ export function FocusRoomPanel({
     await deleteFocusSession(targetSessionId);
     if (targetSessionId === currentSessionId) {
       clearAdoptedFocusSession();
+      clearProviderRepairResult(currentSessionId);
       router.replace("/focus-room/new");
     }
   }
@@ -999,6 +1036,7 @@ export function FocusRoomPanel({
       return;
     }
     clearAdoptedFocusSession();
+    clearProviderRepairResult(currentSessionId);
     router.push(`/focus-room/new?agentId=${encodeURIComponent(agentID)}`);
   }
 
@@ -1030,7 +1068,7 @@ export function FocusRoomPanel({
           </div>
         </div>
 
-        <ChatMessagesPanel messages={messages} statusLabel={statusLabel} busy={busy} focusError={visibleFocusError} archiveStatus={archiveStatus} retryTurnId={retryTurnId} onRetry={(turnId) => void retryTurn(currentSessionId, turnId)} reduce={reduce} />
+        <ChatMessagesPanel messages={messages} statusLabel={statusLabel} busy={busy} focusError={visibleFocusError} archiveStatus={archiveStatus} retryTurnId={retryTurnId} providerRepairSaved={providerRepairSaved} canRepairProvider={Boolean(retryTurnId && currentProviderConfigId)} onRepairProvider={repairCurrentProvider} onRetry={retryFailedTurn} reduce={reduce} />
 
         <form onSubmit={submitMessage} className="relative flex items-end gap-3 rounded-[24px] border border-[color:var(--sauna-line)] bg-[var(--sauna-soft)] p-2.5 transition focus-within:border-[var(--sauna-accent)] focus-within:bg-[var(--sauna-panel-strong)]">
           <textarea value={draft} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); event.currentTarget.form?.requestSubmit(); } }} rows={1} className="max-h-36 min-h-7 min-w-0 flex-1 resize-none bg-transparent px-3 py-2 text-sm leading-6 text-[var(--sauna-text)] outline-none placeholder:text-[var(--sauna-muted)]" placeholder={token ? (busy ? "智囊正在工作" : "说出你真正想解决的问题…") : "请先在大厅登录"} disabled={!token || busy} />
@@ -1048,12 +1086,12 @@ export function FocusRoomPanel({
                 const active = session.id === currentSessionId;
                 return (
                   <div key={session.id} className={`grid grid-cols-[42px_minmax(0,1fr)_auto] gap-3 rounded-[20px] border p-3 ${active ? "border-[color:var(--sauna-accent)] bg-[var(--sauna-accent-soft)]" : "border-[color:var(--sauna-line)] bg-[var(--sauna-panel)]"}`}>
-                    <button type="button" onClick={() => { setHistoryOpen(false); clearAdoptedFocusSession(); router.push(`/focus-room/${session.id}`); }} className="grid size-10 place-items-center rounded-[15px] bg-[var(--sauna-panel-strong)] text-xl">{session.agentAvatarEmoji || "🧠"}</button>
+                    <button type="button" onClick={() => { setHistoryOpen(false); clearAdoptedFocusSession(); clearProviderRepairResult(currentSessionId); router.push(`/focus-room/${session.id}`); }} className="grid size-10 place-items-center rounded-[15px] bg-[var(--sauna-panel-strong)] text-xl">{session.agentAvatarEmoji || "🧠"}</button>
                     <div className="min-w-0">
                       {editingSessionId === session.id ? (
                         <form onSubmit={submitRename} className="flex gap-1"><input value={editingTitle} onChange={(event) => setEditingTitle(event.target.value)} className="min-w-0 flex-1 rounded-full bg-[var(--sauna-panel-strong)] px-3 py-1 text-xs outline-none ring-1 ring-[var(--sauna-line-strong)]" autoFocus maxLength={80} /><button type="submit" className="rounded-full bg-[var(--sauna-primary)] px-2 text-[10px] text-[var(--sauna-primary-contrast)]">保存</button></form>
                       ) : (
-                        <button type="button" onClick={() => { setHistoryOpen(false); clearAdoptedFocusSession(); router.push(`/focus-room/${session.id}`); }} className="block w-full text-left"><span className="block truncate text-sm font-semibold text-[var(--sauna-text)]">{session.title || session.agentDisplayName}</span><span className="mt-1 block truncate text-xs text-[var(--sauna-muted)]">{formatSessionTime(session.lastActivityAt, hydrated)}</span></button>
+                        <button type="button" onClick={() => { setHistoryOpen(false); clearAdoptedFocusSession(); clearProviderRepairResult(currentSessionId); router.push(`/focus-room/${session.id}`); }} className="block w-full text-left"><span className="block truncate text-sm font-semibold text-[var(--sauna-text)]">{session.title || session.agentDisplayName}</span><span className="mt-1 block truncate text-xs text-[var(--sauna-muted)]">{formatSessionTime(session.lastActivityAt, hydrated)}</span></button>
                       )}
                     </div>
                     <span className="flex items-start gap-1"><button type="button" onClick={() => beginRename(session)} className="grid size-8 place-items-center rounded-full text-[var(--sauna-muted)] hover:bg-[var(--sauna-soft)]" aria-label="重命名会话"><PencilSimple size={14} /></button><button type="button" onClick={() => setPendingDeleteSessionId(session.id)} className="grid size-8 place-items-center rounded-full text-[var(--sauna-danger)] hover:bg-[var(--sauna-danger-soft)]" aria-label="删除会话"><Trash size={14} /></button></span>

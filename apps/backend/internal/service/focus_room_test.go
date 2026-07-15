@@ -60,6 +60,19 @@ func TestStartConsultationCreatesSessionAndFirstTurn(t *testing.T) {
 	}
 }
 
+func TestSessionsExposeBoundProviderConfig(t *testing.T) {
+	repo := newFakeFocusRepo(t)
+	svc := NewFocusRoomService(repo, repo.box, fakeLLM{})
+
+	sessions, err := svc.Sessions(context.Background(), repo.workspaceID)
+	if err != nil {
+		t.Fatalf("Sessions: %v", err)
+	}
+	if len(sessions) != 1 || sessions[0].ProviderConfigID != repo.session.ProviderConfigID {
+		t.Fatalf("expected bound provider %s, got %#v", repo.session.ProviderConfigID, sessions)
+	}
+}
+
 func TestStartConsultationRejectsEmptyContent(t *testing.T) {
 	repo := newFakeFocusRepo(t)
 	svc := NewFocusRoomService(repo, repo.box, fakeLLM{})
@@ -327,7 +340,7 @@ func (f *fakeFocusRepo) ListFocusSessions(_ context.Context, _ string) ([]domain
 	if f.summaries != nil {
 		return f.summaries, nil
 	}
-	return []domain.FocusSessionSummary{{ID: f.session.ID, WorkspaceID: f.session.WorkspaceID, SessionType: f.session.SessionType, Title: f.session.Title, CurrentStatus: f.session.CurrentStatus, AgentID: f.session.AgentID, AgentDisplayName: f.agent.Agent.DisplayName, AgentAvatarEmoji: f.agent.Agent.AvatarEmoji, LastMessagePreview: f.userMessage.Content, LastActivityAt: f.session.UpdatedAt, CreatedAt: f.session.CreatedAt, UpdatedAt: f.session.UpdatedAt}}, nil
+	return []domain.FocusSessionSummary{{ID: f.session.ID, WorkspaceID: f.session.WorkspaceID, SessionType: f.session.SessionType, Title: f.session.Title, CurrentStatus: f.session.CurrentStatus, AgentID: f.session.AgentID, ProviderConfigID: f.session.ProviderConfigID, AgentDisplayName: f.agent.Agent.DisplayName, AgentAvatarEmoji: f.agent.Agent.AvatarEmoji, LastMessagePreview: f.userMessage.Content, LastActivityAt: f.session.UpdatedAt, CreatedAt: f.session.CreatedAt, UpdatedAt: f.session.UpdatedAt}}, nil
 }
 
 func (f *fakeFocusRepo) GetSession(_ context.Context, _ string, _ string) (domain.Session, error) {

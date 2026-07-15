@@ -23,6 +23,7 @@ export interface SessionSummary {
   sessionType: SessionType;
   currentStatus: "idle" | "active" | "thinking" | "streaming" | "completed" | "failed" | "disabled";
   agentIds: string[];
+  providerConfigId?: string;
   agentDisplayName?: string;
   agentAvatarEmoji?: string;
   lastMessagePreview?: string;
@@ -156,6 +157,7 @@ export interface FocusSessionSummary {
   title: string;
   current_status: string;
   agent_id: string;
+  provider_config_id: string;
   agent_display_name: string;
   agent_avatar_emoji: string;
   last_message_preview: string;

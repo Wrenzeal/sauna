@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { decideModelAction, decidePrivateRoute, focusDraftKey, migrateSaunaPersistedState, pageTransitionKey, resendSecondsRemaining, resolveAuthModalStage, resolveFocusSessionId, shouldReleaseAdoptedFocusSession } from "../access-policy.ts";
+import { decideModelAction, decidePrivateRoute, focusDraftKey, migrateSaunaPersistedState, pageTransitionKey, providerRepairResultForSave, resendSecondsRemaining, resolveAuthModalStage, resolveFocusSessionId, shouldReleaseAdoptedFocusSession } from "../access-policy.ts";
 import { SaunaApiError, classifySaunaApiError, humanizeApiError } from "../sauna-api.ts";
 
 const draft = { kind: "consultation" as const, draft: { agentId: "agent-1", content: "一个问题", sourceRoute: "/lobby" } };
@@ -77,4 +77,20 @@ test("an adopted real session survives failures until the route catches up", () 
   assert.equal(shouldReleaseAdoptedFocusSession("new", "session-1"), false);
   assert.equal(shouldReleaseAdoptedFocusSession("session-1", "session-1"), true);
   assert.equal(shouldReleaseAdoptedFocusSession("session-2", "session-1"), true);
+});
+
+
+test("provider repair completion returns to the originating failed session", () => {
+  assert.deepEqual(
+    providerRepairResultForSave(
+      { source: "focus_error", sessionId: "session-1", providerId: "provider-1" },
+      "provider-1",
+    ),
+    { sessionId: "session-1", providerId: "provider-1" },
+  );
+  assert.equal(providerRepairResultForSave(undefined, "provider-1"), undefined);
+  assert.equal(
+    providerRepairResultForSave({ providerId: "provider-1" }, "provider-1"),
+    undefined,
+  );
 });
