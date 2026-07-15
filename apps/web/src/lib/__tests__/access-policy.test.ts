@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { decideModelAction, decidePrivateRoute, focusDraftKey, migrateSaunaPersistedState, pageTransitionKey, resendSecondsRemaining, resolveAuthModalStage } from "../access-policy.ts";
+import { decideModelAction, decidePrivateRoute, focusDraftKey, migrateSaunaPersistedState, pageTransitionKey, resendSecondsRemaining, resolveAuthModalStage, resolveFocusSessionId, shouldReleaseAdoptedFocusSession } from "../access-policy.ts";
 import { SaunaApiError, classifySaunaApiError, humanizeApiError } from "../sauna-api.ts";
 
 const draft = { kind: "consultation" as const, draft: { agentId: "agent-1", content: "一个问题", sourceRoute: "/lobby" } };
@@ -68,4 +68,13 @@ test("focus room draft and transition helpers keep first-send state stable", () 
   assert.equal(pageTransitionKey("/focus-room/new"), "/focus-room");
   assert.equal(pageTransitionKey("/focus-room/session-1"), "/focus-room");
   assert.equal(pageTransitionKey("/lobby"), "/lobby");
+});
+
+test("an adopted real session survives failures until the route catches up", () => {
+  assert.equal(resolveFocusSessionId("new", "session-1"), "session-1");
+  assert.equal(resolveFocusSessionId("new"), "new");
+  assert.equal(resolveFocusSessionId("session-2", "session-1"), "session-2");
+  assert.equal(shouldReleaseAdoptedFocusSession("new", "session-1"), false);
+  assert.equal(shouldReleaseAdoptedFocusSession("session-1", "session-1"), true);
+  assert.equal(shouldReleaseAdoptedFocusSession("session-2", "session-1"), true);
 });

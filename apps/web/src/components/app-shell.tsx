@@ -8,6 +8,7 @@ import { motionDuration, saunaEase } from "@/lib/motion-system";
 import { PageTransition } from "@/components/page-transition";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { AccountMenu } from "@/components/access-coordinator";
+import { useSaunaStore } from "@/store/sauna-store";
 
 const navItems = [
   { href: "/lobby", label: "桑拿房", icon: Brain },
@@ -22,6 +23,9 @@ function isActivePath(pathname: string, href: string) {
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const clearAdoptedFocusSession = useSaunaStore(
+    (state) => state.clearAdoptedFocusSession,
+  );
 
   return (
     <div className="min-h-[100dvh] text-[var(--sauna-text)]">
@@ -55,7 +59,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </nav>
 
           <div className="flex shrink-0 items-center gap-2">
-            <Link href="/focus-room/new" className="hidden h-10 items-center gap-2 rounded-full px-4 text-sm text-[var(--sauna-muted)] transition hover:bg-[var(--sauna-soft)] hover:text-[var(--sauna-text)] lg:flex">
+            <Link href="/focus-room/new" onClick={clearAdoptedFocusSession} className="hidden h-10 items-center gap-2 rounded-full px-4 text-sm text-[var(--sauna-muted)] transition hover:bg-[var(--sauna-soft)] hover:text-[var(--sauna-text)] lg:flex">
               <ClockCounterClockwise size={17} /> 会话
             </Link>
             <ThemeToggle compact />

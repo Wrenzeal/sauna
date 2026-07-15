@@ -27,6 +27,7 @@ export function LobbyOverview() {
     loadIdentity,
     loadProviders,
     queueInitialPrompt,
+    clearAdoptedFocusSession,
   } = useSaunaStore();
   const [question, setQuestion] = useState("");
   const [openingAgentId, setOpeningAgentId] = useState<string>();
@@ -59,6 +60,7 @@ export function LobbyOverview() {
 
   function handleOpen(agentId: string, prompt?: string, requestAutoSend = false) {
     if (!agentId) return;
+    clearAdoptedFocusSession();
     const promptText = prompt?.trim() ?? "";
     if (promptText) {
       queueInitialPrompt(focusDraftKey(agentId), { content: promptText, autoSend: Boolean(requestAutoSend && token && providerReady) });

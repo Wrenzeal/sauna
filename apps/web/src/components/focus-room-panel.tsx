@@ -31,7 +31,7 @@ import { useSaunaStore } from "@/store/sauna-store";
 import { LockedAccessShell } from "@/components/access-coordinator";
 import { useAccessUIStore } from "@/store/access-ui-store";
 import type { Message } from "@/types/sauna";
-import { focusDraftKey } from "@/lib/access-policy";
+import { focusDraftKey, resolveFocusSessionId, shouldReleaseAdoptedFocusSession } from "@/lib/access-policy";
 
 const subscribeHydration = () => () => {};
 
@@ -742,6 +742,7 @@ export function FocusRoomPanel({
   const {
     agents,
     activeSession,
+    adoptedFocusSessionId,
     selectedAgentId,
     sessions,
     messagesBySession,
@@ -758,11 +759,8 @@ export function FocusRoomPanel({
     sendTurn,
     retryTurn,
     consumeInitialPrompt,
+    clearAdoptedFocusSession,
   } = useSaunaStore();
-  const [sessionView, setSessionView] = useState(() => ({
-    routeSessionId: sessionId,
-    currentSessionId: sessionId,
-  }));
   const [draft, setDraft] = useState(initialPrompt);
   const [pendingAutoPrompt, setPendingAutoPrompt] = useState<string>();
   const draftHandoffConsumedRef = useRef(false);
@@ -776,13 +774,10 @@ export function FocusRoomPanel({
   const openAuth = useAccessUIStore((state) => state.openAuth);
   const openProvider = useAccessUIStore((state) => state.openProvider);
   const hydrated = useHydrated();
-  if (sessionView.routeSessionId !== sessionId) {
-    setSessionView({ routeSessionId: sessionId, currentSessionId: sessionId });
-  }
-  const currentSessionId =
-    sessionView.routeSessionId === sessionId
-      ? sessionView.currentSessionId
-      : sessionId;
+  const currentSessionId = resolveFocusSessionId(
+    sessionId,
+    adoptedFocusSessionId,
+  );
   const isDraftSession = currentSessionId === "new";
   const safeMessagesBySession = messagesBySession ?? {};
   const messages = isDraftSession
@@ -794,6 +789,14 @@ export function FocusRoomPanel({
     void loadPublicAgents();
     void loadIdentity().catch(() => undefined);
   }, [loadIdentity, loadPublicAgents]);
+
+  useEffect(() => {
+    if (!shouldReleaseAdoptedFocusSession(sessionId, adoptedFocusSessionId)) {
+      return;
+    }
+
+    queueMicrotask(clearAdoptedFocusSession);
+  }, [adoptedFocusSessionId, clearAdoptedFocusSession, sessionId]);
 
   useEffect(() => {
     if (
@@ -916,7 +919,6 @@ export function FocusRoomPanel({
         const agentID = draftAgentId || agent?.id;
         if (!agentID) throw new Error("请选择一个智囊。");
         const nextSession = await startConsultation(agentID, cleanContent);
-        setSessionView({ routeSessionId: sessionId, currentSessionId: nextSession.id });
         window.history.replaceState(null, "", `/focus-room/${nextSession.id}`);
         return;
       }
@@ -924,7 +926,7 @@ export function FocusRoomPanel({
     } catch {
       setDraft(cleanContent);
     }
-  }, [agent, busy, currentSessionId, draftAgentId, isDraftSession, openAuth, openProvider, providers.length, selectedAgentId, sendTurn, sessionId, startConsultation, token]);
+  }, [agent, busy, currentSessionId, draftAgentId, isDraftSession, openAuth, openProvider, providers.length, selectedAgentId, sendTurn, startConsultation, token]);
 
   useEffect(() => {
     if (
@@ -978,7 +980,7 @@ export function FocusRoomPanel({
     setPendingDeleteSessionId(undefined);
     await deleteFocusSession(targetSessionId);
     if (targetSessionId === currentSessionId) {
-      setSessionView({ routeSessionId: "new", currentSessionId: "new" });
+      clearAdoptedFocusSession();
       router.replace("/focus-room/new");
     }
   }
@@ -991,7 +993,7 @@ export function FocusRoomPanel({
     if (!agentID) {
       return;
     }
-    setSessionView({ routeSessionId: "new", currentSessionId: "new" });
+    clearAdoptedFocusSession();
     router.push(`/focus-room/new?agentId=${encodeURIComponent(agentID)}`);
   }
 
@@ -1041,12 +1043,12 @@ export function FocusRoomPanel({
                 const active = session.id === currentSessionId;
                 return (
                   <div key={session.id} className={`grid grid-cols-[42px_minmax(0,1fr)_auto] gap-3 rounded-[20px] border p-3 ${active ? "border-[color:var(--sauna-accent)] bg-[var(--sauna-accent-soft)]" : "border-[color:var(--sauna-line)] bg-[var(--sauna-panel)]"}`}>
-                    <button type="button" onClick={() => { setHistoryOpen(false); router.push(`/focus-room/${session.id}`); }} className="grid size-10 place-items-center rounded-[15px] bg-[var(--sauna-panel-strong)] text-xl">{session.agentAvatarEmoji || "🧠"}</button>
+                    <button type="button" onClick={() => { setHistoryOpen(false); clearAdoptedFocusSession(); router.push(`/focus-room/${session.id}`); }} className="grid size-10 place-items-center rounded-[15px] bg-[var(--sauna-panel-strong)] text-xl">{session.agentAvatarEmoji || "🧠"}</button>
                     <div className="min-w-0">
                       {editingSessionId === session.id ? (
                         <form onSubmit={submitRename} className="flex gap-1"><input value={editingTitle} onChange={(event) => setEditingTitle(event.target.value)} className="min-w-0 flex-1 rounded-full bg-[var(--sauna-panel-strong)] px-3 py-1 text-xs outline-none ring-1 ring-[var(--sauna-line-strong)]" autoFocus maxLength={80} /><button type="submit" className="rounded-full bg-[var(--sauna-primary)] px-2 text-[10px] text-[var(--sauna-primary-contrast)]">保存</button></form>
                       ) : (
-                        <button type="button" onClick={() => { setHistoryOpen(false); router.push(`/focus-room/${session.id}`); }} className="block w-full text-left"><span className="block truncate text-sm font-semibold text-[var(--sauna-text)]">{session.title || session.agentDisplayName}</span><span className="mt-1 block truncate text-xs text-[var(--sauna-muted)]">{formatSessionTime(session.lastActivityAt, hydrated)}</span></button>
+                        <button type="button" onClick={() => { setHistoryOpen(false); clearAdoptedFocusSession(); router.push(`/focus-room/${session.id}`); }} className="block w-full text-left"><span className="block truncate text-sm font-semibold text-[var(--sauna-text)]">{session.title || session.agentDisplayName}</span><span className="mt-1 block truncate text-xs text-[var(--sauna-muted)]">{formatSessionTime(session.lastActivityAt, hydrated)}</span></button>
                       )}
                     </div>
                     <span className="flex items-start gap-1"><button type="button" onClick={() => beginRename(session)} className="grid size-8 place-items-center rounded-full text-[var(--sauna-muted)] hover:bg-[var(--sauna-soft)]" aria-label="重命名会话"><PencilSimple size={14} /></button><button type="button" onClick={() => setPendingDeleteSessionId(session.id)} className="grid size-8 place-items-center rounded-full text-[var(--sauna-danger)] hover:bg-[var(--sauna-danger-soft)]" aria-label="删除会话"><Trash size={14} /></button></span>

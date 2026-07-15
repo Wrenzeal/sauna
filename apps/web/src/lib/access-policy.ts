@@ -11,6 +11,22 @@ export function pageTransitionKey(pathname: string): string {
   return pathname.startsWith("/focus-room/") ? "/focus-room" : pathname;
 }
 
+export function resolveFocusSessionId(
+  routeSessionId: string,
+  adoptedSessionId?: string,
+): string {
+  return routeSessionId === "new" && adoptedSessionId
+    ? adoptedSessionId
+    : routeSessionId;
+}
+
+export function shouldReleaseAdoptedFocusSession(
+  routeSessionId: string,
+  adoptedSessionId?: string,
+): boolean {
+  return Boolean(adoptedSessionId && routeSessionId !== "new");
+}
+
 export type AuthOperation = "idle" | "sending_code" | "verifying_code" | "login_success" | "logging_out";
 export type AuthModalStage = "email" | "code" | "verifying" | "success";
 

@@ -166,6 +166,7 @@ interface SaunaState {
   providers: ProviderConfig[];
   distillationJobs: DistillationJob[];
   activeSession?: FocusSession;
+  adoptedFocusSessionId?: string;
   messagesBySession: Record<string, Message[]>;
   devCode?: string;
   authCodeSentEmail?: string;
@@ -185,6 +186,7 @@ interface SaunaState {
   focusError?: string;
   setSelectedAgentId: (agentId: string) => void;
   clearFocusError: () => void;
+  clearAdoptedFocusSession: () => void;
   clearAuthError: () => void;
   loadPublicAgents: () => Promise<void>;
   loadWorkspaceAgents: (tokenOverride?: string) => Promise<void>;
@@ -239,6 +241,7 @@ export const useSaunaStore = create<SaunaState>()(
       streamStatus: "idle",
       setSelectedAgentId: (agentId) => set({ selectedAgentId: agentId }),
       clearFocusError: () => set({ focusError: undefined }),
+      clearAdoptedFocusSession: () => set({ adoptedFocusSessionId: undefined }),
       clearAuthError: () => set({ authError: undefined, authErrorCode: undefined }),
       loadPublicAgents: async () => {
         set({ apiStatus: "loading", apiError: undefined });
@@ -380,6 +383,7 @@ export const useSaunaStore = create<SaunaState>()(
         providers: [],
         distillationJobs: [],
         activeSession: undefined,
+        adoptedFocusSessionId: undefined,
         messagesBySession: {},
         sessions: [],
         initialPromptsBySession: {},
@@ -413,6 +417,7 @@ export const useSaunaStore = create<SaunaState>()(
           providers: [],
           distillationJobs: [],
           activeSession: undefined,
+          adoptedFocusSessionId: undefined,
           messagesBySession: {},
           sessions: [],
           initialPromptsBySession: {},
@@ -754,6 +759,7 @@ export const useSaunaStore = create<SaunaState>()(
             delete turnsInFlightBySession[sessionId];
             return {
               activeSession: state.activeSession?.id === sessionId ? undefined : state.activeSession,
+              adoptedFocusSessionId: state.adoptedFocusSessionId === sessionId ? undefined : state.adoptedFocusSessionId,
               sessions: state.sessions.filter((item) => item.id !== sessionId),
               messagesBySession,
               initialPromptsBySession,
@@ -819,6 +825,7 @@ export const useSaunaStore = create<SaunaState>()(
             inFlight[sessionId] = true;
             return {
               activeSession: started.session,
+              adoptedFocusSessionId: sessionId,
               sessions: [summary, ...state.sessions.filter((item) => item.id !== summary.id)],
               messagesBySession: {
                 ...(state.messagesBySession ?? {}),
@@ -878,6 +885,10 @@ export const useSaunaStore = create<SaunaState>()(
               });
             } catch (error) {
               const message = humanizeApiError(error);
+              await Promise.allSettled([
+                get().loadMessages(sessionId),
+                get().loadFocusSessions(token),
+              ]);
               set((state) => {
                 const inFlight = { ...(state.turnsInFlightBySession ?? {}) };
                 delete inFlight[sessionId];
@@ -968,6 +979,10 @@ export const useSaunaStore = create<SaunaState>()(
           await get().loadFocusSessions(token);
         } catch (error) {
           const message = humanizeApiError(error);
+          await Promise.allSettled([
+            get().loadMessages(sessionId),
+            get().loadFocusSessions(token),
+          ]);
           set((state) => {
             const inFlight = { ...(state.turnsInFlightBySession ?? {}) };
             delete inFlight[sessionId];
@@ -1004,6 +1019,10 @@ export const useSaunaStore = create<SaunaState>()(
           set((state) => { const inFlight = { ...(state.turnsInFlightBySession ?? {}) }; delete inFlight[sessionId]; return { streamStatus: "ready", turnsInFlightBySession: inFlight }; });
         } catch (error) {
           const message = humanizeApiError(error);
+          await Promise.allSettled([
+            get().loadMessages(sessionId),
+            get().loadFocusSessions(token),
+          ]);
           set((state) => { const inFlight = { ...(state.turnsInFlightBySession ?? {}) }; delete inFlight[sessionId]; return { streamStatus: "error", focusError: message, turnsInFlightBySession: inFlight }; });
           throw error;
         }

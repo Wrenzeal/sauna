@@ -523,3 +523,10 @@ Production backend has been restarted with the new sender/template. A public aut
 - The lobby consultation row uses centered alignment and a 40px single-line textarea so its placeholder/text shares the action-button baseline.
 - If the first lobby question disappears in production, verify the deployed commit before changing provider logic: the old Vercel bundle consumed the browser draft during SSR, while `5a019cc` moves consumption after client hydration.
 - Verification: web tests 9/9, typecheck, lint, production build, and diff check pass. No backend restart is required.
+
+## 2026-07-15 Failed consultation session retention
+
+- `adoptedFocusSessionId` is a non-persisted Zustand runtime handoff from draft `/focus-room/new` to the real session. Keep it store-owned: a component-local ID is lost if Next remounts the FocusRoom during an error.
+- Provider, SSE, or message-load failures must preserve the active session, user message, failed assistant metadata, error reason, and retry action. They must never navigate to `/focus-room/new`.
+- Clear the adopted session only for explicit new consultation, history navigation, deletion of that session, logout, or auth invalidation. Failure recovery reloads messages and session summaries for the same ID.
+- Verification: web tests 10/10, typecheck, lint, production build, backend tests, and diff check pass. No backend restart is required.
