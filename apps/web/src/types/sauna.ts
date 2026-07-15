@@ -166,6 +166,12 @@ export interface FocusSessionSummary {
   updated_at: string;
 }
 
+export interface FocusSessionPage {
+  sessions: FocusSessionSummary[];
+  next_cursor: string;
+  has_more: boolean;
+}
+
 export interface FocusSession {
   id: string;
   workspace_id: string;

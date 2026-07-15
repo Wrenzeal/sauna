@@ -177,6 +177,12 @@ type Session struct {
 	UpdatedAt        time.Time `json:"updated_at"`
 }
 
+type FocusSessionCursor struct {
+	LastActivityAt time.Time
+	CreatedAt      time.Time
+	ID             string
+}
+
 type FocusSessionSummary struct {
 	ID                 string    `json:"id"`
 	WorkspaceID        string    `json:"workspace_id"`

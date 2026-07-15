@@ -546,3 +546,11 @@ Production backend has been restarted with the new sender/template. A public aut
 - The failed session remains visible and the user manually clicks `重新回答`. Missing bound providers produce an explicit modal error.
 - No database migration is required. Restart the Go backend when deploying this response-shape change.
 - Verification: web tests 13/13, typecheck, lint, production build, backend tests, Go vet, and targeted diff check pass.
+
+## 2026-07-15 Complete FocusRoom history pagination
+
+- `GET /focus-room/sessions` accepts `limit` and an opaque `cursor`, and returns `{ sessions, next_cursor, has_more }`. The frontend requests 20 rows; the backend rejects limits outside 1-50 when explicitly supplied.
+- Pagination uses `last_activity_at DESC, created_at DESC, id DESC`; preserve all three cursor fields and the ID tie-breaker when changing the query. No OFFSET pagination should be introduced.
+- `loadFocusSessions` resets to the newest page. `loadMoreFocusSessions` appends older rows through `mergeSessionPages`, deduplicates by ID, and keeps load-more errors separate from `focusError`.
+- The FocusRoom history drawer renders all loaded sessions and uses an IntersectionObserver rooted in its own scroll container. It displays loading, retry, and `已经到底了` states. Do not restore the old `slice(0, 8)`.
+- No migration was required. The backend was restarted on port 19588 and both local/public health checks pass. Web tests 15/15, typecheck, lint, build, backend tests, Go vet, and diff check pass.

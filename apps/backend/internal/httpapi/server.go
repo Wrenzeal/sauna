@@ -3,6 +3,7 @@ package httpapi
 import (
 	"errors"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -336,13 +337,25 @@ func (s *Server) clonePublicAgent(c *gin.Context) {
 }
 
 func (s *Server) listFocusSessions(c *gin.Context) {
+	limit := 0
+	if rawLimit := strings.TrimSpace(c.Query("limit")); rawLimit != "" {
+		parsed, err := strconv.Atoi(rawLimit)
+		if err != nil || parsed <= 0 {
+			respondError(c, domain.ErrInvalidInput)
+			return
+		}
+		limit = parsed
+	}
 	identity := identityFromContext(c)
-	sessions, err := s.focus.Sessions(c.Request.Context(), identity.Workspace.ID)
+	page, err := s.focus.Sessions(c.Request.Context(), identity.Workspace.ID, service.ListFocusSessionsRequest{
+		Limit:  limit,
+		Cursor: c.Query("cursor"),
+	})
 	if err != nil {
 		respondError(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"sessions": sessions})
+	c.JSON(http.StatusOK, page)
 }
 
 func (s *Server) createFocusSession(c *gin.Context) {

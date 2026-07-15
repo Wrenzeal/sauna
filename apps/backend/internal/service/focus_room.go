@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"strconv"
@@ -19,7 +20,11 @@ type FocusRoomService struct {
 	llm  llm.Client
 }
 
-const focusContextMessageLimit = 12
+const (
+	focusContextMessageLimit    = 12
+	defaultFocusSessionPageSize = 20
+	maximumFocusSessionPageSize = 50
+)
 
 type CreateSessionRequest struct {
 	AgentID          string `json:"agent_id"`
@@ -41,6 +46,23 @@ type StartConsultationRequest struct {
 type StreamFrame struct {
 	Event domain.SSEEvent `json:"event"`
 	Data  []byte          `json:"data"`
+}
+
+type ListFocusSessionsRequest struct {
+	Limit  int
+	Cursor string
+}
+
+type FocusSessionPage struct {
+	Sessions   []domain.FocusSessionSummary `json:"sessions"`
+	NextCursor string                       `json:"next_cursor"`
+	HasMore    bool                         `json:"has_more"`
+}
+
+type focusSessionCursorPayload struct {
+	LastActivityAt time.Time `json:"last_activity_at"`
+	CreatedAt      time.Time `json:"created_at"`
+	ID             string    `json:"id"`
 }
 
 func NewFocusRoomService(repo FocusRoomRepository, box secretcrypto.SecretBox, client llm.Client) *FocusRoomService {
@@ -127,8 +149,80 @@ func (s *FocusRoomService) StartConsultation(ctx context.Context, workspaceID st
 	return s.repo.StartConsultation(ctx, workspaceID, agent.Agent.ID, providerID, title, content)
 }
 
-func (s *FocusRoomService) Sessions(ctx context.Context, workspaceID string) ([]domain.FocusSessionSummary, error) {
-	return s.repo.ListFocusSessions(ctx, workspaceID)
+func (s *FocusRoomService) Sessions(ctx context.Context, workspaceID string, request ListFocusSessionsRequest) (FocusSessionPage, error) {
+	limit := request.Limit
+	if limit == 0 {
+		limit = defaultFocusSessionPageSize
+	}
+	if limit < 1 || limit > maximumFocusSessionPageSize {
+		return FocusSessionPage{}, domain.ErrInvalidInput
+	}
+	cursor, err := decodeFocusSessionCursor(request.Cursor)
+	if err != nil {
+		return FocusSessionPage{}, domain.ErrInvalidInput
+	}
+	sessions, err := s.repo.ListFocusSessions(ctx, workspaceID, cursor, limit+1)
+	if err != nil {
+		return FocusSessionPage{}, err
+	}
+	hasMore := len(sessions) > limit
+	if hasMore {
+		sessions = sessions[:limit]
+	}
+	nextCursor := ""
+	if hasMore && len(sessions) > 0 {
+		nextCursor, err = encodeFocusSessionCursor(sessions[len(sessions)-1])
+		if err != nil {
+			return FocusSessionPage{}, err
+		}
+	}
+	return FocusSessionPage{Sessions: sessions, NextCursor: nextCursor, HasMore: hasMore}, nil
+}
+
+func decodeFocusSessionCursor(value string) (*domain.FocusSessionCursor, error) {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return nil, nil
+	}
+	raw, err := base64.RawURLEncoding.DecodeString(value)
+	if err != nil {
+		return nil, err
+	}
+	var payload focusSessionCursorPayload
+	if err := json.Unmarshal(raw, &payload); err != nil {
+		return nil, err
+	}
+	if payload.LastActivityAt.IsZero() || payload.CreatedAt.IsZero() || !isUUID(payload.ID) {
+		return nil, domain.ErrInvalidInput
+	}
+	return &domain.FocusSessionCursor{LastActivityAt: payload.LastActivityAt, CreatedAt: payload.CreatedAt, ID: strings.ToLower(payload.ID)}, nil
+}
+
+func encodeFocusSessionCursor(session domain.FocusSessionSummary) (string, error) {
+	payload := focusSessionCursorPayload{LastActivityAt: session.LastActivityAt, CreatedAt: session.CreatedAt, ID: session.ID}
+	raw, err := json.Marshal(payload)
+	if err != nil {
+		return "", err
+	}
+	return base64.RawURLEncoding.EncodeToString(raw), nil
+}
+
+func isUUID(value string) bool {
+	if len(value) != 36 {
+		return false
+	}
+	for index, character := range value {
+		if index == 8 || index == 13 || index == 18 || index == 23 {
+			if character != '-' {
+				return false
+			}
+			continue
+		}
+		if !((character >= '0' && character <= '9') || (character >= 'a' && character <= 'f') || (character >= 'A' && character <= 'F')) {
+			return false
+		}
+	}
+	return true
 }
 
 func (s *FocusRoomService) Messages(ctx context.Context, workspaceID string, sessionID string) ([]domain.Message, error) {

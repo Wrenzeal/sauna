@@ -64,12 +64,56 @@ func TestSessionsExposeBoundProviderConfig(t *testing.T) {
 	repo := newFakeFocusRepo(t)
 	svc := NewFocusRoomService(repo, repo.box, fakeLLM{})
 
-	sessions, err := svc.Sessions(context.Background(), repo.workspaceID)
+	page, err := svc.Sessions(context.Background(), repo.workspaceID, ListFocusSessionsRequest{})
 	if err != nil {
 		t.Fatalf("Sessions: %v", err)
 	}
-	if len(sessions) != 1 || sessions[0].ProviderConfigID != repo.session.ProviderConfigID {
-		t.Fatalf("expected bound provider %s, got %#v", repo.session.ProviderConfigID, sessions)
+	if len(page.Sessions) != 1 || page.Sessions[0].ProviderConfigID != repo.session.ProviderConfigID {
+		t.Fatalf("expected bound provider %s, got %#v", repo.session.ProviderConfigID, page.Sessions)
+	}
+}
+
+func TestSessionsUseStableCursorPagination(t *testing.T) {
+	repo := newFakeFocusRepo(t)
+	now := time.Now().UTC().Truncate(time.Microsecond)
+	repo.summaries = []domain.FocusSessionSummary{
+		{ID: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", LastActivityAt: now, CreatedAt: now},
+		{ID: "99999999-9999-9999-9999-999999999999", LastActivityAt: now, CreatedAt: now},
+		{ID: "88888888-8888-8888-8888-888888888888", LastActivityAt: now.Add(-time.Minute), CreatedAt: now.Add(-time.Minute)},
+	}
+	svc := NewFocusRoomService(repo, repo.box, fakeLLM{})
+
+	first, err := svc.Sessions(context.Background(), repo.workspaceID, ListFocusSessionsRequest{Limit: 2})
+	if err != nil {
+		t.Fatalf("first page: %v", err)
+	}
+	if len(first.Sessions) != 2 || !first.HasMore || first.NextCursor == "" {
+		t.Fatalf("unexpected first page %#v", first)
+	}
+	second, err := svc.Sessions(context.Background(), repo.workspaceID, ListFocusSessionsRequest{Limit: 2, Cursor: first.NextCursor})
+	if err != nil {
+		t.Fatalf("second page: %v", err)
+	}
+	if len(second.Sessions) != 1 || second.HasMore || second.NextCursor != "" {
+		t.Fatalf("unexpected second page %#v", second)
+	}
+	if first.Sessions[1].ID == second.Sessions[0].ID {
+		t.Fatal("cursor page repeated the boundary session")
+	}
+}
+
+func TestSessionsRejectInvalidPagination(t *testing.T) {
+	repo := newFakeFocusRepo(t)
+	svc := NewFocusRoomService(repo, repo.box, fakeLLM{})
+
+	for _, request := range []ListFocusSessionsRequest{
+		{Limit: 51},
+		{Limit: -1},
+		{Cursor: "not-a-cursor"},
+	} {
+		if _, err := svc.Sessions(context.Background(), repo.workspaceID, request); !errors.Is(err, domain.ErrInvalidInput) {
+			t.Fatalf("expected invalid input for %#v, got %v", request, err)
+		}
 	}
 }
 
@@ -239,12 +283,12 @@ func TestSessionsReturnsFocusSummaries(t *testing.T) {
 	repo := newFakeFocusRepo(t)
 	svc := NewFocusRoomService(repo, repo.box, fakeLLM{})
 
-	sessions, err := svc.Sessions(context.Background(), repo.workspaceID)
+	page, err := svc.Sessions(context.Background(), repo.workspaceID, ListFocusSessionsRequest{})
 	if err != nil {
 		t.Fatalf("Sessions: %v", err)
 	}
-	if len(sessions) != 1 || sessions[0].ID != repo.session.ID || sessions[0].LastMessagePreview == "" {
-		t.Fatalf("unexpected sessions %#v", sessions)
+	if len(page.Sessions) != 1 || page.Sessions[0].ID != repo.session.ID || page.Sessions[0].LastMessagePreview == "" {
+		t.Fatalf("unexpected sessions %#v", page.Sessions)
 	}
 }
 
@@ -336,11 +380,26 @@ func (f *fakeFocusRepo) StartConsultation(_ context.Context, workspaceID string,
 	return domain.ConsultationStarted{Session: f.session, Turn: f.turn, UserMessage: f.userMessage}, nil
 }
 
-func (f *fakeFocusRepo) ListFocusSessions(_ context.Context, _ string) ([]domain.FocusSessionSummary, error) {
-	if f.summaries != nil {
-		return f.summaries, nil
+func (f *fakeFocusRepo) ListFocusSessions(_ context.Context, _ string, cursor *domain.FocusSessionCursor, limit int) ([]domain.FocusSessionSummary, error) {
+	summaries := f.summaries
+	if summaries == nil {
+		summaries = []domain.FocusSessionSummary{{ID: f.session.ID, WorkspaceID: f.session.WorkspaceID, SessionType: f.session.SessionType, Title: f.session.Title, CurrentStatus: f.session.CurrentStatus, AgentID: f.session.AgentID, ProviderConfigID: f.session.ProviderConfigID, AgentDisplayName: f.agent.Agent.DisplayName, AgentAvatarEmoji: f.agent.Agent.AvatarEmoji, LastMessagePreview: f.userMessage.Content, LastActivityAt: f.session.UpdatedAt, CreatedAt: f.session.CreatedAt, UpdatedAt: f.session.UpdatedAt}}
 	}
-	return []domain.FocusSessionSummary{{ID: f.session.ID, WorkspaceID: f.session.WorkspaceID, SessionType: f.session.SessionType, Title: f.session.Title, CurrentStatus: f.session.CurrentStatus, AgentID: f.session.AgentID, ProviderConfigID: f.session.ProviderConfigID, AgentDisplayName: f.agent.Agent.DisplayName, AgentAvatarEmoji: f.agent.Agent.AvatarEmoji, LastMessagePreview: f.userMessage.Content, LastActivityAt: f.session.UpdatedAt, CreatedAt: f.session.CreatedAt, UpdatedAt: f.session.UpdatedAt}}, nil
+	start := 0
+	if cursor != nil {
+		start = len(summaries)
+		for index, summary := range summaries {
+			if summary.ID == cursor.ID && summary.LastActivityAt.Equal(cursor.LastActivityAt) && summary.CreatedAt.Equal(cursor.CreatedAt) {
+				start = index + 1
+				break
+			}
+		}
+	}
+	end := start + limit
+	if end > len(summaries) {
+		end = len(summaries)
+	}
+	return append([]domain.FocusSessionSummary(nil), summaries[start:end]...), nil
 }
 
 func (f *fakeFocusRepo) GetSession(_ context.Context, _ string, _ string) (domain.Session, error) {

@@ -3,6 +3,7 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { SaunaApiError, classifySaunaApiError, createSaunaApiClient, humanizeApiError, streamTurn } from "@/lib/sauna-api";
+import { mergeSessionPages } from "@/lib/session-pagination";
 import { migrateSaunaPersistedState } from "@/lib/access-policy";
 import type { AuthOperation, InitialConsultationDraft } from "@/lib/access-policy";
 import type {
@@ -32,6 +33,7 @@ type ActionStatus = "idle" | "loading" | "streaming" | "ready" | "error";
 const accents = ["emerald", "cyan", "amber", "rose"];
 
 const consultationDraftStoragePrefix = "sauna:consultation-draft:";
+const focusSessionPageSize = 20;
 
 function writeConsultationDraft(key: string, draft: InitialConsultationDraft) {
   if (typeof window === "undefined") return;
@@ -196,6 +198,9 @@ interface SaunaState {
   providerStatus: ActionStatus;
   distillationStatus: ActionStatus;
   sessionStatus: ActionStatus;
+  sessionLoadMoreStatus: ActionStatus;
+  sessionNextCursor?: string;
+  sessionHasMore: boolean;
   streamStatus: ActionStatus;
   apiError?: string;
   authError?: string;
@@ -203,6 +208,7 @@ interface SaunaState {
   providerError?: string;
   distillationError?: string;
   focusError?: string;
+  sessionLoadMoreError?: string;
   setSelectedAgentId: (agentId: string) => void;
   clearFocusError: () => void;
   clearAdoptedFocusSession: () => void;
@@ -227,6 +233,7 @@ interface SaunaState {
   loadDistillationJobs: (tokenOverride?: string) => Promise<void>;
   createDistillationJob: (input: CreateDistillationJobInput) => Promise<DistillationJob>;
   loadFocusSessions: (tokenOverride?: string) => Promise<void>;
+  loadMoreFocusSessions: () => Promise<void>;
   openAgentSession: (agentId: string, title?: string) => Promise<FocusSession>;
   startConsultation: (agentId: string, content: string, title?: string) => Promise<FocusSession>;
   queueInitialPrompt: (key: string, draft: InitialConsultationDraft) => void;
@@ -257,6 +264,8 @@ export const useSaunaStore = create<SaunaState>()(
       providerStatus: "idle",
       distillationStatus: "idle",
       sessionStatus: "idle",
+      sessionLoadMoreStatus: "idle",
+      sessionHasMore: false,
       streamStatus: "idle",
       setSelectedAgentId: (agentId) => set({ selectedAgentId: agentId }),
       clearFocusError: () => set({ focusError: undefined }),
@@ -319,7 +328,7 @@ export const useSaunaStore = create<SaunaState>()(
           await get().loadFocusSessions(token);
         } catch (error) {
           if (classifySaunaApiError(error) === "unauthorized") {
-            set({ token: undefined, identity: undefined, providers: [], distillationJobs: [], activeSession: undefined, messagesBySession: {}, sessions: [], authCodeSentEmail: undefined, authResendAvailableAt: undefined, devCode: undefined, authStatus: "error", authOperation: "idle", authError: humanizeApiError(error), authErrorCode: "unauthorized", agents: (get().agents ?? []).filter((agent) => agent.sourceKind === "public"), selectedAgentId: "" });
+            set({ token: undefined, identity: undefined, providers: [], distillationJobs: [], activeSession: undefined, messagesBySession: {}, sessions: [], sessionNextCursor: undefined, sessionHasMore: false, sessionLoadMoreStatus: "idle", sessionLoadMoreError: undefined, authCodeSentEmail: undefined, authResendAvailableAt: undefined, devCode: undefined, authStatus: "error", authOperation: "idle", authError: humanizeApiError(error), authErrorCode: "unauthorized", agents: (get().agents ?? []).filter((agent) => agent.sourceKind === "public"), selectedAgentId: "" });
             throw error;
           }
           set({ authStatus: "error", authError: humanizeApiError(error) });
@@ -405,6 +414,10 @@ export const useSaunaStore = create<SaunaState>()(
         adoptedFocusSessionId: undefined,
         messagesBySession: {},
         sessions: [],
+        sessionNextCursor: undefined,
+        sessionHasMore: false,
+        sessionLoadMoreStatus: "idle",
+        sessionLoadMoreError: undefined,
         initialPromptsBySession: {},
         turnsInFlightBySession: {},
         streamEvents: [],
@@ -439,6 +452,10 @@ export const useSaunaStore = create<SaunaState>()(
           adoptedFocusSessionId: undefined,
           messagesBySession: {},
           sessions: [],
+          sessionNextCursor: undefined,
+          sessionHasMore: false,
+          sessionLoadMoreStatus: "idle",
+          sessionLoadMoreError: undefined,
           initialPromptsBySession: {},
           turnsInFlightBySession: {},
           authCodeSentEmail: undefined,
@@ -651,12 +668,54 @@ export const useSaunaStore = create<SaunaState>()(
         if (!token) {
           return;
         }
-        set({ sessionStatus: "loading", focusError: undefined });
+        set({
+          sessionStatus: "loading",
+          focusError: undefined,
+          sessionLoadMoreStatus: "idle",
+          sessionLoadMoreError: undefined,
+        });
         try {
-          const { sessions } = await createSaunaApiClient(token).listFocusSessions();
-          set({ sessions: (sessions ?? []).map(apiSessionToSummary), sessionStatus: "ready" });
+          const page = await createSaunaApiClient(token).listFocusSessions({ limit: focusSessionPageSize });
+          set({
+            sessions: (page.sessions ?? []).map(apiSessionToSummary),
+            sessionNextCursor: page.next_cursor || undefined,
+            sessionHasMore: Boolean(page.has_more && page.next_cursor),
+            sessionStatus: "ready",
+          });
         } catch (error) {
-          set({ sessionStatus: "error", focusError: humanizeApiError(error) });
+          set({
+            sessionStatus: "error",
+            sessionNextCursor: undefined,
+            sessionHasMore: false,
+            focusError: humanizeApiError(error),
+          });
+        }
+      },
+      loadMoreFocusSessions: async () => {
+        const { token, sessionHasMore, sessionNextCursor, sessionLoadMoreStatus } = get();
+        if (!token || !sessionHasMore || !sessionNextCursor || sessionLoadMoreStatus === "loading") {
+          return;
+        }
+        set({ sessionLoadMoreStatus: "loading", sessionLoadMoreError: undefined });
+        try {
+          const page = await createSaunaApiClient(token).listFocusSessions({
+            cursor: sessionNextCursor,
+            limit: focusSessionPageSize,
+          });
+          set((state) => ({
+            sessions: mergeSessionPages(
+              state.sessions,
+              (page.sessions ?? []).map(apiSessionToSummary),
+            ),
+            sessionNextCursor: page.next_cursor || undefined,
+            sessionHasMore: Boolean(page.has_more && page.next_cursor),
+            sessionLoadMoreStatus: "ready",
+          }));
+        } catch (error) {
+          set({
+            sessionLoadMoreStatus: "error",
+            sessionLoadMoreError: humanizeApiError(error),
+          });
         }
       },
       openAgentSession: async (agentId, title) => {

@@ -9,7 +9,7 @@ import type {
   FetchedModel,
   DistillationJob,
   FocusSession,
-  FocusSessionSummary,
+  FocusSessionPage,
   ConsultationStarted,
   Message,
   ProviderConfig,
@@ -259,8 +259,12 @@ export function createSaunaApiClient(token?: string) {
     testProviderChat(id: string) {
       return requestJson<ProviderTestChatResult>(`/provider-configs/${id}/test-chat`, { method: "POST" }, token);
     },
-    listFocusSessions() {
-      return requestJson<{ sessions: FocusSessionSummary[] }>("/focus-room/sessions", {}, token);
+    listFocusSessions(options: { cursor?: string; limit?: number } = {}) {
+      const query = new URLSearchParams();
+      if (options.cursor) query.set("cursor", options.cursor);
+      if (options.limit) query.set("limit", String(options.limit));
+      const suffix = query.size ? `?${query.toString()}` : "";
+      return requestJson<FocusSessionPage>(`/focus-room/sessions${suffix}`, {}, token);
     },
     listDistillationJobs() {
       return requestJson<{ jobs: DistillationJob[] }>("/studio/jobs", {}, token);

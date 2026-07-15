@@ -761,6 +761,9 @@ export function FocusRoomPanel({
     adoptedFocusSessionId,
     selectedAgentId,
     sessions,
+    sessionHasMore,
+    sessionLoadMoreStatus,
+    sessionLoadMoreError,
     messagesBySession,
     streamStatus,
     focusError,
@@ -768,6 +771,7 @@ export function FocusRoomPanel({
     providers,
     loadPublicAgents,
     loadIdentity,
+    loadMoreFocusSessions,
     renameFocusSession,
     deleteFocusSession,
     startConsultation,
@@ -786,6 +790,8 @@ export function FocusRoomPanel({
   const [pendingDeleteSessionId, setPendingDeleteSessionId] =
     useState<string>();
   const [historyOpen, setHistoryOpen] = useState(false);
+  const historyScrollRef = useRef<HTMLDivElement>(null);
+  const historyLoadMoreRef = useRef<HTMLDivElement>(null);
   const authIntent = useAccessUIStore((state) => state.auth.intent);
   const openAuth = useAccessUIStore((state) => state.openAuth);
   const openProvider = useAccessUIStore((state) => state.openProvider);
@@ -888,7 +894,7 @@ export function FocusRoomPanel({
   ]);
 
   const safeSessions = sessions ?? [];
-  const historySessions = safeSessions.slice(0, 8);
+  const historySessions = safeSessions;
   const currentProviderConfigId = activeSession?.id === currentSessionId
     ? activeSession.provider_config_id
     : safeSessions.find((session) => session.id === currentSessionId)?.providerConfigId ?? "";
@@ -968,6 +974,32 @@ export function FocusRoomPanel({
     autoSendStartedRef.current = true;
     void sendContent(pendingAutoPrompt);
   }, [busy, isDraftSession, pendingAutoPrompt, providers.length, sendContent, token]);
+
+  useEffect(() => {
+    if (
+      !historyOpen ||
+      !sessionHasMore ||
+      sessionLoadMoreStatus === "loading" ||
+      sessionLoadMoreStatus === "error"
+    ) {
+      return;
+    }
+    const root = historyScrollRef.current;
+    const target = historyLoadMoreRef.current;
+    if (!root || !target) {
+      return;
+    }
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          void loadMoreFocusSessions();
+        }
+      },
+      { root, rootMargin: "180px 0px", threshold: 0.01 },
+    );
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [historyOpen, loadMoreFocusSessions, sessionHasMore, sessionLoadMoreStatus]);
 
   function repairCurrentProvider() {
     if (!currentProviderConfigId || isDraftSession) {
@@ -1081,7 +1113,7 @@ export function FocusRoomPanel({
         <motion.div className="fixed inset-0 z-50 bg-[var(--sauna-scrim)] backdrop-blur-sm" initial={reduce ? false : { opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onMouseDown={() => setHistoryOpen(false)}>
           <motion.aside role="dialog" aria-modal="true" aria-label="历史咨询" initial={reduce ? false : { x: "100%", filter: "blur(6px)" }} animate={{ x: 0, filter: "blur(0px)" }} exit={{ x: "100%", filter: "blur(4px)" }} transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }} onMouseDown={(event) => event.stopPropagation()} className="absolute inset-y-0 right-0 flex w-full max-w-[420px] flex-col border-l border-[color:var(--sauna-line)] bg-[var(--sauna-panel-strong)] p-5 shadow-[var(--sauna-shadow)]">
             <div className="flex items-center justify-between gap-4"><div><p className="text-sm text-[var(--sauna-muted)]">Consultation archive</p><h2 className="sauna-display mt-1 text-3xl tracking-[-0.04em]">历史咨询</h2></div><button type="button" onClick={() => setHistoryOpen(false)} className="grid size-10 place-items-center rounded-full bg-[var(--sauna-soft)] text-[var(--sauna-muted)]" aria-label="关闭历史记录"><X size={17} /></button></div>
-            <div className="mt-6 min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
+            <div ref={historyScrollRef} className="mt-6 min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
               {historySessions.length ? historySessions.map((session) => {
                 const active = session.id === currentSessionId;
                 return (
@@ -1098,6 +1130,19 @@ export function FocusRoomPanel({
                   </div>
                 );
               }) : <div className="rounded-[22px] bg-[var(--sauna-soft)] p-5 text-sm text-[var(--sauna-muted)]">还没有真正发生过的咨询。</div>}
+              {historySessions.length ? (
+                <div ref={historyLoadMoreRef} className="flex min-h-16 items-center justify-center px-3 py-4 text-center text-xs text-[var(--sauna-muted)]" aria-live="polite">
+                  {sessionLoadMoreStatus === "loading" ? (
+                    <span className="inline-flex items-center gap-2"><motion.span animate={reduce ? undefined : { rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }}><CircleNotch size={16} weight="bold" /></motion.span>正在加载更早的咨询</span>
+                  ) : sessionLoadMoreStatus === "error" ? (
+                    <span className="grid gap-2"><span>{sessionLoadMoreError || "更早的咨询加载失败。"}</span><button type="button" onClick={() => void loadMoreFocusSessions()} className="mx-auto h-9 rounded-full bg-[var(--sauna-soft)] px-4 font-semibold text-[var(--sauna-muted-strong)]">重新加载</button></span>
+                  ) : sessionHasMore ? (
+                    <span>继续向下，加载更早的咨询</span>
+                  ) : (
+                    <span>已经到底了</span>
+                  )}
+                </div>
+              ) : null}
             </div>
             <button type="button" onClick={() => { setHistoryOpen(false); void openFreshSession(); }} disabled={!token || busy} className="mt-4 inline-flex h-11 items-center justify-center gap-2 rounded-full bg-[var(--sauna-primary)] text-sm font-semibold text-[var(--sauna-primary-contrast)] disabled:opacity-40">新开咨询 <ArrowRight size={15} /></button>
           </motion.aside>

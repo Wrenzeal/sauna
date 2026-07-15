@@ -46,7 +46,7 @@ type FocusRoomRepository interface {
 	GetProviderSecret(ctx context.Context, workspaceID string, providerConfigID string) (domain.ProviderSecret, error)
 	CreateFocusSession(ctx context.Context, workspaceID string, agentID string, providerConfigID string, title string) (domain.Session, error)
 	StartConsultation(ctx context.Context, workspaceID string, agentID string, providerConfigID string, title string, content string) (domain.ConsultationStarted, error)
-	ListFocusSessions(ctx context.Context, workspaceID string) ([]domain.FocusSessionSummary, error)
+	ListFocusSessions(ctx context.Context, workspaceID string, cursor *domain.FocusSessionCursor, limit int) ([]domain.FocusSessionSummary, error)
 	GetSession(ctx context.Context, workspaceID string, sessionID string) (domain.Session, error)
 	RenameSession(ctx context.Context, workspaceID string, sessionID string, title string) (domain.Session, error)
 	DeleteSession(ctx context.Context, workspaceID string, sessionID string) error

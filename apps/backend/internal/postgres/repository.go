@@ -461,7 +461,18 @@ func (r *Repository) StartConsultation(ctx context.Context, workspaceID string, 
 	return domain.ConsultationStarted{Session: session, Turn: turn, UserMessage: message}, nil
 }
 
-func (r *Repository) ListFocusSessions(ctx context.Context, workspaceID string) ([]domain.FocusSessionSummary, error) {
+func (r *Repository) ListFocusSessions(ctx context.Context, workspaceID string, cursor *domain.FocusSessionCursor, limit int) ([]domain.FocusSessionSummary, error) {
+	if limit <= 0 {
+		limit = 21
+	}
+	var cursorLastActivityAt any
+	var cursorCreatedAt any
+	var cursorID any
+	if cursor != nil {
+		cursorLastActivityAt = cursor.LastActivityAt
+		cursorCreatedAt = cursor.CreatedAt
+		cursorID = cursor.ID
+	}
 	rows, err := r.pool.Query(ctx, `
 		SELECT s.id::text, s.workspace_id::text, s.session_type, s.title, s.current_status,
 		       s.agent_id::text, s.provider_config_id::text, a.display_name, a.avatar_emoji,
@@ -477,6 +488,12 @@ func (r *Repository) ListFocusSessions(ctx context.Context, workspaceID string) 
 			LIMIT 1
 		) last_msg ON true
 		WHERE s.workspace_id=$1::uuid AND s.session_type=$2
+		  AND (
+		    $3::timestamptz IS NULL
+		    OR s.last_activity_at < $3::timestamptz
+		    OR (s.last_activity_at = $3::timestamptz AND s.created_at < $4::timestamptz)
+		    OR (s.last_activity_at = $3::timestamptz AND s.created_at = $4::timestamptz AND s.id < $5::uuid)
+		  )
 		  AND EXISTS (
 			SELECT 1 FROM messages user_msg
 			WHERE user_msg.workspace_id = s.workspace_id
@@ -484,9 +501,9 @@ func (r *Repository) ListFocusSessions(ctx context.Context, workspaceID string) 
 			  AND user_msg.role = 'user'
 			  AND trim(user_msg.content) <> ''
 		  )
-		ORDER BY s.last_activity_at DESC, s.created_at DESC
-		LIMIT 50
-	`, workspaceID, domain.SessionTypeFocus)
+		ORDER BY s.last_activity_at DESC, s.created_at DESC, s.id DESC
+		LIMIT $6
+	`, workspaceID, domain.SessionTypeFocus, cursorLastActivityAt, cursorCreatedAt, cursorID, limit)
 	if err != nil {
 		return nil, err
 	}
