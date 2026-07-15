@@ -530,3 +530,10 @@ Production backend has been restarted with the new sender/template. A public aut
 - Provider, SSE, or message-load failures must preserve the active session, user message, failed assistant metadata, error reason, and retry action. They must never navigate to `/focus-room/new`.
 - Clear the adopted session only for explicit new consultation, history navigation, deletion of that session, logout, or auth invalidation. Failure recovery reloads messages and session summaries for the same ID.
 - Verification: web tests 10/10, typecheck, lint, production build, backend tests, and diff check pass. No backend restart is required.
+
+## 2026-07-15 Terminal model-state presentation
+
+- Render “正在组织答案” only when `busy` is true and an assistant message is empty plus pending/partial. Empty failed or stale assistant messages stay hidden; partial failed content remains visible alongside the error card.
+- A `turn.failed` SSE event is an immediate terminal UI state. Post-stream synchronization must use `loadMessages(..., { preserveStreamStatus: true })` and finalize from the persisted assistant status for that turn, never unconditionally set ready.
+- The header dots remain tied to `busy`; failed turns display “调用失败” without motion.
+- Verification: web tests 12/12, typecheck, lint, production build, backend tests, and diff check pass. No backend restart is required.

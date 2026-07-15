@@ -32,6 +32,7 @@ import { LockedAccessShell } from "@/components/access-coordinator";
 import { useAccessUIStore } from "@/store/access-ui-store";
 import type { Message } from "@/types/sauna";
 import { focusDraftKey, resolveFocusSessionId, shouldReleaseAdoptedFocusSession } from "@/lib/access-policy";
+import { isAssistantMessageWorking, shouldRenderChatMessage } from "@/lib/focus-room-state";
 
 const subscribeHydration = () => () => {};
 
@@ -591,16 +592,19 @@ function MarkdownMessage({ content }: { content: string }) {
 
 function MessageBubble({
   message,
+  busy,
   reduce,
 }: {
   message: Message;
+  busy: boolean;
   reduce?: boolean | null;
 }) {
+  if (!shouldRenderChatMessage(message, busy)) {
+    return null;
+  }
+
   const isUser = message.role === "user";
-  const isWorking =
-    message.role === "assistant" &&
-    (message.status === "pending" || message.status === "partial") &&
-    !message.content.trim();
+  const isWorking = isAssistantMessageWorking(message, busy);
   return (
     <motion.article
       className={`${isUser ? "ml-auto bg-[var(--sauna-primary)] text-[var(--sauna-primary-contrast)] shadow-[var(--sauna-shadow)]" : "bg-[var(--sauna-soft)] text-[var(--sauna-muted-strong)] shadow-[var(--sauna-shadow)]"} max-w-[78%] rounded-[28px] px-5 py-4`}
@@ -618,7 +622,7 @@ function MessageBubble({
         </div>
       ) : (
         <RichAssistantMessage
-          content={message.content || "正在组织答案..."}
+          content={message.content}
           reduce={reduce}
         />
       )}
@@ -676,6 +680,7 @@ function ChatMessagesPanel({
                 <MessageBubble
                   key={message.id}
                   message={message}
+                  busy={busy}
                   reduce={reduce}
                 />
               ))}

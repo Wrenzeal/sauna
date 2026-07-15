@@ -154,6 +154,23 @@ function appendDelta(messages: Message[], event: StreamEventShape, workspaceID: 
   return copy;
 }
 
+function turnHasFailedAssistant(
+  messagesBySession: Record<string, Message[]>,
+  sessionId: string,
+  turnId: string,
+) {
+  return (messagesBySession[sessionId] ?? []).some(
+    (message) =>
+      message.turn_id === turnId &&
+      message.role === "assistant" &&
+      message.status === "failed",
+  );
+}
+
+interface LoadMessagesOptions {
+  preserveStreamStatus?: boolean;
+}
+
 interface SaunaState {
   agents: AgentProfile[];
   sessions: SessionSummary[];
@@ -213,7 +230,7 @@ interface SaunaState {
   queueInitialPrompt: (key: string, draft: InitialConsultationDraft) => void;
   consumeInitialPrompt: (key: string, fallbackPrompt?: string) => InitialConsultationDraft;
   resumeSession: (sessionId: string) => Promise<void>;
-  loadMessages: (sessionId: string) => Promise<void>;
+  loadMessages: (sessionId: string, options?: LoadMessagesOptions) => Promise<void>;
   renameFocusSession: (sessionId: string, title: string) => Promise<void>;
   deleteFocusSession: (sessionId: string) => Promise<void>;
   sendTurn: (sessionId: string, content: string) => Promise<void>;
@@ -773,20 +790,25 @@ export const useSaunaStore = create<SaunaState>()(
           throw error;
         }
       },
-      loadMessages: async (sessionId) => {
+      loadMessages: async (sessionId, options = {}) => {
         const token = get().token;
         if (!token) {
           return;
         }
-        set({ streamStatus: "loading" });
+        if (!options.preserveStreamStatus) {
+          set({ streamStatus: "loading" });
+        }
         try {
           const { messages } = await createSaunaApiClient(token).listMessages(sessionId);
           set((state) => ({
             messagesBySession: { ...(state.messagesBySession ?? {}), [sessionId]: messages ?? [] },
-            streamStatus: "ready",
+            ...(options.preserveStreamStatus ? {} : { streamStatus: "ready" as const }),
           }));
         } catch (error) {
-          set({ streamStatus: "error", focusError: humanizeApiError(error) });
+          set({
+            ...(options.preserveStreamStatus ? {} : { streamStatus: "error" as const }),
+            focusError: humanizeApiError(error),
+          });
         }
       },
       startConsultation: async (agentId, content, title) => {
@@ -871,22 +893,28 @@ export const useSaunaStore = create<SaunaState>()(
                     return {
                       streamEvents: [...state.streamEvents, event],
                       messagesBySession: { ...(state.messagesBySession ?? {}), [sessionId]: messages },
+                      streamStatus: event.event_type === "turn.failed" ? "error" : state.streamStatus,
                       focusError: event.event_type === "turn.failed" ? event.error ?? "模型调用失败。" : state.focusError,
                     };
                   });
                 },
               });
-              await get().loadMessages(sessionId);
+              await get().loadMessages(sessionId, { preserveStreamStatus: true });
               await get().loadFocusSessions(token);
               set((state) => {
                 const inFlight = { ...(state.turnsInFlightBySession ?? {}) };
                 delete inFlight[sessionId];
-                return { streamStatus: "ready", turnsInFlightBySession: inFlight };
+                const failed = turnHasFailedAssistant(
+                  state.messagesBySession ?? {},
+                  sessionId,
+                  started.turn.id,
+                );
+                return { streamStatus: failed ? "error" : "ready", turnsInFlightBySession: inFlight };
               });
             } catch (error) {
               const message = humanizeApiError(error);
               await Promise.allSettled([
-                get().loadMessages(sessionId),
+                get().loadMessages(sessionId, { preserveStreamStatus: true }),
                 get().loadFocusSessions(token),
               ]);
               set((state) => {
@@ -965,22 +993,28 @@ export const useSaunaStore = create<SaunaState>()(
                 return {
                   streamEvents: [...state.streamEvents, event],
                   messagesBySession: { ...(state.messagesBySession ?? {}), [sessionId]: messages },
+                  streamStatus: event.event_type === "turn.failed" ? "error" : state.streamStatus,
                   focusError: event.event_type === "turn.failed" ? event.error ?? "模型调用失败。" : state.focusError,
                 };
               });
             },
           });
+          await get().loadMessages(sessionId, { preserveStreamStatus: true });
+          await get().loadFocusSessions(token);
           set((state) => {
             const inFlight = { ...(state.turnsInFlightBySession ?? {}) };
             delete inFlight[sessionId];
-            return { streamStatus: "ready", turnsInFlightBySession: inFlight };
+            const failed = turnHasFailedAssistant(
+              state.messagesBySession ?? {},
+              sessionId,
+              result.turn.id,
+            );
+            return { streamStatus: failed ? "error" : "ready", turnsInFlightBySession: inFlight };
           });
-          await get().loadMessages(sessionId);
-          await get().loadFocusSessions(token);
         } catch (error) {
           const message = humanizeApiError(error);
           await Promise.allSettled([
-            get().loadMessages(sessionId),
+            get().loadMessages(sessionId, { preserveStreamStatus: true }),
             get().loadFocusSessions(token),
           ]);
           set((state) => {
@@ -1011,16 +1045,25 @@ export const useSaunaStore = create<SaunaState>()(
               if (event.event_type === "assistant.message.created") messages = upsertMessage(current, { id: event.message_id, workspace_id: workspaceID, session_id: sessionId, turn_id: event.turn_id, agent_id: event.agent_id, role: "assistant", content: "", status: "pending", created_at: event.timestamp });
               if (event.event_type === "assistant.delta") messages = appendDelta(messages, event, workspaceID);
               if (event.event_type === "turn.completed" || event.event_type === "turn.failed") messages = messages.map((message) => message.id === event.message_id ? { ...message, status: event.event_type === "turn.failed" ? "failed" : "complete", error: event.event_type === "turn.failed" ? event.error : undefined } : message);
-              return { streamEvents: [...state.streamEvents, event], messagesBySession: { ...(state.messagesBySession ?? {}), [sessionId]: messages }, focusError: event.event_type === "turn.failed" ? event.error ?? "模型调用失败。" : state.focusError };
+              return { streamEvents: [...state.streamEvents, event], messagesBySession: { ...(state.messagesBySession ?? {}), [sessionId]: messages }, streamStatus: event.event_type === "turn.failed" ? "error" : state.streamStatus, focusError: event.event_type === "turn.failed" ? event.error ?? "模型调用失败。" : state.focusError };
             }),
           });
-          await get().loadMessages(sessionId);
+          await get().loadMessages(sessionId, { preserveStreamStatus: true });
           await get().loadFocusSessions(token);
-          set((state) => { const inFlight = { ...(state.turnsInFlightBySession ?? {}) }; delete inFlight[sessionId]; return { streamStatus: "ready", turnsInFlightBySession: inFlight }; });
+          set((state) => {
+            const inFlight = { ...(state.turnsInFlightBySession ?? {}) };
+            delete inFlight[sessionId];
+            const failed = turnHasFailedAssistant(
+              state.messagesBySession ?? {},
+              sessionId,
+              turn.id,
+            );
+            return { streamStatus: failed ? "error" : "ready", turnsInFlightBySession: inFlight };
+          });
         } catch (error) {
           const message = humanizeApiError(error);
           await Promise.allSettled([
-            get().loadMessages(sessionId),
+            get().loadMessages(sessionId, { preserveStreamStatus: true }),
             get().loadFocusSessions(token),
           ]);
           set((state) => { const inFlight = { ...(state.turnsInFlightBySession ?? {}) }; delete inFlight[sessionId]; return { streamStatus: "error", focusError: message, turnsInFlightBySession: inFlight }; });
