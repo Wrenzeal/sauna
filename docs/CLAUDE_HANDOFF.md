@@ -517,3 +517,9 @@ Production backend has been restarted with the new sender/template. A public aut
 - `FocusRoomPanel` now consumes `draft:{agentId}` in a client effect, restores the composer text, and gates automatic submission with a ref so React Strict Mode or store updates cannot send it twice.
 - Missing/wrong provider configuration can make the later model request fail, but it cannot explain a prompt disappearing before `POST /focus-room/consultations`; keep these failure stages distinct when debugging.
 - Verification: web tests 9/9, typecheck, lint, production build, and diff check pass. No backend restart is required.
+
+## 2026-07-15 Lobby consultation composer alignment
+
+- The lobby consultation row uses centered alignment and a 40px single-line textarea so its placeholder/text shares the action-button baseline.
+- If the first lobby question disappears in production, verify the deployed commit before changing provider logic: the old Vercel bundle consumed the browser draft during SSR, while `5a019cc` moves consumption after client hydration.
+- Verification: web tests 9/9, typecheck, lint, production build, and diff check pass. No backend restart is required.
