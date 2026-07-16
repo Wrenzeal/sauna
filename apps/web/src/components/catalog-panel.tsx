@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { ArrowRight, Check, MagnifyingGlass, Plus, Sparkle, UserPlus, X } from "@phosphor-icons/react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { createSaunaApiClient, humanizeApiError, SaunaApiError } from "@/lib/sauna-api";
@@ -138,7 +139,126 @@ function CatalogCard({ item, busy, index, onToggle }: { item: CatalogEntry; busy
 function CatalogSkeleton() { return <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">{[0,1,2].map((item) => <div key={item} className="h-[300px] animate-pulse rounded-[30px] bg-[var(--sauna-soft)]" />)}</div>; }
 
 function RequestDialog({ onClose, onCreated }: { onClose: () => void; onCreated: (item: CatalogRequest) => void }) {
-  const token = useSaunaStore((state) => state.token)!; const [name, setName] = useState(""); const [reason, setReason] = useState(""); const [urls, setUrls] = useState(""); const [busy, setBusy] = useState(false); const [error, setError] = useState("");
-  async function submit(event: FormEvent) { event.preventDefault(); setBusy(true); setError(""); try { const item = await createSaunaApiClient(token).createCatalogRequest({ target_name: name.trim(), reason: reason.trim(), source_urls: urls.split(/\n|,/).map((value) => value.trim()).filter(Boolean) }); onCreated(item); } catch (cause) { if (cause instanceof SaunaApiError && cause.code === "catalog_agent_exists") setError("这个人物已经在大厅里，可以直接添加。"); else setError(humanizeApiError(cause)); } finally { setBusy(false); } }
-  return <motion.div className="fixed inset-0 z-[100] grid place-items-center bg-[var(--sauna-scrim)] p-4 backdrop-blur-md" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onMouseDown={onClose}><motion.form onSubmit={submit} onMouseDown={(event) => event.stopPropagation()} initial={{ opacity: 0, y: 16, scale: .98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 8 }} className="relative w-full max-w-xl rounded-[32px] border border-[color:var(--sauna-line)] bg-[var(--sauna-panel-strong)] p-7 shadow-[var(--sauna-shadow)]"><button type="button" onClick={onClose} className="absolute right-5 top-5 grid size-9 place-items-center rounded-full bg-[var(--sauna-soft)]"><X size={16}/></button><p className="text-sm font-medium text-[var(--sauna-accent-strong)]">人物上架申请</p><h2 className="sauna-display mt-2 text-4xl tracking-[-0.05em]">你还想和谁聊？</h2><div className="mt-6 grid gap-4"><input required value={name} onChange={(e)=>setName(e.target.value)} placeholder="人物姓名" className="h-12 rounded-[18px] border border-[color:var(--sauna-line)] bg-[var(--sauna-soft)] px-4 outline-none focus:border-[var(--sauna-accent)]"/><textarea value={reason} onChange={(e)=>setReason(e.target.value)} rows={4} placeholder="你希望向他学习什么？" className="resize-none rounded-[18px] border border-[color:var(--sauna-line)] bg-[var(--sauna-soft)] p-4 outline-none focus:border-[var(--sauna-accent)]"/><textarea value={urls} onChange={(e)=>setUrls(e.target.value)} rows={3} placeholder="可选：公开资料链接，每行一个" className="resize-none rounded-[18px] border border-[color:var(--sauna-line)] bg-[var(--sauna-soft)] p-4 outline-none focus:border-[var(--sauna-accent)]"/></div>{error ? <p className="mt-4 text-sm text-[var(--sauna-danger)]">{error}</p> : null}<button disabled={busy} className="mt-6 inline-flex h-11 items-center gap-2 rounded-full bg-[var(--sauna-primary)] px-5 text-sm font-semibold text-[var(--sauna-primary-contrast)] disabled:opacity-50">{busy ? "正在提交…" : "提交申请"}<ArrowRight size={15}/></button></motion.form></motion.div>;
+  const token = useSaunaStore((state) => state.token)!;
+  const reduce = useReducedMotion();
+  const titleId = useId();
+  const dialogRef = useRef<HTMLFormElement>(null);
+  const nameInputRef = useRef<HTMLInputElement>(null);
+  const busyRef = useRef(false);
+  const [name, setName] = useState("");
+  const [reason, setReason] = useState("");
+  const [urls, setUrls] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    busyRef.current = busy;
+  }, [busy]);
+
+  useEffect(() => {
+    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const previousOverflow = document.body.style.overflow;
+    const previousPaddingRight = document.body.style.paddingRight;
+    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+    document.body.style.overflow = "hidden";
+    if (scrollbarWidth > 0) document.body.style.paddingRight = `${scrollbarWidth}px`;
+    window.requestAnimationFrame(() => nameInputRef.current?.focus());
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape" && !busyRef.current) {
+        event.preventDefault();
+        onClose();
+        return;
+      }
+      if (event.key !== "Tab" || !dialogRef.current) return;
+      const focusable = Array.from(dialogRef.current.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled]), textarea:not([disabled]), [href], [tabindex]:not([tabindex="-1"])'));
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = previousOverflow;
+      document.body.style.paddingRight = previousPaddingRight;
+      window.requestAnimationFrame(() => previousFocus?.focus());
+    };
+  }, [onClose]);
+
+  async function submit(event: FormEvent) {
+    event.preventDefault();
+    setBusy(true);
+    setError("");
+    try {
+      const item = await createSaunaApiClient(token).createCatalogRequest({
+        target_name: name.trim(),
+        reason: reason.trim(),
+        source_urls: urls.split(/\n|,/).map((value) => value.trim()).filter(Boolean),
+      });
+      onCreated(item);
+    } catch (cause) {
+      if (cause instanceof SaunaApiError && cause.code === "catalog_agent_exists") {
+        setError("这个人物已经在大厅里，可以直接添加。");
+      } else {
+        setError(humanizeApiError(cause));
+      }
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (typeof document === "undefined") return null;
+
+  return createPortal(
+    <motion.div
+      className="fixed inset-0 z-[100] grid place-items-center overflow-y-auto p-4 backdrop-blur-[10px] sm:p-8"
+      style={{ background: "radial-gradient(circle at 50% 42%, color-mix(in srgb, var(--sauna-panel-strong) 12%, transparent) 0%, var(--sauna-scrim) 76%)" }}
+      initial={reduce ? false : { opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: reduce ? 0 : 0.24, ease: saunaEase }}
+      onMouseDown={busy ? undefined : onClose}
+    >
+      <motion.div aria-hidden="true" className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_50%_45%,var(--sauna-glow-2),transparent_54%)] opacity-25" />
+      <motion.form
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        onSubmit={submit}
+        onMouseDown={(event) => event.stopPropagation()}
+        initial={reduce ? false : { opacity: 0, y: 20, scale: 0.975 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={reduce ? undefined : { opacity: 0, y: 10, scale: 0.985 }}
+        transition={{ duration: reduce ? 0 : 0.34, ease: saunaEase }}
+        className="relative my-auto w-full max-w-xl overflow-hidden rounded-[32px] border border-[color:var(--sauna-line-strong)] bg-[color-mix(in_srgb,var(--sauna-panel-strong)_96%,transparent)] p-7 shadow-[0_36px_120px_var(--sauna-shadow-soft),0_12px_36px_var(--sauna-shadow-soft),inset_0_1px_0_var(--sauna-inner-line)] backdrop-blur-2xl sm:p-8"
+      >
+        <div aria-hidden="true" className="pointer-events-none absolute inset-x-16 top-0 h-px bg-[var(--sauna-accent)] opacity-70" />
+        <button type="button" onClick={onClose} disabled={busy} className="absolute right-5 top-5 grid size-9 place-items-center rounded-full bg-[var(--sauna-soft)] text-[var(--sauna-muted)] transition hover:bg-[var(--sauna-soft-strong)] hover:text-[var(--sauna-text)] disabled:cursor-not-allowed disabled:opacity-45" aria-label="关闭人物申请">
+          <X size={16} />
+        </button>
+        <p className="text-sm font-medium text-[var(--sauna-accent-strong)]">人物上架申请</p>
+        <h2 id={titleId} className="sauna-display mt-2 pr-12 text-4xl tracking-[-0.05em]">你还想和谁聊？</h2>
+        <p className="mt-3 max-w-[42ch] text-sm leading-6 text-[var(--sauna-muted-strong)]">告诉我们人物和学习方向，管理员会整理资料并安排蒸馏。</p>
+        <div className="mt-6 grid gap-4">
+          <input ref={nameInputRef} required value={name} onChange={(event) => setName(event.target.value)} placeholder="人物姓名" className="h-12 rounded-[18px] border border-[color:var(--sauna-line)] bg-[var(--sauna-soft)] px-4 text-[var(--sauna-text)] outline-none transition focus:border-[var(--sauna-accent)] focus:bg-[var(--sauna-panel-strong)]" />
+          <textarea value={reason} onChange={(event) => setReason(event.target.value)} rows={4} placeholder="你希望向他学习什么？" className="resize-none rounded-[18px] border border-[color:var(--sauna-line)] bg-[var(--sauna-soft)] p-4 text-[var(--sauna-text)] outline-none transition focus:border-[var(--sauna-accent)] focus:bg-[var(--sauna-panel-strong)]" />
+          <textarea value={urls} onChange={(event) => setUrls(event.target.value)} rows={3} placeholder="可选：公开资料链接，每行一个" className="resize-none rounded-[18px] border border-[color:var(--sauna-line)] bg-[var(--sauna-soft)] p-4 text-[var(--sauna-text)] outline-none transition focus:border-[var(--sauna-accent)] focus:bg-[var(--sauna-panel-strong)]" />
+        </div>
+        {error ? <p role="alert" className="mt-4 rounded-[16px] bg-[var(--sauna-danger-soft)] px-4 py-3 text-sm text-[var(--sauna-danger-strong)]">{error}</p> : null}
+        <button disabled={busy} className="mt-6 inline-flex h-11 items-center gap-2 rounded-full bg-[var(--sauna-primary)] px-5 text-sm font-semibold text-[var(--sauna-primary-contrast)] transition hover:bg-[var(--sauna-primary-hover)] disabled:cursor-not-allowed disabled:opacity-50">
+          {busy ? "正在提交…" : "提交申请"}<ArrowRight size={15} />
+        </button>
+      </motion.form>
+    </motion.div>,
+    document.body,
+  );
 }
