@@ -111,11 +111,11 @@ export function LobbyOverview() {
           <AnimatePresence mode="wait" initial={false}>
           {activeAgent ? (
             <motion.form key={activeAgent.id} onSubmit={submitQuestion} initial={reduce ? false : { opacity: 0, y: 22, scale: 0.985, filter: "blur(6px)" }} animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }} exit={reduce ? undefined : { opacity: 0, y: 10, scale: 0.99 }} transition={{ duration: motionDuration.component, ease: saunaEase }} className="rounded-[28px] border border-[color:var(--sauna-line-strong)] bg-[color-mix(in_srgb,var(--sauna-panel-strong)_94%,transparent)] p-3 shadow-[var(--sauna-shadow)] backdrop-blur-2xl">
-              <div className="flex items-center gap-3 px-2 pb-3">
-                <span className="grid size-10 place-items-center rounded-[15px] bg-[var(--sauna-soft)] text-xl">{activeAgent.avatarSeed || "🧠"}</span>
+              <div className="flex items-center gap-3.5 px-2 pb-3.5">
+                <span className="grid size-11 shrink-0 place-items-center rounded-[16px] bg-[var(--sauna-soft)] text-2xl shadow-[inset_0_1px_0_var(--sauna-inner-line)]">{activeAgent.avatarSeed || "🧠"}</span>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold text-[var(--sauna-text)]">与 {activeAgent.displayName} 开始一次认真咨询</p>
-                  <p className="truncate text-xs text-[var(--sauna-muted)]">{activeAgent.quote || activeAgent.role}</p>
+                  <p className="sauna-display truncate text-lg leading-tight tracking-[-0.03em] text-[var(--sauna-text)] sm:text-xl">与 {activeAgent.displayName} 开始一次认真咨询</p>
+                  <p className="mt-1 truncate text-xs leading-5 text-[var(--sauna-muted)]">{activeAgent.quote || activeAgent.role}</p>
                 </div>
                 {!token ? <span className="text-xs text-[var(--sauna-accent-strong)]">需要登录</span> : !providerReady ? <span className="text-xs text-[var(--sauna-accent-strong)]">需要模型配置</span> : null}
               </div>
