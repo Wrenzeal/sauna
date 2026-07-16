@@ -32,11 +32,17 @@ export function CatalogPanel() {
     if (showLoading) setLoading(true); setError("");
     try {
       const api = createSaunaApiClient(token);
-      const [catalog, mine] = await Promise.all([
+      const [catalogResult, requestsResult] = await Promise.allSettled([
         api.listCatalog(),
         token ? api.listMyCatalogRequests() : Promise.resolve({ items: [] as CatalogRequest[] }),
       ]);
-      setItems(catalog.items ?? []); setRequests(mine.items ?? []);
+      if (catalogResult.status === "rejected") throw catalogResult.reason;
+      setItems(catalogResult.value.items ?? []);
+      if (requestsResult.status === "fulfilled") {
+        setRequests(requestsResult.value.items ?? []);
+      } else {
+        setError("人物列表已加载，但申请记录暂时不可用。");
+      }
     } catch (cause) { setError(humanizeApiError(cause)); }
     finally { setLoading(false); }
   }, [token]);
@@ -44,13 +50,18 @@ export function CatalogPanel() {
   useEffect(() => {
     let active = true;
     const api = createSaunaApiClient(token);
-    void Promise.all([
+    void Promise.allSettled([
       api.listCatalog(),
       token ? api.listMyCatalogRequests() : Promise.resolve({ items: [] as CatalogRequest[] }),
-    ]).then(([catalog, mine]) => {
+    ]).then(([catalogResult, requestsResult]) => {
       if (!active) return;
-      setItems(catalog.items ?? []);
-      setRequests(mine.items ?? []);
+      if (catalogResult.status === "rejected") throw catalogResult.reason;
+      setItems(catalogResult.value.items ?? []);
+      if (requestsResult.status === "fulfilled") {
+        setRequests(requestsResult.value.items ?? []);
+      } else {
+        setError("人物列表已加载，但申请记录暂时不可用。");
+      }
       setLoading(false);
     }).catch((cause) => {
       if (!active) return;

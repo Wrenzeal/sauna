@@ -112,7 +112,7 @@ func scanCatalogEntry(row interface{ Scan(...any) error }, includeExtras bool) (
 	return entry, row.Scan(args...)
 }
 
-const requestColumns = `cr.id::text, cr.requester_user_id::text, u.email, cr.target_name, cr.normalized_name, cr.reason, cr.source_urls, cr.status, cr.admin_note, cr.linked_agent_id::text, cr.merged_into_id::text, (SELECT count(*)::int FROM catalog_request_followers f WHERE f.request_id=cr.id), EXISTS(SELECT 1 FROM catalog_request_followers f2 WHERE f2.request_id=cr.id AND f2.user_id=NULLIF($1,'')::uuid), cr.created_at, cr.updated_at, cr.completed_at`
+const requestColumns = `cr.id::text, cr.requester_user_id::text, u.email, cr.target_name, cr.normalized_name, cr.reason, cr.source_urls, cr.status, cr.admin_note, cr.linked_agent_id::text, cr.merged_into_id::text, (SELECT count(*)::int FROM catalog_request_followers f WHERE f.request_id=cr.id), EXISTS(SELECT 1 FROM catalog_request_followers f2 WHERE f2.request_id=cr.id AND f2.user_id=NULLIF($1::text,'')::uuid), cr.created_at, cr.updated_at, cr.completed_at`
 
 func (r *Repository) CreateOrFollowCatalogRequest(ctx context.Context, userID string, request service.CreateCatalogRequest, adminEmails []string) (domain.CatalogRequest, *domain.CatalogEntry, error) {
 	normalized := service.NormalizeCatalogName(request.TargetName)
