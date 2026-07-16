@@ -13,10 +13,8 @@ import type {
   AuthIdentity,
   AuthStartResult,
   CreateProviderConfigInput,
-  CreateDistillationJobInput,
   DiscoverModelsInput,
   FetchedModel,
-  DistillationJob,
   FocusSession,
   FocusSessionSummary,
   Message,
@@ -79,13 +77,14 @@ function quoteForAgent(agent: ApiAgent) {
 function mapAgent(agent: ApiAgent, index: number): AgentProfile {
   return {
     id: agent.id,
+    slug: agent.slug,
     displayName: agent.display_name,
     role: agent.role_summary,
     quote: quoteForAgent(agent),
     avatarSeed: agent.avatar_emoji || "🧠",
     accent: accents[index % accents.length] ?? "emerald",
     status: statusMap[agent.status] ?? "idle",
-    lastActivity: agent.is_public_template ? "默认智囊" : "已蒸馏",
+    lastActivity: agent.is_public_template ? "人物大厅" : "私人智囊",
     sourceKind: agent.is_public_template ? "public" : "private",
   };
 }
@@ -185,7 +184,6 @@ interface SaunaState {
   token?: string;
   identity?: AuthIdentity;
   providers: ProviderConfig[];
-  distillationJobs: DistillationJob[];
   activeSession?: FocusSession;
   adoptedFocusSessionId?: string;
   messagesBySession: Record<string, Message[]>;
@@ -196,7 +194,6 @@ interface SaunaState {
   apiStatus: LoadStatus;
   authStatus: ActionStatus;
   providerStatus: ActionStatus;
-  distillationStatus: ActionStatus;
   sessionStatus: ActionStatus;
   sessionLoadMoreStatus: ActionStatus;
   sessionNextCursor?: string;
@@ -206,7 +203,6 @@ interface SaunaState {
   authError?: string;
   authErrorCode?: string;
   providerError?: string;
-  distillationError?: string;
   focusError?: string;
   sessionLoadMoreError?: string;
   setSelectedAgentId: (agentId: string) => void;
@@ -230,8 +226,6 @@ interface SaunaState {
   fetchProviderModels: (id: string) => Promise<FetchedModel[]>;
   discoverProviderModels: (input: DiscoverModelsInput) => Promise<FetchedModel[]>;
   testProviderChat: (id: string) => Promise<ProviderTestChatResult>;
-  loadDistillationJobs: (tokenOverride?: string) => Promise<void>;
-  createDistillationJob: (input: CreateDistillationJobInput) => Promise<DistillationJob>;
   loadFocusSessions: (tokenOverride?: string) => Promise<void>;
   loadMoreFocusSessions: () => Promise<void>;
   openAgentSession: (agentId: string, title?: string) => Promise<FocusSession>;
@@ -256,13 +250,11 @@ export const useSaunaStore = create<SaunaState>()(
       turnsInFlightBySession: {},
       selectedAgentId: "",
       providers: [],
-      distillationJobs: [],
       messagesBySession: {},
       apiStatus: "idle",
       authStatus: "idle",
       authOperation: "idle",
       providerStatus: "idle",
-      distillationStatus: "idle",
       sessionStatus: "idle",
       sessionLoadMoreStatus: "idle",
       sessionHasMore: false,
@@ -299,9 +291,7 @@ export const useSaunaStore = create<SaunaState>()(
         }
         try {
           const { agents } = await createSaunaApiClient(token).listWorkspaceAgents();
-          const publicAgents = (get().agents ?? []).filter((agent) => agent.sourceKind === "public");
-          const mappedPrivate = (agents ?? []).map((agent, index) => mapAgent(agent, publicAgents.length + index));
-          const combined = [...publicAgents, ...mappedPrivate];
+          const combined = (agents ?? []).map(mapAgent);
           set({
             agents: combined,
             selectedAgentId: combined.some((agent) => agent.id === get().selectedAgentId)
@@ -324,11 +314,10 @@ export const useSaunaStore = create<SaunaState>()(
           set({ identity, authStatus: "ready" });
           await get().loadProviders(token);
           await get().loadWorkspaceAgents(token);
-          await get().loadDistillationJobs(token);
           await get().loadFocusSessions(token);
         } catch (error) {
           if (classifySaunaApiError(error) === "unauthorized") {
-            set({ token: undefined, identity: undefined, providers: [], distillationJobs: [], activeSession: undefined, messagesBySession: {}, sessions: [], sessionNextCursor: undefined, sessionHasMore: false, sessionLoadMoreStatus: "idle", sessionLoadMoreError: undefined, authCodeSentEmail: undefined, authResendAvailableAt: undefined, devCode: undefined, authStatus: "error", authOperation: "idle", authError: humanizeApiError(error), authErrorCode: "unauthorized", agents: (get().agents ?? []).filter((agent) => agent.sourceKind === "public"), selectedAgentId: "" });
+            set({ token: undefined, identity: undefined, providers: [], activeSession: undefined, messagesBySession: {}, sessions: [], sessionNextCursor: undefined, sessionHasMore: false, sessionLoadMoreStatus: "idle", sessionLoadMoreError: undefined, authCodeSentEmail: undefined, authResendAvailableAt: undefined, devCode: undefined, authStatus: "error", authOperation: "idle", authError: humanizeApiError(error), authErrorCode: "unauthorized", agents: (get().agents ?? []).filter((agent) => agent.sourceKind === "public"), selectedAgentId: "" });
             throw error;
           }
           set({ authStatus: "error", authError: humanizeApiError(error) });
@@ -391,7 +380,6 @@ export const useSaunaStore = create<SaunaState>()(
         await Promise.allSettled([
           get().loadProviders(result.token),
           get().loadWorkspaceAgents(result.token),
-          get().loadDistillationJobs(result.token),
           get().loadFocusSessions(result.token),
         ]);
       },
@@ -409,8 +397,7 @@ export const useSaunaStore = create<SaunaState>()(
         token: undefined,
         identity: undefined,
         providers: [],
-        distillationJobs: [],
-        activeSession: undefined,
+          activeSession: undefined,
         adoptedFocusSessionId: undefined,
         messagesBySession: {},
         sessions: [],
@@ -447,8 +434,7 @@ export const useSaunaStore = create<SaunaState>()(
           token: undefined,
           identity: undefined,
           providers: [],
-          distillationJobs: [],
-          activeSession: undefined,
+              activeSession: undefined,
           adoptedFocusSessionId: undefined,
           messagesBySession: {},
           sessions: [],
@@ -471,7 +457,6 @@ export const useSaunaStore = create<SaunaState>()(
           streamEvents: [],
           focusError: undefined,
           providerError: undefined,
-          distillationError: undefined,
         });
       },
       loadProviders: async (tokenOverride) => {
@@ -618,47 +603,6 @@ export const useSaunaStore = create<SaunaState>()(
         } catch (error) {
           const message = humanizeApiError(error);
           set({ providerStatus: "error", providerError: message });
-          throw error;
-        }
-      },
-
-      loadDistillationJobs: async (tokenOverride) => {
-        const token = tokenOverride ?? get().token;
-        if (!token) {
-          return;
-        }
-        set({ distillationStatus: "loading", distillationError: undefined });
-        try {
-          const { jobs } = await createSaunaApiClient(token).listDistillationJobs();
-          set({ distillationJobs: jobs ?? [], distillationStatus: "ready" });
-        } catch (error) {
-          set({ distillationStatus: "error", distillationError: humanizeApiError(error) });
-        }
-      },
-      createDistillationJob: async (input) => {
-        const token = get().token;
-        if (!token) {
-          throw new Error("请先登录。");
-        }
-        set({ distillationStatus: "loading", distillationError: undefined });
-        try {
-          const job = await createSaunaApiClient(token).createDistillationJob(input);
-          set((state) => ({
-            distillationJobs: [job, ...(state.distillationJobs ?? []).filter((item) => item.id !== job.id)],
-            distillationStatus: "ready",
-          }));
-          window.setTimeout(() => {
-            void get().loadDistillationJobs(token);
-            void get().loadWorkspaceAgents(token);
-          }, 1200);
-          window.setTimeout(() => {
-            void get().loadDistillationJobs(token);
-            void get().loadWorkspaceAgents(token);
-          }, 3200);
-          return job;
-        } catch (error) {
-          const message = humanizeApiError(error);
-          set({ distillationStatus: "error", distillationError: message });
           throw error;
         }
       },

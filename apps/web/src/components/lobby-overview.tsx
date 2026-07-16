@@ -50,8 +50,6 @@ export function LobbyOverview() {
   }, [setSelectedAgentId]);
 
   const safeAgents = agents ?? [];
-  const publicAgents = safeAgents.filter((agent) => agent.sourceKind === "public");
-  const privateAgents = token ? safeAgents.filter((agent) => agent.sourceKind === "private") : [];
   const safeProviders = providers ?? [];
   const activeAgentId = safeAgents.some((agent) => agent.id === selectedAgentId) ? selectedAgentId : "";
   const activeAgent = safeAgents.find((agent) => agent.id === activeAgentId);
@@ -60,6 +58,11 @@ export function LobbyOverview() {
 
   function handleOpen(agentId: string, prompt?: string, requestAutoSend = false) {
     if (!agentId) return;
+    const chosen = safeAgents.find((agent) => agent.id === agentId);
+    if (!token && chosen?.slug) {
+      router.push(`/try/${encodeURIComponent(chosen.slug)}`);
+      return;
+    }
     clearAdoptedFocusSession();
     const promptText = prompt?.trim() ?? "";
     if (promptText) {
@@ -97,14 +100,12 @@ export function LobbyOverview() {
             <p className="text-sm text-[var(--sauna-muted)]">Brain trust</p>
             <h2 className="sauna-display mt-1 text-3xl tracking-[-0.04em] text-[var(--sauna-text)] sm:text-4xl">选择你的咨询对象</h2>
           </div>
-          <Link href="/studio" className="inline-flex h-11 items-center gap-2 rounded-full border border-[color:var(--sauna-line)] bg-[var(--sauna-panel-strong)] px-5 text-sm font-semibold text-[var(--sauna-text)] shadow-[var(--sauna-shadow-soft)] transition hover:-translate-y-0.5 hover:border-[color:var(--sauna-line-strong)] active:translate-y-px">
-            <Plus size={16} weight="bold" /> 新增智囊
+          <Link href="/catalog" className="inline-flex h-11 items-center gap-2 rounded-full border border-[color:var(--sauna-line)] bg-[var(--sauna-panel-strong)] px-5 text-sm font-semibold text-[var(--sauna-text)] shadow-[var(--sauna-shadow-soft)] transition hover:-translate-y-0.5 hover:border-[color:var(--sauna-line-strong)] active:translate-y-px">
+            <Plus size={16} weight="bold" /> 去人物大厅
           </Link>
         </div>
 
-        {privateAgents.length ? <section id="my-advisors" className="mb-10"><div className="mb-5"><p className="text-sm text-[var(--sauna-muted)]">Private collection</p><h3 className="sauna-display mt-1 text-3xl">我的智囊</h3></div><motion.div className="grid auto-rows-fr grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3" initial={reduce ? false : "hidden"} animate="show" variants={{ hidden: {}, show: { transition: { staggerChildren: 0.07 } } }}>{privateAgents.map((agent) => <motion.div key={agent.id} className="h-full" variants={{ hidden: { opacity: 0, y: 18 }, show: { opacity: 1, y: 0 } }}><AgentCard agent={agent} selected={activeAgentId === agent.id} opening={openingAgentId === agent.id} onSelect={setSelectedAgentId} onOpen={(id) => void handleOpen(id)} /></motion.div>)}</motion.div></section> : token ? <section id="my-advisors" className="mb-10 rounded-[28px] border border-[color:var(--sauna-line)] bg-[var(--sauna-panel-strong)] p-6"><h3 className="sauna-display text-3xl">我的智囊</h3><p className="mt-2 text-sm text-[var(--sauna-muted)]">还没有私人智囊。去蒸馏车间创建第一位。</p></section> : null}
-
-        {publicAgents.length ? <section><div className="mb-5"><p className="text-sm text-[var(--sauna-muted)]">House advisors</p><h3 className="sauna-display mt-1 text-3xl">默认智囊</h3></div><motion.div className="grid auto-rows-fr grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3" initial={reduce ? false : "hidden"} animate="show" variants={{ hidden: {}, show: { transition: { staggerChildren: 0.07 } } }}>{publicAgents.map((agent) => <motion.div key={agent.id} className="h-full" variants={{ hidden: { opacity: 0, y: 18 }, show: { opacity: 1, y: 0 } }}><AgentCard agent={agent} selected={activeAgentId === agent.id} opening={openingAgentId === agent.id} onSelect={setSelectedAgentId} onOpen={(id) => void handleOpen(id)} /></motion.div>)}</motion.div></section> : <div className="grid min-h-[360px] place-items-center rounded-[30px] border border-[color:var(--sauna-line)] bg-[var(--sauna-panel-strong)] p-8 text-center"><div><WarningCircle size={30} className="mx-auto text-[var(--sauna-danger)]" /><h2 className="sauna-display mt-4 text-3xl">{apiUnavailable ? "后端暂不可用" : "还没有智囊"}</h2></div></div>}
+        {safeAgents.length ? <section id="my-advisors"><div className="mb-5"><p className="text-sm text-[var(--sauna-muted)]">{token ? "My advisors" : "House advisors"}</p><h3 className="sauna-display mt-1 text-3xl">{token ? "我的智囊" : "可以先试聊的人"}</h3></div><motion.div className="grid auto-rows-fr grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3" initial={reduce ? false : "hidden"} animate="show" variants={{ hidden: {}, show: { transition: { staggerChildren: 0.07 } } }}>{safeAgents.map((agent) => <motion.div key={agent.id} className="h-full" variants={{ hidden: { opacity: 0, y: 18 }, show: { opacity: 1, y: 0 } }}><AgentCard agent={agent} selected={activeAgentId === agent.id} opening={openingAgentId === agent.id} onSelect={setSelectedAgentId} onOpen={(id) => void handleOpen(id)} /></motion.div>)}</motion.div></section> : <div className="grid min-h-[360px] place-items-center rounded-[30px] border border-[color:var(--sauna-line)] bg-[var(--sauna-panel-strong)] p-8 text-center"><div><WarningCircle size={30} className="mx-auto text-[var(--sauna-danger)]" /><h2 className="sauna-display mt-4 text-3xl">{apiUnavailable ? "后端暂不可用" : "智囊团还是空的"}</h2><p className="mt-2 text-sm text-[var(--sauna-muted)]">{apiUnavailable ? "请稍后再试。" : "去人物大厅添加第一位智囊。"}</p>{!apiUnavailable ? <Link href="/catalog" className="mt-5 inline-flex h-10 items-center gap-2 rounded-full bg-[var(--sauna-primary)] px-5 text-sm font-semibold text-[var(--sauna-primary-contrast)]">浏览人物大厅 <ArrowRight size={15}/></Link> : null}</div></div>}
 
         <motion.div layout className="sticky bottom-4 z-30 mx-auto mt-7 max-w-[900px]" transition={{ duration: motionDuration.component, ease: saunaEase }}>
           <AnimatePresence mode="wait" initial={false}>

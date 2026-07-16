@@ -30,18 +30,19 @@ const (
 )
 
 var (
-	ErrNotFound                = errors.New("not_found")
-	ErrUnauthorized            = errors.New("unauthorized")
-	ErrProviderConfigRequired  = errors.New("provider_config_required")
-	ErrForbidden               = errors.New("forbidden")
-	ErrRateLimited             = errors.New("rate_limited")
-	ErrInvalidInput            = errors.New("invalid_input")
-	ErrProviderInUse           = errors.New("provider_config_in_use")
-	ErrJobNotReady             = errors.New("distillation_job_not_ready")
-	ErrEmailDelivery           = errors.New("email_delivery_failed")
-	ErrInvalidVerificationCode = errors.New("invalid_verification_code")
-	ErrVerificationCooldown    = errors.New("verification_code_cooldown")
-	ErrTurnNotRetryable        = errors.New("turn_not_retryable")
+	ErrNotFound                 = errors.New("not_found")
+	ErrUnauthorized             = errors.New("unauthorized")
+	ErrProviderConfigRequired   = errors.New("provider_config_required")
+	ErrGuestProviderUnavailable = errors.New("guest_provider_unavailable")
+	ErrForbidden                = errors.New("forbidden")
+	ErrRateLimited              = errors.New("rate_limited")
+	ErrInvalidInput             = errors.New("invalid_input")
+	ErrProviderInUse            = errors.New("provider_config_in_use")
+	ErrJobNotReady              = errors.New("distillation_job_not_ready")
+	ErrEmailDelivery            = errors.New("email_delivery_failed")
+	ErrInvalidVerificationCode  = errors.New("invalid_verification_code")
+	ErrVerificationCooldown     = errors.New("verification_code_cooldown")
+	ErrTurnNotRetryable         = errors.New("turn_not_retryable")
 )
 
 type VerificationCooldownError struct {
@@ -70,9 +71,14 @@ type Workspace struct {
 	CreatedAt   time.Time `json:"created_at"`
 }
 
+type Permissions struct {
+	IsAdmin bool `json:"is_admin"`
+}
+
 type AuthIdentity struct {
-	User      User      `json:"user"`
-	Workspace Workspace `json:"workspace"`
+	User        User        `json:"user"`
+	Workspace   Workspace   `json:"workspace"`
+	Permissions Permissions `json:"permissions"`
 }
 
 type ProviderConfig struct {
@@ -262,4 +268,85 @@ type TokenUsage struct {
 	PromptTokens     int `json:"prompt_tokens"`
 	CompletionTokens int `json:"completion_tokens"`
 	TotalTokens      int `json:"total_tokens"`
+}
+
+type CatalogEntry struct {
+	ID                string          `json:"id"`
+	Agent             Agent           `json:"agent"`
+	Summary           string          `json:"summary"`
+	Categories        []string        `json:"categories"`
+	Tags              []string        `json:"tags"`
+	Featured          bool            `json:"featured"`
+	SortOrder         int             `json:"sort_order"`
+	ContentHash       string          `json:"content_hash,omitempty"`
+	SourceDescription string          `json:"source_description"`
+	SourceURLs        []string        `json:"source_urls"`
+	Manifest          json.RawMessage `json:"manifest,omitempty"`
+	Status            string          `json:"status"`
+	PublishedAt       time.Time       `json:"published_at"`
+	Installed         bool            `json:"installed"`
+	FollowerCount     int             `json:"follower_count,omitempty"`
+}
+
+type CatalogRequest struct {
+	ID              string     `json:"id"`
+	RequesterUserID string     `json:"requester_user_id"`
+	RequesterEmail  string     `json:"requester_email,omitempty"`
+	TargetName      string     `json:"target_name"`
+	NormalizedName  string     `json:"normalized_name"`
+	Reason          string     `json:"reason"`
+	SourceURLs      []string   `json:"source_urls"`
+	Status          string     `json:"status"`
+	AdminNote       string     `json:"admin_note"`
+	LinkedAgentID   *string    `json:"linked_agent_id,omitempty"`
+	MergedIntoID    *string    `json:"merged_into_id,omitempty"`
+	FollowerCount   int        `json:"follower_count"`
+	Following       bool       `json:"following"`
+	CreatedAt       time.Time  `json:"created_at"`
+	UpdatedAt       time.Time  `json:"updated_at"`
+	CompletedAt     *time.Time `json:"completed_at,omitempty"`
+}
+
+type Announcement struct {
+	ID            string    `json:"id"`
+	Title         string    `json:"title"`
+	Summary       string    `json:"summary"`
+	LinkedAgentID *string   `json:"linked_agent_id,omitempty"`
+	Status        string    `json:"status"`
+	PublishedAt   time.Time `json:"published_at"`
+	Read          bool      `json:"read"`
+}
+
+type Notification struct {
+	ID               string     `json:"id"`
+	NotificationType string     `json:"notification_type"`
+	Title            string     `json:"title"`
+	Body             string     `json:"body"`
+	LinkedAgentID    *string    `json:"linked_agent_id,omitempty"`
+	LinkedRequestID  *string    `json:"linked_request_id,omitempty"`
+	ReadAt           *time.Time `json:"read_at,omitempty"`
+	CreatedAt        time.Time  `json:"created_at"`
+}
+
+type Inbox struct {
+	Notifications []Notification `json:"notifications"`
+	Announcements []Announcement `json:"announcements"`
+	UnreadCount   int            `json:"unread_count"`
+}
+
+type GuestSession struct {
+	ID             string    `json:"id"`
+	AgentID        string    `json:"agent_id"`
+	AgentVersionID string    `json:"agent_version_id"`
+	Title          string    `json:"title"`
+	CurrentStatus  string    `json:"current_status"`
+	ExpiresAt      time.Time `json:"expires_at"`
+	CreatedAt      time.Time `json:"created_at"`
+}
+
+type GuestTurnCreated struct {
+	Session     GuestSession `json:"session"`
+	Turn        Turn         `json:"turn"`
+	UserMessage Message      `json:"user_message"`
+	Remaining   int          `json:"remaining_turns"`
 }

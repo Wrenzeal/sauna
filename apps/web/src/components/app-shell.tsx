@@ -2,17 +2,18 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Brain, ClockCounterClockwise, Flask, GearSix, UsersThree } from "@phosphor-icons/react";
+import { Brain, ClockCounterClockwise, GearSix, ShieldCheck, Storefront, UsersThree } from "@phosphor-icons/react";
 import { motion } from "motion/react";
 import { motionDuration, saunaEase } from "@/lib/motion-system";
 import { PageTransition } from "@/components/page-transition";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { AccountMenu } from "@/components/access-coordinator";
 import { useSaunaStore } from "@/store/sauna-store";
+import { InboxMenu } from "@/components/inbox-menu";
 
 const navItems = [
   { href: "/lobby", label: "桑拿房", icon: Brain },
-  { href: "/studio", label: "蒸馏车间", icon: Flask },
+  { href: "/catalog", label: "人物大厅", icon: Storefront },
   { href: "/board-meeting", label: "董事会", icon: UsersThree },
   { href: "/settings", label: "模型设置", icon: GearSix },
 ] as const;
@@ -23,9 +24,8 @@ function isActivePath(pathname: string, href: string) {
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const clearAdoptedFocusSession = useSaunaStore(
-    (state) => state.clearAdoptedFocusSession,
-  );
+  const clearAdoptedFocusSession = useSaunaStore((state) => state.clearAdoptedFocusSession);
+  const isAdmin = useSaunaStore((state) => state.identity?.permissions?.is_admin === true);
 
   return (
     <div className="min-h-[100dvh] text-[var(--sauna-text)]">
@@ -39,7 +39,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </Link>
 
           <nav className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto px-1 [scrollbar-width:none]" aria-label="主导航">
-            {navItems.map((item) => {
+            {[...navItems, ...(isAdmin ? [{ href: "/admin/catalog-requests", label: "管理", icon: ShieldCheck } as const] : [])].map((item) => {
               const active = isActivePath(pathname, item.href);
               const Icon = item.icon;
               return (
@@ -62,6 +62,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <Link href="/focus-room/new" onClick={clearAdoptedFocusSession} className="hidden h-10 items-center gap-2 rounded-full px-4 text-sm text-[var(--sauna-muted)] transition hover:bg-[var(--sauna-soft)] hover:text-[var(--sauna-text)] lg:flex">
               <ClockCounterClockwise size={17} /> 会话
             </Link>
+            <InboxMenu />
             <ThemeToggle compact />
             <AccountMenu />
           </div>

@@ -18,7 +18,11 @@ type Server struct {
 	provider *service.ProviderService
 	agents   *service.AgentService
 	focus    *service.FocusRoomService
-	distill  *service.DistillationService
+	catalog  *service.CatalogService
+	guest    *service.GuestService
+	admins   []string
+	secret   string
+	appEnv   string
 }
 
 type Services struct {
@@ -26,11 +30,15 @@ type Services struct {
 	Provider *service.ProviderService
 	Agents   *service.AgentService
 	Focus    *service.FocusRoomService
-	Distill  *service.DistillationService
+	Catalog  *service.CatalogService
+	Guest    *service.GuestService
 }
 
 type RouterOptions struct {
 	CORSAllowOrigins []string
+	AdminEmails      []string
+	SecretKey        string
+	AppEnv           string
 }
 
 func NewRouter(services Services, options ...RouterOptions) *gin.Engine {
@@ -38,8 +46,9 @@ func NewRouter(services Services, options ...RouterOptions) *gin.Engine {
 	if len(options) > 0 {
 		routerOptions = options[0]
 	}
-	server := &Server{auth: services.Auth, provider: services.Provider, agents: services.Agents, focus: services.Focus, distill: services.Distill}
+	server := &Server{auth: services.Auth, provider: services.Provider, agents: services.Agents, focus: services.Focus, catalog: services.Catalog, guest: services.Guest, admins: routerOptions.AdminEmails, secret: routerOptions.SecretKey, appEnv: routerOptions.AppEnv}
 	router := gin.New()
+	_ = router.SetTrustedProxies([]string{"127.0.0.1", "::1"})
 	router.Use(gin.Logger(), gin.Recovery(), corsMiddleware(routerOptions.CORSAllowOrigins))
 	router.GET("/health", server.health)
 
@@ -50,6 +59,13 @@ func NewRouter(services Services, options ...RouterOptions) *gin.Engine {
 	v1.GET("/me", server.requireAuth(), server.me)
 
 	v1.GET("/public/agents", server.publicAgents)
+	v1.GET("/public/catalog", server.listPublicCatalog)
+	v1.GET("/public/catalog/:slug", server.getPublicCatalogEntry)
+	v1.GET("/public/announcements", server.listPublicAnnouncements)
+	v1.POST("/public/catalog/:agent_id/guest-consultations", server.startGuestConsultation)
+	v1.POST("/public/guest-sessions/:session_id/turns", server.createGuestTurn)
+	v1.GET("/public/guest-sessions/:session_id/messages", server.listGuestMessages)
+	v1.GET("/public/guest-sessions/:session_id/turns/:turn_id/stream", server.streamGuestTurn)
 
 	providers := v1.Group("/provider-configs", server.requireAuth())
 	providers.GET("", server.listProviderConfigs)
@@ -69,11 +85,28 @@ func NewRouter(services Services, options ...RouterOptions) *gin.Engine {
 	agents := v1.Group("/agents", server.requireAuth())
 	agents.GET("", server.listWorkspaceAgents)
 
-	studio := v1.Group("/studio", server.requireAuth())
-	studio.POST("/public-agents/:agent_id/clone", server.clonePublicAgent)
-	studio.GET("/jobs", server.listDistillationJobs)
-	studio.POST("/jobs", server.createDistillationJob)
-	studio.GET("/jobs/:id", server.getDistillationJob)
+	catalog := v1.Group("/catalog", server.requireAuth())
+	catalog.GET("/installed", server.listInstalledCatalog)
+	catalog.POST("/:agent_id/install", server.installCatalogAgent)
+	catalog.DELETE("/:agent_id/install", server.removeCatalogAgent)
+
+	requests := v1.Group("/catalog-requests", server.requireAuth())
+	requests.POST("", server.createCatalogRequest)
+	requests.GET("/mine", server.listMyCatalogRequests)
+	requests.GET("/:id", server.getMyCatalogRequest)
+	requests.POST("/:id/follow", server.followCatalogRequest)
+
+	inbox := v1.Group("/inbox", server.requireAuth())
+	inbox.GET("", server.getInbox)
+	inbox.POST("/notifications/:id/read", server.readNotification)
+	inbox.POST("/announcements/:id/read", server.readAnnouncement)
+	inbox.POST("/read-all", server.readAllInbox)
+
+	admin := v1.Group("/admin", server.requireAuth(), server.requireAdmin())
+	admin.GET("/catalog-requests", server.listAdminCatalogRequests)
+	admin.GET("/catalog-requests/:id", server.getAdminCatalogRequest)
+	admin.PATCH("/catalog-requests/:id", server.updateAdminCatalogRequest)
+	admin.POST("/catalog-requests/:id/merge", server.mergeAdminCatalogRequest)
 
 	focus := v1.Group("/focus-room", server.requireAuth())
 	focus.GET("/sessions", server.listFocusSessions)
@@ -133,7 +166,10 @@ func corsMiddleware(allowOrigins []string) gin.HandlerFunc {
 			return
 		}
 		c.Header("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE, OPTIONS")
-		c.Header("Access-Control-Allow-Headers", "Authorization, Content-Type, Accept, Cache-Control")
+		if !allowAll {
+			c.Header("Access-Control-Allow-Credentials", "true")
+		}
+		c.Header("Access-Control-Allow-Headers", "Authorization, Content-Type, Accept, Cache-Control, Last-Event-ID")
 		c.Header("Access-Control-Expose-Headers", "Content-Type, Cache-Control")
 		c.Header("Access-Control-Max-Age", "600")
 		if c.Request.Method == http.MethodOptions {
@@ -178,6 +214,7 @@ func (s *Server) authVerify(c *gin.Context) {
 		respondError(c, err)
 		return
 	}
+	result.Identity = s.decorateIdentity(result.Identity)
 	c.JSON(http.StatusOK, result)
 }
 
@@ -191,7 +228,7 @@ func (s *Server) authLogout(c *gin.Context) {
 }
 
 func (s *Server) me(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{"identity": identityFromContext(c)})
+	c.JSON(http.StatusOK, gin.H{"identity": s.decorateIdentity(identityFromContext(c))})
 }
 
 func (s *Server) publicAgents(c *gin.Context) {
@@ -557,6 +594,8 @@ func respondError(c *gin.Context, err error) {
 		status, code, message = http.StatusNotFound, "not_found", "Resource not found."
 	case errors.Is(err, domain.ErrProviderConfigRequired):
 		status, code, message = http.StatusConflict, "provider_config_required", "请先接入你自己的模型 provider 和 key。"
+	case errors.Is(err, domain.ErrGuestProviderUnavailable):
+		status, code, message = http.StatusServiceUnavailable, "guest_provider_unavailable", "游客试用模型暂未配置。"
 	case errors.Is(err, domain.ErrTurnNotRetryable):
 		status, code, message = http.StatusConflict, "turn_not_retryable", "Only failed turns can be retried."
 	case errors.Is(err, domain.ErrProviderInUse):
@@ -591,39 +630,4 @@ func (s *Server) listWorkspaceAgents(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"agents": agents})
-}
-
-func (s *Server) listDistillationJobs(c *gin.Context) {
-	identity := identityFromContext(c)
-	jobs, err := s.distill.List(c.Request.Context(), identity.Workspace.ID)
-	if err != nil {
-		respondError(c, err)
-		return
-	}
-	c.JSON(http.StatusOK, gin.H{"jobs": jobs})
-}
-
-func (s *Server) createDistillationJob(c *gin.Context) {
-	var request service.CreateDistillationJobRequest
-	if err := c.ShouldBindJSON(&request); err != nil {
-		respondError(c, domain.ErrInvalidInput)
-		return
-	}
-	identity := identityFromContext(c)
-	job, err := s.distill.Create(c.Request.Context(), identity.Workspace.ID, request)
-	if err != nil {
-		respondError(c, err)
-		return
-	}
-	c.JSON(http.StatusCreated, job)
-}
-
-func (s *Server) getDistillationJob(c *gin.Context) {
-	identity := identityFromContext(c)
-	job, err := s.distill.Get(c.Request.Context(), identity.Workspace.ID, c.Param("id"))
-	if err != nil {
-		respondError(c, err)
-		return
-	}
-	c.JSON(http.StatusOK, job)
 }

@@ -16,6 +16,12 @@ type Config struct {
 	CORSAllowOrigins      []string
 	MigrationsDir         string
 	NuwaSkillSeedDir      string
+	AdminEmails           []string
+	GuestLLMBaseURL       string
+	GuestLLMAPIKey        string
+	GuestLLMModel         string
+	GuestDailyTurnLimit   int
+	GuestSessionTTL       time.Duration
 	SecretKey             string
 	EmailCodeTTL          time.Duration
 	AuthSessionTTL        time.Duration
@@ -43,6 +49,12 @@ func Load() Config {
 		CORSAllowOrigins:      listEnv("CORS_ALLOW_ORIGINS", defaultCORSAllowOrigins()),
 		MigrationsDir:         env("MIGRATIONS_DIR", "migrations"),
 		NuwaSkillSeedDir:      env("NUWA_SKILL_SEED_DIR", "seed/nuwa-skills"),
+		AdminEmails:           listEnv("SAUNA_ADMIN_EMAILS", nil),
+		GuestLLMBaseURL:       env("GUEST_LLM_BASE_URL", ""),
+		GuestLLMAPIKey:        env("GUEST_LLM_API_KEY", ""),
+		GuestLLMModel:         env("GUEST_LLM_MODEL", ""),
+		GuestDailyTurnLimit:   intEnv("GUEST_DAILY_TURN_LIMIT", 3),
+		GuestSessionTTL:       durationEnv("GUEST_SESSION_TTL", 24*time.Hour),
 		SecretKey:             env("SAUNA_SECRET_KEY", "dev-only-sauna-secret-change-me-32-bytes"),
 		EmailCodeTTL:          durationEnv("EMAIL_CODE_TTL", 10*time.Minute),
 		AuthSessionTTL:        durationEnv("AUTH_SESSION_TTL", 30*24*time.Hour),
@@ -74,6 +86,12 @@ func (c Config) Validate() error {
 	}
 	if c.AuthResendCooldown < time.Second {
 		return errors.New("AUTH_RESEND_COOLDOWN must be at least 1s")
+	}
+	if c.GuestDailyTurnLimit != 0 && (c.GuestDailyTurnLimit < 1 || c.GuestDailyTurnLimit > 20) {
+		return errors.New("GUEST_DAILY_TURN_LIMIT must be between 1 and 20")
+	}
+	if c.GuestSessionTTL != 0 && c.GuestSessionTTL < time.Hour {
+		return errors.New("GUEST_SESSION_TTL must be at least 1h")
 	}
 	driver := strings.ToLower(strings.TrimSpace(c.AuthEmailDriver))
 	switch driver {

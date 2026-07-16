@@ -346,3 +346,88 @@ https://sauna.wrenzeal.top
 </html>`, safeCode, minutes)
 	return plain, htmlBody
 }
+
+// NotificationEmailSender is used by the durable notification outbox. It is
+// intentionally separate from EmailSender so authentication test doubles stay small.
+type NotificationEmailSender interface {
+	SendNotification(ctx context.Context, email string, subject string, textBody string, htmlBody string) error
+}
+
+func (DevEmailSender) SendNotification(_ context.Context, email string, subject string, textBody string, _ string) error {
+	log.Printf("sauna notification email to %s: %s | %s", email, subject, strings.Join(strings.Fields(textBody), " "))
+	return nil
+}
+
+func (s *SMTPEmailSender) SendNotification(ctx context.Context, email string, subject string, textBody string, htmlBody string) error {
+	message, err := buildGenericEmail(s.config.From, s.config.FromName, email, subject, textBody, htmlBody)
+	if err != nil {
+		return err
+	}
+	return s.sendRawMessage(ctx, email, message)
+}
+
+func (s *SMTPEmailSender) sendRawMessage(ctx context.Context, email string, message []byte) error {
+	ctx, cancel := context.WithTimeout(ctx, s.config.Timeout)
+	defer cancel()
+	client, err := s.connect(ctx)
+	if err != nil {
+		return err
+	}
+	defer client.Close()
+	if strings.TrimSpace(s.config.Username) != "" {
+		auth := smtp.PlainAuth("", s.config.Username, s.config.Password, s.config.Host)
+		if err := client.Auth(auth); err != nil {
+			return fmt.Errorf("smtp auth: %w", err)
+		}
+	}
+	if err := client.Mail(s.config.From); err != nil {
+		return fmt.Errorf("smtp mail from: %w", err)
+	}
+	if err := client.Rcpt(email); err != nil {
+		return fmt.Errorf("smtp rcpt to: %w", err)
+	}
+	writer, err := client.Data()
+	if err != nil {
+		return fmt.Errorf("smtp data: %w", err)
+	}
+	if _, err := io.Copy(writer, bytes.NewReader(message)); err != nil {
+		_ = writer.Close()
+		return fmt.Errorf("smtp write body: %w", err)
+	}
+	if err := writer.Close(); err != nil {
+		return fmt.Errorf("smtp close body: %w", err)
+	}
+	if err := client.Quit(); err != nil {
+		log.Printf("smtp quit after notification acceptance: %v", err)
+	}
+	return nil
+}
+
+func buildGenericEmail(from, fromName, to, subject, textBody, htmlBody string) ([]byte, error) {
+	if _, err := mail.ParseAddress(to); err != nil {
+		return nil, fmt.Errorf("recipient email is invalid: %w", err)
+	}
+	if strings.TrimSpace(htmlBody) == "" {
+		htmlBody = "<p>" + html.EscapeString(textBody) + "</p>"
+	}
+	var body bytes.Buffer
+	alternative := multipart.NewWriter(&body)
+	if err := writeEmailPart(alternative, "text/plain; charset=UTF-8", textBody); err != nil {
+		return nil, err
+	}
+	if err := writeEmailPart(alternative, "text/html; charset=UTF-8", htmlBody); err != nil {
+		return nil, err
+	}
+	if err := alternative.Close(); err != nil {
+		return nil, err
+	}
+	var message bytes.Buffer
+	fromAddress := mail.Address{Name: strings.TrimSpace(fromName), Address: from}
+	toAddress := mail.Address{Address: to}
+	fmt.Fprintf(&message, "From: %s\r\n", fromAddress.String())
+	fmt.Fprintf(&message, "To: %s\r\n", toAddress.String())
+	fmt.Fprintf(&message, "Subject: %s\r\n", mime.QEncoding.Encode("UTF-8", subject))
+	fmt.Fprintf(&message, "MIME-Version: 1.0\r\nContent-Type: multipart/alternative; boundary=%q\r\n\r\n", alternative.Boundary())
+	message.Write(body.Bytes())
+	return message.Bytes(), nil
+}

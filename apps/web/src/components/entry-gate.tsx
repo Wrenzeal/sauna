@@ -98,8 +98,8 @@ export function EntryGate() {
               <span className="grid size-13 place-items-center rounded-[20px] bg-[var(--sauna-primary)] text-[var(--sauna-primary-contrast)]"><Brain size={23} weight="duotone" /></span>
               <p className="mt-7 text-sm text-[var(--sauna-accent-strong)]">Personal AI Brain Trust</p>
               <h2 id="sauna-intro-title" className="sauna-display mt-2 text-4xl tracking-[-0.05em] sm:text-5xl">什么是 Sauna？</h2>
-              <div className="mt-6 grid gap-4 text-sm leading-7 text-[var(--sauna-muted-strong)]"><p>Sauna 是你的个人 AI 智囊团工作空间。</p><p>默认智囊来自已经蒸馏好的 Skill；你也可以在蒸馏车间创建想学习的人物。</p><p>咨询时系统加载对应 Skill，并使用你配置的大模型进行真实、流式的回答。</p></div>
-              <div className="mt-8 flex flex-wrap gap-3"><Link href="/lobby" onClick={() => setIntroOpen(false)} className="inline-flex h-12 items-center gap-2 rounded-full bg-[var(--sauna-primary)] px-5 text-sm font-semibold text-[var(--sauna-primary-contrast)]">进入桑拿房 <ArrowRight size={16} /></Link><Link href="/studio" onClick={() => setIntroOpen(false)} className="inline-flex h-12 items-center rounded-full border border-[color:var(--sauna-line)] px-5 text-sm font-semibold text-[var(--sauna-muted-strong)]">开始蒸馏</Link></div>
+              <div className="mt-6 grid gap-4 text-sm leading-7 text-[var(--sauna-muted-strong)]"><p>Sauna 是你的个人 AI 智囊团工作空间。</p><p>人物大厅中的智囊都由平台使用 nuwa-skill 蒸馏并审核；没有的人物可以提交上架申请。</p><p>咨询时系统加载对应 Skill，并使用你配置的大模型进行真实、流式的回答。</p></div>
+              <div className="mt-8 flex flex-wrap gap-3"><Link href="/lobby" onClick={() => setIntroOpen(false)} className="inline-flex h-12 items-center gap-2 rounded-full bg-[var(--sauna-primary)] px-5 text-sm font-semibold text-[var(--sauna-primary-contrast)]">进入桑拿房 <ArrowRight size={16} /></Link><Link href="/catalog" onClick={() => setIntroOpen(false)} className="inline-flex h-12 items-center rounded-full border border-[color:var(--sauna-line)] px-5 text-sm font-semibold text-[var(--sauna-muted-strong)]">浏览人物大厅</Link></div>
             </motion.section>
           </motion.div>
         ) : null}

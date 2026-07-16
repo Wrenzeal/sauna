@@ -1,11 +1,20 @@
 export type AgentStatus = "idle" | "thinking" | "in_conversation" | "offline";
 export type SessionType = "lobby" | "focus_room" | "board_meeting";
-export type TurnStatus = "created" | "draft" | "queued" | "streaming" | "completed" | "failed" | "cancelled";
+export type TurnStatus =
+  | "created"
+  | "draft"
+  | "queued"
+  | "streaming"
+  | "completed"
+  | "failed"
+  | "cancelled";
 export type MessageRole = "user" | "assistant" | "system";
-export type MessageStatus = "pending" | "partial" | "complete" | "done" | "failed";
+export type MessageStatus =
+  "pending" | "partial" | "complete" | "done" | "failed";
 
 export interface AgentProfile {
   id: string;
+  slug?: string;
   displayName: string;
   role: string;
   quote: string;
@@ -21,7 +30,14 @@ export interface SessionSummary {
   id: string;
   title: string;
   sessionType: SessionType;
-  currentStatus: "idle" | "active" | "thinking" | "streaming" | "completed" | "failed" | "disabled";
+  currentStatus:
+    | "idle"
+    | "active"
+    | "thinking"
+    | "streaming"
+    | "completed"
+    | "failed"
+    | "disabled";
   agentIds: string[];
   providerConfigId?: string;
   agentDisplayName?: string;
@@ -47,6 +63,7 @@ export interface ApiWorkspace {
 export interface AuthIdentity {
   user: ApiUser;
   workspace: ApiWorkspace;
+  permissions: { is_admin: boolean };
 }
 
 export interface AuthStartResult {
@@ -105,35 +122,6 @@ export interface FetchedModel {
   object?: string;
   created?: number;
   owned_by?: string;
-}
-
-
-export interface DistillationJob {
-  id: string;
-  workspace_id: string;
-  target_name: string;
-  target_type: string;
-  input_brief: string;
-  source_urls: string[];
-  uploaded_source_ids: string[];
-  provider_config_id?: string;
-  status: "queued" | "researching" | "extracting" | "validating" | "completed" | "failed";
-  progress_message: string;
-  result_agent_id?: string;
-  result_skill_markdown?: string;
-  error_message: string;
-  created_at: string;
-  updated_at: string;
-  completed_at?: string;
-}
-
-export interface CreateDistillationJobInput {
-  target_name: string;
-  target_type?: "person" | "topic";
-  input_brief?: string;
-  source_urls?: string[];
-  uploaded_source_ids?: string[];
-  provider_config_id?: string;
 }
 
 export interface ApiAgent {
@@ -254,4 +242,91 @@ export interface StreamEventShape {
   usage?: TokenUsage;
   interaction_id?: string;
   agent_id?: string;
+}
+
+export interface CatalogEntry {
+  id: string;
+  agent: ApiAgent;
+  summary: string;
+  categories: string[];
+  tags: string[];
+  featured: boolean;
+  sort_order: number;
+  source_description: string;
+  source_urls: string[];
+  status: string;
+  published_at: string;
+  installed: boolean;
+  follower_count?: number;
+}
+
+export type CatalogRequestStatus =
+  | "submitted"
+  | "reviewing"
+  | "approved"
+  | "distilling"
+  | "fulfilled"
+  | "rejected";
+
+export interface CatalogRequest {
+  id: string;
+  requester_user_id: string;
+  requester_email?: string;
+  target_name: string;
+  normalized_name: string;
+  reason: string;
+  source_urls: string[];
+  status: CatalogRequestStatus;
+  admin_note: string;
+  linked_agent_id?: string;
+  merged_into_id?: string;
+  follower_count: number;
+  following: boolean;
+  created_at: string;
+  updated_at: string;
+  completed_at?: string;
+}
+
+export interface Announcement {
+  id: string;
+  title: string;
+  summary: string;
+  linked_agent_id?: string;
+  status: string;
+  published_at: string;
+  read: boolean;
+}
+
+export interface SaunaNotification {
+  id: string;
+  notification_type: string;
+  title: string;
+  body: string;
+  linked_agent_id?: string;
+  linked_request_id?: string;
+  read_at?: string;
+  created_at: string;
+}
+
+export interface Inbox {
+  notifications: SaunaNotification[];
+  announcements: Announcement[];
+  unread_count: number;
+}
+
+export interface GuestSession {
+  id: string;
+  agent_id: string;
+  agent_version_id: string;
+  title: string;
+  current_status: string;
+  expires_at: string;
+  created_at: string;
+}
+
+export interface GuestTurnCreated {
+  session: GuestSession;
+  turn: Turn;
+  user_message: Message;
+  remaining_turns: number;
 }

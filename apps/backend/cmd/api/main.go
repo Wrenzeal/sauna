@@ -70,10 +70,39 @@ func main() {
 		Provider: service.NewProviderService(repo, box, llmClient),
 		Agents:   service.NewAgentService(repo),
 		Focus:    service.NewFocusRoomService(repo, box, llmClient),
-		Distill:  service.NewDistillationService(repo, service.NewLocalNuwaRunner()),
+		Catalog:  service.NewCatalogService(repo, cfg.AdminEmails),
+		Guest:    service.NewGuestService(repo, cacheStore, llmClient, service.GuestPlatformConfig{BaseURL: cfg.GuestLLMBaseURL, APIKey: cfg.GuestLLMAPIKey, Model: cfg.GuestLLMModel, TTL: cfg.GuestSessionTTL, Limit: cfg.GuestDailyTurnLimit}),
 	}
 
-	router := httpapi.NewRouter(services, httpapi.RouterOptions{CORSAllowOrigins: cfg.CORSAllowOrigins})
+	if notificationSender, ok := emailSender.(service.NotificationEmailSender); ok {
+		dispatcher := service.NewNotificationDispatcher(repo, notificationSender)
+		go func() {
+			ticker := time.NewTicker(time.Minute)
+			defer ticker.Stop()
+			for {
+				runCtx, runCancel := context.WithTimeout(context.Background(), 45*time.Second)
+				if err := dispatcher.RunOnce(runCtx); err != nil {
+					log.Printf("notification outbox: %v", err)
+				}
+				runCancel()
+				<-ticker.C
+			}
+		}()
+	}
+	go func() {
+		ticker := time.NewTicker(time.Hour)
+		defer ticker.Stop()
+		for {
+			runCtx, runCancel := context.WithTimeout(context.Background(), time.Minute)
+			if err := services.Guest.Cleanup(runCtx); err != nil {
+				log.Printf("guest cleanup: %v", err)
+			}
+			runCancel()
+			<-ticker.C
+		}
+	}()
+
+	router := httpapi.NewRouter(services, httpapi.RouterOptions{CORSAllowOrigins: cfg.CORSAllowOrigins, AdminEmails: cfg.AdminEmails, SecretKey: cfg.SecretKey, AppEnv: cfg.AppEnv})
 	server := &http.Server{Addr: cfg.HTTPAddr, Handler: router}
 	log.Printf("sauna api listening on %s", cfg.HTTPAddr)
 	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {

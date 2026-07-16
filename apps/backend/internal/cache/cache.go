@@ -155,3 +155,27 @@ func sanitize(value string) string {
 	value = strings.ReplaceAll(value, ":", "_")
 	return value
 }
+
+func (s *Store) AllowGuestTurn(ctx context.Context, identity string, limit int) (int, error) {
+	if limit < 1 {
+		return 0, nil
+	}
+	now := time.Now().UTC()
+	key := fmt.Sprintf("guest:turns:%s:%s", now.Format("2006-01-02"), codeHash(identity))
+	count, err := s.client.Incr(ctx, key).Result()
+	if err != nil {
+		return 0, err
+	}
+	if count == 1 {
+		tomorrow := now.Truncate(24 * time.Hour).Add(25 * time.Hour)
+		_ = s.client.ExpireAt(ctx, key, tomorrow).Err()
+	}
+	remaining := limit - int(count)
+	if remaining < 0 {
+		remaining = 0
+	}
+	if int(count) > limit {
+		return -1, nil
+	}
+	return remaining, nil
+}

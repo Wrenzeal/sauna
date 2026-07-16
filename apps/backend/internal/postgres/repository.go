@@ -49,6 +49,19 @@ func (r *Repository) UpsertUserWorkspace(ctx context.Context, email string) (dom
 	`, user.ID, workspaceName(email)).Scan(&workspace.ID, &workspace.OwnerUserID, &workspace.Name, &workspace.CreatedAt); err != nil {
 		return domain.AuthIdentity{}, err
 	}
+	if _, err := tx.Exec(ctx, `
+		INSERT INTO workspace_agent_subscriptions(workspace_id, agent_id)
+		SELECT $1::uuid, ce.agent_id
+		FROM catalog_entries ce
+		JOIN workspaces w ON w.id=$1::uuid
+		WHERE ce.featured=true AND ce.status='published' AND w.catalog_defaults_seeded_at IS NULL
+		ON CONFLICT DO NOTHING
+	`, workspace.ID); err != nil {
+		return domain.AuthIdentity{}, err
+	}
+	if _, err := tx.Exec(ctx, `UPDATE workspaces SET catalog_defaults_seeded_at=now() WHERE id=$1::uuid AND catalog_defaults_seeded_at IS NULL`, workspace.ID); err != nil {
+		return domain.AuthIdentity{}, err
+	}
 	if err := tx.Commit(ctx); err != nil {
 		return domain.AuthIdentity{}, err
 	}
@@ -328,7 +341,7 @@ func (r *Repository) GetAgentWithCurrentVersion(ctx context.Context, workspaceID
 		FROM agents a
 		JOIN agent_versions v ON v.id = a.current_version_id
 		WHERE a.id=$2::uuid AND a.deleted_at IS NULL
-		  AND (a.is_public_template=true OR a.workspace_id=$1::uuid)
+		  AND ((a.is_public_template=true AND EXISTS(SELECT 1 FROM workspace_agent_subscriptions was WHERE was.workspace_id=$1::uuid AND was.agent_id=a.id)) OR a.workspace_id=$1::uuid)
 	`, workspaceID, agentID).Scan(
 		&output.Agent.ID, &nullableStringScanner{dest: &output.Agent.WorkspaceID}, &output.Agent.DisplayName, &output.Agent.Slug, &output.Agent.AvatarEmoji, &output.Agent.RoleSummary, &output.Agent.Status, &output.Agent.IsPublicTemplate, &output.Agent.CurrentVersionID, &output.Agent.CreatedAt, &output.Agent.UpdatedAt,
 		&output.Version.ID, &output.Version.AgentID, &output.Version.VersionNo, &output.Version.SystemPrompt, &output.Version.SkillMarkdown, &output.Version.ExpressionDNA, &output.Version.MentalModels, &output.Version.DecisionHeuristics, &output.Version.AntiPatterns, &output.Version.HonestyBoundaries, &output.Version.Status, &nullableTimeScanner{dest: &output.Version.PublishedAt}, &output.Version.CreatedAt, &output.Version.SkillSource, &output.Version.SkillRepoURL, &output.Version.SkillCommitSHA, &jsonBytesScanner{dest: &output.Version.SkillMetadata}, &jsonBytesScanner{dest: &output.Version.QualityReport},
@@ -942,10 +955,12 @@ func (s *jsonBytesScanner) Scan(src any) error {
 
 func (r *Repository) ListWorkspaceAgents(ctx context.Context, workspaceID string) ([]domain.Agent, error) {
 	rows, err := r.pool.Query(ctx, `
-		SELECT id::text, workspace_id::text, display_name, slug, avatar_emoji, role_summary, status, is_public_template, current_version_id::text, created_at, updated_at
-		FROM agents
-		WHERE workspace_id=$1::uuid AND is_public_template=false AND deleted_at IS NULL
-		ORDER BY updated_at DESC, created_at DESC
+		SELECT a.id::text, a.workspace_id::text, a.display_name, a.slug, a.avatar_emoji, a.role_summary, a.status, a.is_public_template, a.current_version_id::text, a.created_at, a.updated_at
+		FROM workspace_agent_subscriptions was
+		JOIN agents a ON a.id=was.agent_id
+		JOIN catalog_entries ce ON ce.agent_id=a.id AND ce.status='published'
+		WHERE was.workspace_id=$1::uuid AND a.is_public_template=true AND a.deleted_at IS NULL
+		ORDER BY was.created_at DESC
 	`, workspaceID)
 	if err != nil {
 		return nil, err
